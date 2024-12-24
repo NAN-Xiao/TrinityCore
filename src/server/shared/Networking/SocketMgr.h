@@ -35,8 +35,10 @@ public:
 
     virtual bool StartNetwork(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, int threadCount)
     {
+        //为假则抛出异常
         ASSERT(threadCount > 0);
 
+        //创建异步接收
         AsyncAcceptor* acceptor = nullptr;
         try
         {

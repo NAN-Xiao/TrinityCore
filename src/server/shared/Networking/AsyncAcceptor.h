@@ -28,6 +28,7 @@
 
 #define TRINITY_MAX_LISTEN_CONNECTIONS boost::asio::socket_base::max_listen_connections
 
+//异步接收
 class AsyncAcceptor
 {
 public:

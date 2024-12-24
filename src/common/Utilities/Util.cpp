@@ -29,6 +29,9 @@
 #include <cstdarg>
 #include <ctime>
 
+//
+//????
+//
 void Trinity::VerifyOsVersion()
 {
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS

@@ -3,7 +3,7 @@
 // Used by TrinityCore.rc
 //
 
-// Next default values for new objects
+// Next default values for new objects asdf ???? ????
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS

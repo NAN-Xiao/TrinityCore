@@ -816,6 +816,7 @@ void TerrainMgr::UnloadAll()
     _terrainMaps.clear();
 }
 
+//全局垃圾收集
 void TerrainMgr::Update(uint32 diff)
 {
     // global garbage collection
