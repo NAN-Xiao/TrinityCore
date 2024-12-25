@@ -200,6 +200,7 @@ Player::Player(WorldSession *session) : Unit(true), m_sceneMgr(this)
     m_social = nullptr;
 
     // group is initialized in the reference constructor
+    // 在引用构造函数中初始化group
     SetGroupInvite(nullptr);
     m_groupUpdateMask = 0;
     m_bPassOnGroupLoot = false;
@@ -263,6 +264,9 @@ Player::Player(WorldSession *session) : Unit(true), m_sceneMgr(this)
     // cache for CreatedBySpell to allow
     // returning reagents for temporarily removed pets
     // when dying/logging out
+    // 缓存CreatedBySpell允许
+    // 为暂时移除的宠物返回试剂
+    // 当死亡/注销时
     m_oldpetspell = 0;
     m_lastpetnumber = 0;
 
@@ -297,11 +301,13 @@ Player::Player(WorldSession *session) : Unit(true), m_sceneMgr(this)
     m_spellPenetrationItemMod = 0;
 
     // Honor System
+    // 荣誉系统
     m_lastHonorUpdateTime = GameTime::GetGameTime();
 
     m_IsBGRandomWinner = false;
 
     // Player summoning
+    // 玩家召唤？
     m_summon_expire = 0;
 
     m_unitMovedByMe = this;
@@ -363,6 +369,11 @@ Player::~Player()
     // m_social = nullptr;
 
     // Note: buy back item already deleted from DB when player was saved
+
+    // 它必须在PlayerLogout中已经卸载，并且只有登录的玩家才能访问
+    // m_social = nullptr；
+
+    // 注意：当玩家被保存时，购买已经从DB中删除的物品
     for (uint8 i = 0; i < PLAYER_SLOTS_COUNT; ++i)
         delete m_items[i];
 
@@ -382,6 +393,7 @@ Player::~Player()
     sWorld->DecreasePlayerCount();
 }
 
+// 产出之前先清理
 void Player::CleanupsBeforeDelete(bool finalCleanup)
 {
     TradeCancel(false);
@@ -394,6 +406,9 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
 {
     // FIXME: outfitId not used in player creating
     /// @todo need more checks against packet modifications
+
+    // 修复：outfitId在玩家创建时没有使用
+    /// @todo需要对数据包修改进行更多检查
 
     Object::_Create(ObjectGuid::Create<HighGuid::Player>(guidlow));
 
@@ -448,6 +463,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     }
 
     // set initial homebind position
+    // 设置初始home绑定位置
     SetHomebind(*this, GetAreaId());
 
     uint8 powertype = cEntry->DisplayPower;
@@ -485,6 +501,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     SetInventorySlotCount(INVENTORY_DEFAULT_SIZE);
 
     // set starting level
+    ////设置起始级别
     SetLevel(GetStartLevel(createInfo->Race, createInfo->Class, createInfo->TemplateSet));
 
     InitRunes();
@@ -492,18 +509,21 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Coinage), sWorld->getIntConfig(CONFIG_START_PLAYER_MONEY));
 
     // Played time
+    // 玩的时间
     m_Last_tick = GameTime::GetGameTime();
     m_Played_time[PLAYED_TIME_TOTAL] = 0;
     m_Played_time[PLAYED_TIME_LEVEL] = 0;
 
     // base stats and related field values
+    // 基本统计信息和相关字段值
     InitStatsForLevel();
     InitTaxiNodesForLevel();
     InitTalentForLevel();
     InitializeSkillFields();
-    InitPrimaryProfessions(); // to max set before any spell added
+    InitPrimaryProfessions(); // to max set before any spell added //在添加任何法术之前设置为最大值
 
     // apply original stats mods before spell loading or item equipment that call before equip _RemoveStatsMods()
+    ////在法术加载之前应用原始状态mod或在装备之前调用equip _RemoveStatsMods（）
     UpdateMaxHealth(); // Update max Health (for add bonus from stamina)
     SetFullHealth();
     SetFullPower(POWER_MANA);
@@ -514,6 +534,8 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
 
     // Original action bar. Do not use Player::AddActionButton because we do not have skill spells loaded at this time
     // but checks will still be performed later when loading character from db in Player::_LoadActions
+    // 原始操作栏。不使用Player::AddActionButton，因为我们没有技能法术加载在这个时候
+    // 但是在Player::_LoadActions中从db加载角色时仍然会执行检查
     for (PlayerCreateInfoActions::const_iterator action_itr = info->action.begin(); action_itr != info->action.end(); ++action_itr)
     {
         // create new button
@@ -530,6 +552,9 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     // bags and main-hand weapon must equipped at this moment
     // now second pass for not equipped (offhand weapon/shield if it attempt equipped before main-hand weapon)
     // or ammo not equipped in special bag
+    // 此时必须装备包和主手武器
+    // 现在没有装备的第二次通过（副手武器/盾牌，如果它试图在主手武器之前装备）
+    // 或弹药没有装备在特殊的包
     uint8 inventoryEnd = INVENTORY_SLOT_ITEM_START + GetInventorySlotCount();
     for (uint8 i = INVENTORY_SLOT_ITEM_START; i < inventoryEnd; i++)
     {
@@ -16574,16 +16599,18 @@ void Player::SetQuestCompletedBit(uint32 questBit, bool completed)
 
     if (completed)
         SetUpdateFieldFlagValue(m_values
-            .ModifyValue(&Player::m_activePlayerData)
-            .ModifyValue(&UF::ActivePlayerData::BitVectors)
-            .ModifyValue(&UF::BitVectors::Values, PLAYER_DATA_FLAG_CHARACTER_QUEST_COMPLETED_INDEX)
-            .ModifyValue(&UF::BitVector::Values, fieldOffset), flag);
+                                    .ModifyValue(&Player::m_activePlayerData)
+                                    .ModifyValue(&UF::ActivePlayerData::BitVectors)
+                                    .ModifyValue(&UF::BitVectors::Values, PLAYER_DATA_FLAG_CHARACTER_QUEST_COMPLETED_INDEX)
+                                    .ModifyValue(&UF::BitVector::Values, fieldOffset),
+                                flag);
     else
         RemoveUpdateFieldFlagValue(m_values
-            .ModifyValue(&Player::m_activePlayerData)
-            .ModifyValue(&UF::ActivePlayerData::BitVectors)
-            .ModifyValue(&UF::BitVectors::Values, PLAYER_DATA_FLAG_CHARACTER_QUEST_COMPLETED_INDEX)
-            .ModifyValue(&UF::BitVector::Values, fieldOffset), flag);
+                                       .ModifyValue(&Player::m_activePlayerData)
+                                       .ModifyValue(&UF::ActivePlayerData::BitVectors)
+                                       .ModifyValue(&UF::BitVectors::Values, PLAYER_DATA_FLAG_CHARACTER_QUEST_COMPLETED_INDEX)
+                                       .ModifyValue(&UF::BitVector::Values, fieldOffset),
+                                   flag);
 }
 
 void Player::AreaExploredOrEventHappens(uint32 questId)

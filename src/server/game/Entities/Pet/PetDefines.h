@@ -28,8 +28,8 @@ enum ReactStates : uint8;
 
 enum PetType : uint8
 {
-    SUMMON_PET              = 0,
-    HUNTER_PET              = 1,
+    SUMMON_PET              = 0,//召唤
+    HUNTER_PET              = 1,//猎人
     MAX_PET_TYPE            = 4
 };
 

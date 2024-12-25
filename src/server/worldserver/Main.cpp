@@ -90,6 +90,10 @@ TCHAR serviceDescription[] = _T("TrinityCore World of Warcraft emulator world se
  *  0 - stopped
  *  1 - running
  *  2 - paused
+ *  -1表示未进入服务模式
+ * 0 -停止
+ * 1 -运行
+ * 2 -暂停
  */
 int m_ServiceStatus = -1;
 
@@ -173,6 +177,8 @@ int main(int argc, char **argv)
 
     Optional<UINT> newTimerResolution;
     boost::system::error_code dllError;
+
+    // 这是用wimm实现了一个定时器？？？貌似
     auto winmm = Trinity::make_unique_ptr_with_deleter(new boost::dll::shared_library("winmm.dll", dllError, boost::dll::load_mode::search_system_folders), [&](boost::dll::shared_library *lib)
                                                        {
         try
@@ -264,7 +270,7 @@ int main(int argc, char **argv)
     seed.SetRand(16 * 8);
 
     /// worldserver PID file creation
-    //  創建服務器進程id 文件
+    //  创建服务器的进程id pid  创建的是守护进程？？？？
     std::string pidFile = sConfigMgr->GetStringDefault("PidFile", "");
     if (!pidFile.empty())
     {
@@ -279,6 +285,14 @@ int main(int argc, char **argv)
 
     // Set signal handlers (this must be done before starting IoContext threads, because otherwise they would unblock and exit)
     // 设置信号处理程序（这必须在启动IoContext线程之前完成，否则它们会解除阻塞并退出）
+    // SIGINT
+    // 通常是由用户在终端按下 Ctrl + C 组合键时产生的信号，用于请求程序中断运行，
+    // 一般希望程序接收到这个信号后能进行一些必要的资源清理（如关闭文件、断开网络连接等），然后再正常退出。
+
+    // SIGTERM
+    // 信号表示程序接收到了终止请求，
+    // 比如通过系统命令（在类 Unix 系统中可以使用 kill 命令发送 SIGTERM 信号给指定进程）等方式触发，同样期望程序在收到该信号后可以有序地执行清理操作并结束运行
+
     boost::asio::signal_set signals(*ioContext, SIGINT, SIGTERM);
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
     signals.add(SIGBREAK);
@@ -292,7 +306,7 @@ int main(int argc, char **argv)
     {
         numThreads = 1;
     }
-
+    // 创建Trinity线程池
     std::unique_ptr<Trinity::ThreadPool> threadPool = std::make_unique<Trinity::ThreadPool>(numThreads);
 
     for (int i = 0; i < numThreads; ++i)

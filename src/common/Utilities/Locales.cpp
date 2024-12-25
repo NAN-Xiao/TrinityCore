@@ -25,6 +25,8 @@ std::locale _global;
 std::locale _calendar;
 }
 
+//初始化
+//将C运行时函数的全局语言环境从“C”更改为UTF-8
 void Trinity::Locale::Init()
 {
     // Change global locale from "C" to UTF-8 for c runtime functions

@@ -63,7 +63,7 @@ namespace bgs::protocol
 
 using namespace bgs::protocol;
 
-//战网？
+// 战网？
 namespace Battlenet
 {
     class Session : public Socket<Session, SslSocket<>>

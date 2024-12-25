@@ -30,7 +30,7 @@
 #include <ctime>
 
 //
-//????
+//验证系统版本
 //
 void Trinity::VerifyOsVersion()
 {

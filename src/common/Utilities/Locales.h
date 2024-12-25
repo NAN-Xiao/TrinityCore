@@ -21,6 +21,7 @@
 #include "Define.h"
 #include <locale>
 
+//语言环境？
 namespace Trinity::Locale
 {
 TC_COMMON_API void Init();

@@ -1692,6 +1692,7 @@ public:                                                  // opcodes handlers
     void HandleInstanceLockResponse(WorldPackets::Instance::InstanceLockResponse &packet);
 
     // Looking for Dungeon/Raid
+    // 寻找地下城/Raid
     void SendLfgPlayerLockInfo();
     void SendLfgPartyLockInfo();
     void HandleLfgJoinOpcode(WorldPackets::LFG::DFJoin &dfJoin);
@@ -1734,6 +1735,7 @@ public:                                                  // opcodes handlers
     void HandleSetTaxiBenchmark(WorldPackets::Misc::SetTaxiBenchmarkMode &packet);
 
     // Guild Bank
+    // 工会仓库
     void HandleGuildPermissionsQuery(WorldPackets::Guild::GuildPermissionsQuery &packet);
     void HandleGuildBankMoneyWithdrawn(WorldPackets::Guild::GuildBankRemainingWithdrawMoneyQuery &packet);
     void HandleGuildBankActivate(WorldPackets::Guild::GuildBankActivate &packet);
@@ -1760,6 +1762,7 @@ public:                                                  // opcodes handlers
     void HandleGuildBankSetTabText(WorldPackets::Guild::GuildBankSetTabText &packet);
 
     // Calendar
+    // 日历
     void HandleCalendarGetCalendar(WorldPackets::Calendar::CalendarGetCalendar &calendarGetCalendar);
     void HandleCalendarGetEvent(WorldPackets::Calendar::CalendarGetEvent &calendarGetEvent);
     void HandleCalendarCommunityInvite(WorldPackets::Calendar::CalendarCommunityInviteRequest &calendarCommunityInvite);
@@ -1781,6 +1784,7 @@ public:                                                  // opcodes handlers
     void HandleSetSavedInstanceExtend(WorldPackets::Calendar::SetSavedInstanceExtend &setSavedInstanceExtend);
 
     // Void Storage
+    // 空白存储
     void HandleVoidStorageUnlock(WorldPackets::VoidStorage::UnlockVoidStorage &unlockVoidStorage);
     void HandleVoidStorageQuery(WorldPackets::VoidStorage::QueryVoidStorage &queryVoidStorage);
     void HandleVoidStorageTransfer(WorldPackets::VoidStorage::VoidStorageTransfer &voidStorageTransfer);
@@ -1788,12 +1792,15 @@ public:                                                  // opcodes handlers
     void SendVoidStorageTransferResult(VoidTransferError result);
 
     // Collections
+    // 集合
     void HandleCollectionItemSetFavorite(WorldPackets::Collections::CollectionItemSetFavorite &collectionItemSetFavorite);
 
     // Transmogrification
+    // 变形
     void HandleTransmogrifyItems(WorldPackets::Transmogrification::TransmogrifyItems &transmogrifyItems);
 
     // Miscellaneous
+    // 杂项
     void HandleSpellClick(WorldPackets::Spells::SpellClick &spellClick);
     void HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorImageData &getMirrorImageData);
     void HandleGuildSetFocusedAchievement(WorldPackets::Achievement::GuildSetFocusedAchievement &setFocusedAchievement);
@@ -1812,14 +1819,17 @@ public:                                                  // opcodes handlers
     void HandleQueryCountdownTimer(WorldPackets::Misc::QueryCountdownTimer &queryCountdownTimer);
 
     // Adventure Journal
+    ////《冒险》杂志
     void HandleAdventureJournalOpenQuest(WorldPackets::AdventureJournal::AdventureJournalOpenQuest &openQuest);
     void HandleAdventureJournalUpdateSuggestions(WorldPackets::AdventureJournal::AdventureJournalUpdateSuggestions &updateSuggestions);
 
     // Adventure Map
+    // 冒险地图
     void HandleCheckIsAdventureMapPoiValid(WorldPackets::AdventureMap::CheckIsAdventureMapPoiValid &CheckIsAdventureMapPoiValid);
     void HandleAdventureMapStartQuest(WorldPackets::AdventureMap::AdventureMapStartQuest &startQuest);
 
     // Toys
+    // 玩具
     void HandleAddToy(WorldPackets::Toy::AddToy &packet);
     void HandleUseToy(WorldPackets::Toy::UseToy &packet);
     void HandleToyClearFanfare(WorldPackets::Toy::ToyClearFanfare &toyClearFanfare);
@@ -1827,6 +1837,7 @@ public:                                                  // opcodes handlers
     void HandleMountSetFavorite(WorldPackets::Misc::MountSetFavorite &mountSetFavorite);
 
     // Scenes
+    // 场景
     void HandleSceneTriggerEvent(WorldPackets::Scenes::SceneTriggerEvent &sceneTriggerEvent);
     void HandleScenePlaybackComplete(WorldPackets::Scenes::ScenePlaybackComplete &scenePlaybackComplete);
     void HandleScenePlaybackCanceled(WorldPackets::Scenes::ScenePlaybackCanceled &scenePlaybackCanceled);
@@ -1840,6 +1851,7 @@ public:                                                  // opcodes handlers
     void SendLoadCUFProfiles();
 
     // Garrison
+    // 驻军
     void HandleGetGarrisonInfo(WorldPackets::Garrison::GetGarrisonInfo &getGarrisonInfo);
     void HandleGarrisonPurchaseBuilding(WorldPackets::Garrison::GarrisonPurchaseBuilding &garrisonPurchaseBuilding);
     void HandleGarrisonCancelConstruction(WorldPackets::Garrison::GarrisonCancelConstruction &garrisonCancelConstruction);
@@ -1847,6 +1859,7 @@ public:                                                  // opcodes handlers
     void HandleGarrisonGetMapData(WorldPackets::Garrison::GarrisonGetMapData &garrisonGetMapData);
 
     // Battle Pets
+    // 战宠
     void HandleBattlePetRequestJournal(WorldPackets::BattlePet::BattlePetRequestJournal &battlePetRequestJournal);
     void HandleBattlePetRequestJournalLock(WorldPackets::BattlePet::BattlePetRequestJournalLock &battlePetRequestJournalLock);
     void HandleBattlePetSetBattleSlot(WorldPackets::BattlePet::BattlePetSetBattleSlot &battlePetSetBattleSlot);
@@ -1860,9 +1873,11 @@ public:                                                  // opcodes handlers
     void HandleCageBattlePet(WorldPackets::BattlePet::CageBattlePet &cageBattlePet);
 
     // Warden
+    // 监狱长
     void HandleWardenData(WorldPackets::Warden::WardenData &packet);
 
     // Battlenet
+    // 战网
     void HandleBattlenetChangeRealmTicket(WorldPackets::Battlenet::ChangeRealmTicket &changeRealmTicket);
     void HandleBattlenetRequest(WorldPackets::Battlenet::Request &request);
 
@@ -1879,6 +1894,7 @@ public:                                                  // opcodes handlers
     void HandleQueryRealmName(WorldPackets::Query::QueryRealmName &queryRealmName);
 
     // Artifact
+    // 工件
     void HandleArtifactAddPower(WorldPackets::Artifact::ArtifactAddPower &artifactAddPower);
     void HandleArtifactSetAppearance(WorldPackets::Artifact::ArtifactSetAppearance &artifactSetAppearance);
     void HandleConfirmArtifactRespec(WorldPackets::Artifact::ConfirmArtifactRespec &confirmArtifactRespec);
