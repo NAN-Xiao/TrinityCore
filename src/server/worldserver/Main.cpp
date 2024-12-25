@@ -382,7 +382,7 @@ int main(int argc, char **argv)
     auto sScriptMgrHandle = Trinity::make_unique_ptr_with_deleter<&ScriptMgr::Unload>(sScriptMgr);
 
     // Initialize the World
-    //?????
+    // 初始化世界
     sSecretMgr->Initialize(SECRET_OWNER_WORLDSERVER);
     if (!sWorld->SetInitialWorldSettings())
         return 1;
@@ -402,17 +402,18 @@ int main(int argc, char **argv)
     auto battlegroundMgrHandle = Trinity::make_unique_ptr_with_deleter<&BattlegroundMgr::DeleteAllBattlegrounds>(sBattlegroundMgr);
 
     // Start the Remote Access port (acceptor) if enabled
-    //????????(???),????
+    // 如果启用，启动远程访问端口（接受者）
     std::unique_ptr<AsyncAcceptor> raAcceptor;
     if (sConfigMgr->GetBoolDefault("Ra.Enable", false))
         raAcceptor.reset(StartRaSocketAcceptor(*ioContext));
 
     // Start soap serving thread if enabled
+    // 启动soap服务线程（如果启用） （Simple Object Access Protocol，简单对象访问协议）
     std::unique_ptr<std::thread, ShutdownTCSoapThread> soapThread;
     if (sConfigMgr->GetBoolDefault("SOAP.Enabled", false))
     {
         if (std::thread *soap = CreateSoapThread(sConfigMgr->GetStringDefault("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetIntDefault("SOAP.Port", 7878))))
-            soapThread.reset(soap);
+            soapThread.reset(soap);//這裏的soapThread是unitque_ptr類型的智能指針。reset傳入參數的把soap的綫程對象給到soapThread裏
         else
             return -1;
     }

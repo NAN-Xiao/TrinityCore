@@ -28,30 +28,30 @@
 
 #define TRINITY_MAX_LISTEN_CONNECTIONS boost::asio::socket_base::max_listen_connections
 
-//异步接收
+// 异步接收
 class AsyncAcceptor
 {
 public:
-    typedef void(*AcceptCallback)(boost::asio::ip::tcp::socket&& newSocket, uint32 threadIndex);
+    typedef void (*AcceptCallback)(boost::asio::ip::tcp::socket &&newSocket, uint32 threadIndex);
 
-    AsyncAcceptor(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port) :
-        _acceptor(ioContext), _endpoint(Trinity::Net::make_address(bindIp), port),
-        _socket(ioContext), _closed(false), _socketFactory([this] { return DefeaultSocketFactory(); })
+    AsyncAcceptor(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port) : _acceptor(ioContext), _endpoint(Trinity::Net::make_address(bindIp), port),
+                                                                                                 _socket(ioContext), _closed(false), _socketFactory([this]
+                                                                                                                                                    { return DefeaultSocketFactory(); })
     {
     }
 
-    template<class T>
+    template <class T>
     void AsyncAccept();
 
-    template<AcceptCallback acceptCallback>
+    template <AcceptCallback acceptCallback>
     void AsyncAcceptWithCallback()
     {
         auto [tmpSocket, tmpThreadIndex] = _socketFactory();
         // TODO: get rid of temporary variables (clang 15 cannot handle variables from structured bindings as lambda captures)
-        boost::asio::ip::tcp::socket* socket = tmpSocket;
+        boost::asio::ip::tcp::socket *socket = tmpSocket;
         uint32 threadIndex = tmpThreadIndex;
         _acceptor.async_accept(*socket, [this, socket, threadIndex](boost::system::error_code error)
-        {
+                               {
             if (!error)
             {
                 try
@@ -67,10 +67,10 @@ public:
             }
 
             if (!_closed)
-                this->AsyncAcceptWithCallback<acceptCallback>();
-        });
+                this->AsyncAcceptWithCallback<acceptCallback>(); });
     }
 
+    // bind實現了對端口的監聽
     bool Bind()
     {
         boost::system::error_code errorCode;
@@ -92,6 +92,8 @@ public:
 
         // v6_only is enabled on some *BSD distributions by default
         // we want to allow both v4 and v6 connections to the same listener
+        // v6_only在一些*BSD发行版上默认是启用的
+        // 我们希望同时允许v4和v6连接到同一个监听器
         if (_endpoint.protocol() == boost::asio::ip::tcp::v6())
             _acceptor.set_option(boost::asio::ip::v6_only(false));
 
@@ -121,28 +123,29 @@ public:
         _acceptor.close(err);
     }
 
-    void SetSocketFactory(std::function<std::pair<boost::asio::ip::tcp::socket*, uint32>()> func) { _socketFactory = std::move(func); }
+    void SetSocketFactory(std::function<std::pair<boost::asio::ip::tcp::socket *, uint32>()> func) { _socketFactory = std::move(func); }
 
 private:
-    std::pair<boost::asio::ip::tcp::socket*, uint32> DefeaultSocketFactory() { return std::make_pair(&_socket, 0); }
+    std::pair<boost::asio::ip::tcp::socket *, uint32> DefeaultSocketFactory() { return std::make_pair(&_socket, 0); }
 
     boost::asio::ip::tcp::acceptor _acceptor;
     boost::asio::ip::tcp::endpoint _endpoint;
     boost::asio::ip::tcp::socket _socket;
     std::atomic<bool> _closed;
-    std::function<std::pair<boost::asio::ip::tcp::socket*, uint32>()> _socketFactory;
+    std::function<std::pair<boost::asio::ip::tcp::socket *, uint32>()> _socketFactory;
 };
 
-template<class T>
+template <class T>
 void AsyncAcceptor::AsyncAccept()
 {
     _acceptor.async_accept(_socket, [this](boost::system::error_code error)
-    {
+                           {
         if (!error)
         {
             try
             {
                 // this-> is required here to fix an segmentation fault in gcc 4.7.2 - reason is lambdas in a templated class
+                //在这里需要this->来修复GCC 4.7.2中的分段错误-原因是在模板类中lambdas
                 std::make_shared<T>(std::move(this->_socket))->Start();
             }
             catch (boost::system::system_error const& err)
@@ -153,8 +156,7 @@ void AsyncAcceptor::AsyncAccept()
 
         // lets slap some more this-> on this so we can fix this bug with gcc 4.7.2 throwing internals in yo face
         if (!_closed)
-            this->AsyncAccept<T>();
-    });
+            this->AsyncAccept<T>(); });
 }
 
 #endif /* __ASYNCACCEPT_H_ */
