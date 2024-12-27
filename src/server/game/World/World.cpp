@@ -444,6 +444,7 @@ void World::AddSession_(WorldSession *s)
 }
 
 // 处理链接实例的socketsocket
+// 后续HandleContinuePlayerLogin会新建角色处理登录
 void World::ProcessLinkInstanceSocket(std::pair<std::weak_ptr<WorldSocket>, uint64> linkInfo)
 {
     if (std::shared_ptr<WorldSocket> sock = linkInfo.first.lock())

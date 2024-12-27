@@ -394,11 +394,11 @@ int main(int argc, char **argv)
     auto outdoorPvpMgrHandle = Trinity::make_unique_ptr_with_deleter<&OutdoorPvPMgr::Die>(sOutdoorPvPMgr);
 
     // unload all grids (including locked in memory)
-    ////??????(??????)
+    // 卸载所有网格（包括锁定在内存中的网格）
     auto mapManagementHandle = Trinity::make_unique_ptr_with_deleter<&MapManager::UnloadAll>(sMapMgr);
 
     // unload battleground templates before different singletons destroyed
-    //?????????????????
+    // 在不同的单例模式被破坏之前卸载战场模板
     auto battlegroundMgrHandle = Trinity::make_unique_ptr_with_deleter<&BattlegroundMgr::DeleteAllBattlegrounds>(sBattlegroundMgr);
 
     // Start the Remote Access port (acceptor) if enabled
@@ -413,7 +413,7 @@ int main(int argc, char **argv)
     if (sConfigMgr->GetBoolDefault("SOAP.Enabled", false))
     {
         if (std::thread *soap = CreateSoapThread(sConfigMgr->GetStringDefault("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetIntDefault("SOAP.Port", 7878))))
-            soapThread.reset(soap);//這裏的soapThread是unitque_ptr類型的智能指針。reset傳入參數的把soap的綫程對象給到soapThread裏
+            soapThread.reset(soap); // 這裏的soapThread是unitque_ptr類型的智能指針。reset傳入參數的把soap的綫程對象給到soapThread裏
         else
             return -1;
     }
@@ -630,7 +630,8 @@ void WorldUpdateLoop()
             continue;
         }
 
-        // 重要！更新世界
+        // 重要！！！！
+        /// 更新世界
         sWorld->Update(diff);
         realPrevTime = realCurrTime;
 

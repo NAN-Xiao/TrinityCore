@@ -226,7 +226,7 @@ namespace WorldPackets
 
             Timestamp<> Time;
         };
-
+        //tutorial 教程相关？？
         class TutorialFlags : public ServerPacket
         {
         public:

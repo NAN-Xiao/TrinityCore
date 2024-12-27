@@ -175,7 +175,7 @@ void Map::InitVisibilityDistance()
 }
 
 // Template specialization of utility methods
-//这里应该是添加到地图。而且grid只有x和y所以还是一个2d的地图
+// 这里应该是添加到地图。而且grid只有x和y所以还是一个2d的地图
 template <class T>
 void Map::AddToGrid(T *obj, Cell const &cell)
 {
@@ -429,6 +429,7 @@ bool Map::AddPlayerToMap(Player *player, bool initPlayer /*= true*/)
     AddToGrid(player, cell);
 
     // Check if we are adding to correct map
+    ////检查我们是否添加到正确的地图
     ASSERT(player->GetMap() == this);
     player->SetMap(this);
     player->AddToWorld();

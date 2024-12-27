@@ -137,6 +137,7 @@ constexpr uint32 GetMaxLevelForExpansion(uint32 expansion)
     return 0;
 }
 
+//性别
 enum Gender
 {
     GENDER_UNKNOWN                     = -1,
@@ -147,6 +148,7 @@ enum Gender
 
 // Class value is index in ChrClasses.db2
 // EnumUtils: DESCRIBE THIS
+//职业
 enum Classes : uint8
 {
     CLASS_NONE          = 0,  // SKIP

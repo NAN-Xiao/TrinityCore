@@ -36,31 +36,32 @@ class TC_GAME_API WorldSocketMgr : public SocketMgr<WorldSocket>
 public:
     ~WorldSocketMgr();
 
-    static WorldSocketMgr& Instance();
+    static WorldSocketMgr &Instance();
 
     /// Start network, listen at address:port .
-    bool StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, uint16 instancePort, int networkThreads);
+    /// 启动网络，监听地址：port
+    bool StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, uint16 instancePort, int networkThreads);
 
     /// Stops all network threads, It will wait for all running threads .
     void StopNetwork() override;
 
-    void OnSocketOpen(boost::asio::ip::tcp::socket&& sock, uint32 threadIndex) override;
+    void OnSocketOpen(boost::asio::ip::tcp::socket &&sock, uint32 threadIndex) override;
 
     std::size_t GetApplicationSendBufferSize() const { return _socketApplicationSendBufferSize; }
 
 protected:
     WorldSocketMgr();
 
-    NetworkThread<WorldSocket>* CreateThreads() const override;
+    NetworkThread<WorldSocket> *CreateThreads() const override;
 
 private:
     // private, must not be called directly
-    bool StartNetwork(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, int threadCount) override
+    bool StartNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, int threadCount) override
     {
         return BaseSocketMgr::StartNetwork(ioContext, bindIp, port, threadCount);
     }
 
-    AsyncAcceptor* _instanceAcceptor;
+    AsyncAcceptor *_instanceAcceptor;
     int32 _socketSystemSendBufferSize;
     int32 _socketApplicationSendBufferSize;
     bool _tcpNoDelay;

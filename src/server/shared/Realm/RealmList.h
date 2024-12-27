@@ -32,53 +32,54 @@
 
 namespace bgs::protocol::game_utilities::v1
 {
-class ClientResponse;
-class GetAllValuesForAttributeResponse;
+    class ClientResponse;
+    class GetAllValuesForAttributeResponse;
 }
 
 namespace JSON::RealmList
 {
-class RealmEntry;
+    class RealmEntry;
 }
 
 /// Storage object for the list of realms on the server
+/// 服务器上的领域列表的存储对象
 class TC_SHARED_API RealmList
 {
 public:
     typedef std::map<Battlenet::RealmHandle, std::shared_ptr<Realm>> RealmMap;
 
-    static RealmList* Instance();
+    static RealmList *Instance();
 
-    RealmList(RealmList const&) = delete;
-    RealmList(RealmList&&) = delete;
-    RealmList& operator=(RealmList const&) = delete;
-    RealmList& operator=(RealmList&&) = delete;
+    RealmList(RealmList const &) = delete;
+    RealmList(RealmList &&) = delete;
+    RealmList &operator=(RealmList const &) = delete;
+    RealmList &operator=(RealmList &&) = delete;
 
     ~RealmList();
 
-    void Initialize(Trinity::Asio::IoContext& ioContext, uint32 updateInterval);
+    void Initialize(Trinity::Asio::IoContext &ioContext, uint32 updateInterval);
     void Close();
 
-    std::shared_ptr<Realm const> GetRealm(Battlenet::RealmHandle const& id) const;
+    std::shared_ptr<Realm const> GetRealm(Battlenet::RealmHandle const &id) const;
     Battlenet::RealmHandle GetCurrentRealmId() const;
-    void SetCurrentRealmId(Battlenet::RealmHandle const& id);
+    void SetCurrentRealmId(Battlenet::RealmHandle const &id);
     std::shared_ptr<Realm const> GetCurrentRealm() const;
 
-    void WriteSubRegions(bgs::protocol::game_utilities::v1::GetAllValuesForAttributeResponse* response) const;
-    std::vector<uint8> GetRealmEntryJSON(Battlenet::RealmHandle const& id, uint32 build, AccountTypes accountSecurityLevel) const;
-    std::vector<uint8> GetRealmList(uint32 build, AccountTypes accountSecurityLevel, std::string const& subRegion) const;
-    uint32 JoinRealm(uint32 realmAddress, uint32 build, ClientBuild::VariantId const& buildVariant, boost::asio::ip::address const& clientAddress,
-        std::array<uint8, 32> const& clientSecret, LocaleConstant locale, std::string const& os, Minutes timezoneOffset, std::string const& accountName,
-        AccountTypes accountSecurityLevel, bgs::protocol::game_utilities::v1::ClientResponse* response) const;
+    void WriteSubRegions(bgs::protocol::game_utilities::v1::GetAllValuesForAttributeResponse *response) const;
+    std::vector<uint8> GetRealmEntryJSON(Battlenet::RealmHandle const &id, uint32 build, AccountTypes accountSecurityLevel) const;
+    std::vector<uint8> GetRealmList(uint32 build, AccountTypes accountSecurityLevel, std::string const &subRegion) const;
+    uint32 JoinRealm(uint32 realmAddress, uint32 build, ClientBuild::VariantId const &buildVariant, boost::asio::ip::address const &clientAddress,
+                     std::array<uint8, 32> const &clientSecret, LocaleConstant locale, std::string const &os, Minutes timezoneOffset, std::string const &accountName,
+                     AccountTypes accountSecurityLevel, bgs::protocol::game_utilities::v1::ClientResponse *response) const;
 
 private:
     RealmList();
 
     void UpdateRealms();
-    static void UpdateRealm(Realm& realm, Battlenet::RealmHandle const& id, uint32 build, std::string const& name,
-        std::vector<boost::asio::ip::address>&& addresses,
-        uint16 port, uint8 icon, RealmFlags flag, uint8 timezone, AccountTypes allowedSecurityLevel, RealmPopulationState population);
-    void FillRealmEntry(Realm const& realm, uint32 clientBuild, AccountTypes accountSecurityLevel, JSON::RealmList::RealmEntry* realmEntry) const;
+    static void UpdateRealm(Realm &realm, Battlenet::RealmHandle const &id, uint32 build, std::string const &name,
+                            std::vector<boost::asio::ip::address> &&addresses,
+                            uint16 port, uint8 icon, RealmFlags flag, uint8 timezone, AccountTypes allowedSecurityLevel, RealmPopulationState population);
+    void FillRealmEntry(Realm const &realm, uint32 clientBuild, AccountTypes accountSecurityLevel, JSON::RealmList::RealmEntry *realmEntry) const;
 
     mutable std::shared_mutex _realmsMutex;
     RealmMap _realms;

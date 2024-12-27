@@ -937,7 +937,7 @@ void WorldSession::SendAccountDataTimes(ObjectGuid playerGuid, uint32 mask)
 
     SendPacket(accountDataTimes.Write());
 }
-
+// 读取教程数据？？
 void WorldSession::LoadTutorialsData(PreparedQueryResult result)
 {
     memset(_tutorials, 0, sizeof(uint32) * MAX_ACCOUNT_TUTORIAL_VALUES);
@@ -972,6 +972,7 @@ void WorldSession::SaveTutorialsData(CharacterDatabaseTransaction trans)
     trans->Append(stmt);
 
     // now has, set flag so next save uses update query
+    // 现在有，设置标志，所以下一次保存使用更新查询
     if (!hasTutorialsInDB)
         _tutorialsChanged |= TUTORIALS_FLAG_LOADED_FROM_DB;
 
@@ -980,7 +981,9 @@ void WorldSession::SaveTutorialsData(CharacterDatabaseTransaction trans)
 
 bool WorldSession::IsAddonRegistered(std::string_view prefix) const
 {
-    if (!_filterAddonMessages) // if we have hit the softcap (64) nothing should be filtered
+    // if we have hit the softcap (64) nothing should be filtered
+    // 如果我们设置了软上限（64），就不应该过滤任何东西
+    if (!_filterAddonMessages)
         return true;
 
     if (_registeredAddonPrefixes.empty())
@@ -998,6 +1001,7 @@ void WorldSession::HandleUnregisterAllAddonPrefixesOpcode(WorldPackets::Chat::Ch
 void WorldSession::HandleAddonRegisteredPrefixesOpcode(WorldPackets::Chat::ChatRegisterAddonPrefixes &packet)
 {
     // This is always sent after CMSG_CHAT_UNREGISTER_ALL_ADDON_PREFIXES
+    // 总是在CMSG_CHAT_UNREGISTER_ALL_ADDON_PREFIXES之后发送
     _registeredAddonPrefixes.insert(_registeredAddonPrefixes.end(), packet.Prefixes.begin(), packet.Prefixes.end());
     if (_registeredAddonPrefixes.size() > WorldPackets::Chat::ChatRegisterAddonPrefixes::MAX_PREFIXES)
     {
@@ -1029,7 +1033,7 @@ TransactionCallback &WorldSession::AddTransactionCallback(TransactionCallback &&
 {
     return _transactionCallbacks.AddCallback(std::move(callback));
 }
-//添加查询持有者的回调
+// 添加查询持有者的回调
 SQLQueryHolderCallback &WorldSession::AddQueryHolderCallback(SQLQueryHolderCallback &&callback)
 {
     return _queryHolderProcessor.AddCallback(std::move(callback));

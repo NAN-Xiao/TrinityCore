@@ -156,7 +156,9 @@ enum PlayerSpells
 static uint32 copseReclaimDelay[MAX_DEATH_COUNT] = {30, 60, 120};
 
 uint64 const MAX_MONEY_AMOUNT = 99999999999ULL;
-
+//重要！！！
+//整个构造应该是已有角色登录用new
+//如果是创建角色是palyer的create函数
 Player::Player(WorldSession *session) : Unit(true), m_sceneMgr(this)
 {
     m_objectType |= TYPEMASK_PLAYER;
@@ -402,6 +404,9 @@ void Player::CleanupsBeforeDelete(bool finalCleanup)
     Unit::CleanupsBeforeDelete(finalCleanup);
 }
 
+//重要！！！
+//创建角色
+//create函数应该是对应玩家创建角色而不是登录角色
 bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::CharacterCreateInfo const *createInfo)
 {
     // FIXME: outfitId not used in player creating
@@ -17697,6 +17702,7 @@ bool Player::IsLoading() const
     return GetSession()->PlayerLoading();
 }
 
+//从数据库填充player的数据并且验证合法性
 bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &holder)
 {
     PreparedQueryResult result = holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_FROM);

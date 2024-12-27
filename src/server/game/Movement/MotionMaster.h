@@ -47,11 +47,11 @@ namespace Movement
 
 enum MotionMasterFlags : uint8
 {
-    MOTIONMASTER_FLAG_NONE                          = 0x0,
-    MOTIONMASTER_FLAG_UPDATE                        = 0x1, // Update in progress
+    MOTIONMASTER_FLAG_NONE = 0x0,
+    MOTIONMASTER_FLAG_UPDATE = 0x1,                        // Update in progress
     MOTIONMASTER_FLAG_STATIC_INITIALIZATION_PENDING = 0x2, // Static movement (MOTION_SLOT_DEFAULT) hasn't been initialized
-    MOTIONMASTER_FLAG_INITIALIZATION_PENDING        = 0x4, // MotionMaster is stalled until signaled
-    MOTIONMASTER_FLAG_INITIALIZING                  = 0x8, // MotionMaster is initializing
+    MOTIONMASTER_FLAG_INITIALIZATION_PENDING = 0x4,        // MotionMaster is stalled until signaled
+    MOTIONMASTER_FLAG_INITIALIZING = 0x8,                  // MotionMaster is initializing
 
     MOTIONMASTER_FLAG_DELAYED = MOTIONMASTER_FLAG_UPDATE | MOTIONMASTER_FLAG_INITIALIZATION_PENDING
 };
@@ -70,18 +70,18 @@ enum MotionMasterDelayedActionType : uint8
 
 struct MovementGeneratorDeleter
 {
-    void operator()(MovementGenerator* a);
+    void operator()(MovementGenerator *a);
 };
 
 struct MovementGeneratorComparator
 {
-    public:
-        bool operator()(MovementGenerator const* a, MovementGenerator const* b) const;
+public:
+    bool operator()(MovementGenerator const *a, MovementGenerator const *b) const;
 };
 
 struct MovementGeneratorInformation
 {
-    MovementGeneratorInformation(MovementGeneratorType type, ObjectGuid targetGUID, std::string const& targetName);
+    MovementGeneratorInformation(MovementGeneratorType type, ObjectGuid targetGUID, std::string const &targetName);
 
     MovementGeneratorType Type;
     ObjectGuid TargetGUID;
@@ -95,182 +95,190 @@ static bool EmptyValidator()
 
 class TC_GAME_API MotionMaster
 {
+public:
+    typedef std::function<void()> DelayedActionDefine;
+    typedef std::function<bool()> DelayedActionValidator;
+
+    class DelayedAction
+    {
     public:
-        typedef std::function<void()> DelayedActionDefine;
-        typedef std::function<bool()> DelayedActionValidator;
+        explicit DelayedAction(DelayedActionDefine &&action, DelayedActionValidator &&validator, MotionMasterDelayedActionType type) : Action(std::move(action)), Validator(std::move(validator)), Type(type) {}
+        explicit DelayedAction(DelayedActionDefine &&action, MotionMasterDelayedActionType type) : Action(std::move(action)), Validator(EmptyValidator), Type(type) {}
+        ~DelayedAction() {}
 
-        class DelayedAction
+        void Resolve()
         {
-            public:
-                explicit DelayedAction(DelayedActionDefine&& action, DelayedActionValidator&& validator, MotionMasterDelayedActionType type) : Action(std::move(action)), Validator(std::move(validator)), Type(type) { }
-                explicit DelayedAction(DelayedActionDefine&& action, MotionMasterDelayedActionType type) : Action(std::move(action)), Validator(EmptyValidator), Type(type) { }
-                ~DelayedAction() { }
+            if (Validator())
+                Action();
+        }
 
-                void Resolve() { if (Validator()) Action(); }
+        DelayedActionDefine Action;
+        DelayedActionValidator Validator;
+        uint8 Type;
+    };
 
-                DelayedActionDefine Action;
-                DelayedActionValidator Validator;
-                uint8 Type;
-        };
+    explicit MotionMaster(Unit *unit);
+    ~MotionMaster();
 
-        explicit MotionMaster(Unit* unit);
-        ~MotionMaster();
+    void Initialize();
+    void InitializeDefault();
+    void AddToWorld();
 
-        void Initialize();
-        void InitializeDefault();
-        void AddToWorld();
+    bool Empty() const;
+    uint32 Size() const;
+    std::vector<MovementGeneratorInformation> GetMovementGeneratorsInformation() const;
+    MovementSlot GetCurrentSlot() const;
+    MovementGenerator *GetCurrentMovementGenerator() const;
+    MovementGeneratorType GetCurrentMovementGeneratorType() const;
+    MovementGeneratorType GetCurrentMovementGeneratorType(MovementSlot slot) const;
+    MovementGenerator *GetCurrentMovementGenerator(MovementSlot slot) const;
+    // Returns first found MovementGenerator that matches the given criteria
+    MovementGenerator *GetMovementGenerator(std::function<bool(MovementGenerator const *)> const &filter, MovementSlot slot = MOTION_SLOT_ACTIVE) const;
+    bool HasMovementGenerator(std::function<bool(MovementGenerator const *)> const &filter, MovementSlot slot = MOTION_SLOT_ACTIVE) const;
 
-        bool Empty() const;
-        uint32 Size() const;
-        std::vector<MovementGeneratorInformation> GetMovementGeneratorsInformation() const;
-        MovementSlot GetCurrentSlot() const;
-        MovementGenerator* GetCurrentMovementGenerator() const;
-        MovementGeneratorType GetCurrentMovementGeneratorType() const;
-        MovementGeneratorType GetCurrentMovementGeneratorType(MovementSlot slot) const;
-        MovementGenerator* GetCurrentMovementGenerator(MovementSlot slot) const;
-        // Returns first found MovementGenerator that matches the given criteria
-        MovementGenerator* GetMovementGenerator(std::function<bool(MovementGenerator const*)> const& filter, MovementSlot slot = MOTION_SLOT_ACTIVE) const;
-        bool HasMovementGenerator(std::function<bool(MovementGenerator const*)> const& filter, MovementSlot slot = MOTION_SLOT_ACTIVE) const;
+    void Update(uint32 diff);
+    void Add(MovementGenerator *movement, MovementSlot slot = MOTION_SLOT_ACTIVE);
+    // NOTE: MOTION_SLOT_DEFAULT will be autofilled with IDLE_MOTION_TYPE
+    void Remove(MovementGenerator *movement, MovementSlot slot = MOTION_SLOT_ACTIVE);
+    // Removes first found movement
+    // NOTE: MOTION_SLOT_DEFAULT will be autofilled with IDLE_MOTION_TYPE
+    void Remove(MovementGeneratorType type, MovementSlot slot = MOTION_SLOT_ACTIVE);
+    // NOTE: MOTION_SLOT_DEFAULT wont be affected
+    void Clear();
+    // Removes all movements for the given MovementSlot
+    // NOTE: MOTION_SLOT_DEFAULT will be autofilled with IDLE_MOTION_TYPE
+    void Clear(MovementSlot slot);
+    // Removes all movements with the given MovementGeneratorMode
+    // NOTE: MOTION_SLOT_DEFAULT wont be affected
+    void Clear(MovementGeneratorMode mode);
+    // Removes all movements with the given MovementGeneratorPriority
+    // NOTE: MOTION_SLOT_DEFAULT wont be affected
+    void Clear(MovementGeneratorPriority priority);
+    void PropagateSpeedChange();
+    bool GetDestination(float &x, float &y, float &z);
+    bool StopOnDeath();
 
-        void Update(uint32 diff);
-        void Add(MovementGenerator* movement, MovementSlot slot = MOTION_SLOT_ACTIVE);
-        // NOTE: MOTION_SLOT_DEFAULT will be autofilled with IDLE_MOTION_TYPE
-        void Remove(MovementGenerator* movement, MovementSlot slot = MOTION_SLOT_ACTIVE);
-        // Removes first found movement
-        // NOTE: MOTION_SLOT_DEFAULT will be autofilled with IDLE_MOTION_TYPE
-        void Remove(MovementGeneratorType type, MovementSlot slot = MOTION_SLOT_ACTIVE);
-        // NOTE: MOTION_SLOT_DEFAULT wont be affected
-        void Clear();
-        // Removes all movements for the given MovementSlot
-        // NOTE: MOTION_SLOT_DEFAULT will be autofilled with IDLE_MOTION_TYPE
-        void Clear(MovementSlot slot);
-        // Removes all movements with the given MovementGeneratorMode
-        // NOTE: MOTION_SLOT_DEFAULT wont be affected
-        void Clear(MovementGeneratorMode mode);
-        // Removes all movements with the given MovementGeneratorPriority
-        // NOTE: MOTION_SLOT_DEFAULT wont be affected
-        void Clear(MovementGeneratorPriority priority);
-        void PropagateSpeedChange();
-        bool GetDestination(float &x, float &y, float &z);
-        bool StopOnDeath();
+    void MoveIdle();
+    void MoveTargetedHome();
+    void MoveRandom(float wanderDistance = 0.0f, Optional<Milliseconds> duration = {}, MovementSlot slot = MOTION_SLOT_DEFAULT,
+                    Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveFollow(Unit *target, float dist, Optional<ChaseAngle> angle = {}, Optional<Milliseconds> duration = {}, bool ignoreTargetWalk = false, MovementSlot slot = MOTION_SLOT_ACTIVE,
+                    Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveChase(Unit *target, Optional<ChaseRange> dist = {}, Optional<ChaseAngle> angle = {});
+    void MoveChase(Unit *target, float dist, float angle) { MoveChase(target, ChaseRange(dist), ChaseAngle(angle)); }
+    void MoveConfused();
+    void MoveFleeing(Unit *enemy, Milliseconds time = 0ms,
+                     Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MovePoint(uint32 id, Position const &pos, bool generatePath = true, Optional<float> finalOrient = {}, Optional<float> speed = {},
+                   MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default, Optional<float> closeEnoughDistance = {},
+                   Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true, Optional<float> finalOrient = {}, Optional<float> speed = {},
+                   MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default, Optional<float> closeEnoughDistance = {},
+                   Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    /*
+     *  Makes the unit move toward the target until it is at a certain distance from it. The unit then stops.
+     *  Only works in 2D.
+     *  This method doesn't account for any movement done by the target. in other words, it only works if the target is stationary.
+     */
+    void MoveCloserAndStop(uint32 id, Unit *target, float distance);
+    // These two movement types should only be used with creatures having landing/takeoff animations
+    void MoveLand(uint32 id, Position const &pos, Optional<int32> tierTransitionId = {}, Optional<float> velocity = {},
+                  MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
+                  Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveTakeoff(uint32 id, Position const &pos, Optional<int32> tierTransitionId = {}, Optional<float> velocity = {},
+                     MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
+                     Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveCharge(float x, float y, float z, float speed = SPEED_CHARGE, uint32 id = EVENT_CHARGE, bool generatePath = false, Unit const *target = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr);
+    void MoveCharge(PathGenerator const &path, float speed = SPEED_CHARGE, Unit const *target = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr);
+    void MoveKnockbackFrom(Position const &origin, float speedXY, float speedZ, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr);
+    void MoveJumpTo(float angle, float speedXY, float speedZ);
+    void MoveJump(Position const &pos, float speedXY, float speedZ, uint32 id = EVENT_JUMP, MovementFacingTarget const &facing = {},
+                  bool orientationFixed = false, JumpArrivalCastArgs const *arrivalCast = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr,
+                  Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveJump(float x, float y, float z, float speedXY, float speedZ, uint32 id = EVENT_JUMP, MovementFacingTarget const &facing = {},
+                  bool orientationFixed = false, JumpArrivalCastArgs const *arrivalCast = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr,
+                  Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveJumpWithGravity(Position const &pos, float speedXY, float gravity, uint32 id = EVENT_JUMP, MovementFacingTarget const &facing = {},
+                             bool orientationFixed = false, JumpArrivalCastArgs const *arrivalCast = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr,
+                             Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveCirclePath(float x, float y, float z, float radius, bool clockwise, uint8 stepCount,
+                        Optional<Milliseconds> duration = {}, Optional<float> speed = {},
+                        MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
+                        Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    // Walk along spline chain stored in DB (script_spline_chain_meta and script_spline_chain_waypoints)
+    void MoveAlongSplineChain(uint32 pointId, uint16 dbChainId, bool walk);
+    void MoveAlongSplineChain(uint32 pointId, std::vector<SplineChainLink> const &chain, bool walk);
+    void ResumeSplineChain(SplineChainResumeInfo const &info);
+    void MoveFall(uint32 id = 0,
+                  Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveSeekAssistance(float x, float y, float z);
+    void MoveSeekAssistanceDistract(uint32 timer);
+    void MoveTaxiFlight(uint32 path, uint32 pathnode, Optional<float> speed = {},
+                        Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveDistract(uint32 time, float orientation);
+    void MovePath(uint32 pathId, bool repeatable, Optional<Milliseconds> duration = {}, Optional<float> speed = {},
+                  MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
+                  Optional<std::pair<Milliseconds, Milliseconds>> waitTimeRangeAtPathEnd = {}, Optional<float> wanderDistanceAtPathEnds = {},
+                  Optional<bool> followPathBackwardsFromEndToStart = {}, Optional<bool> exactSplinePath = {}, bool generatePath = true,
+                  Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MovePath(WaypointPath const &path, bool repeatable, Optional<Milliseconds> duration = {}, Optional<float> speed = {},
+                  MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
+                  Optional<std::pair<Milliseconds, Milliseconds>> waitTimeRangeAtPathEnd = {}, Optional<float> wanderDistanceAtPathEnds = {},
+                  Optional<bool> followPathBackwardsFromEndToStart = {}, Optional<bool> exactSplinePath = {}, bool generatePath = true,
+                  Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
 
-        void MoveIdle();
-        void MoveTargetedHome();
-        void MoveRandom(float wanderDistance = 0.0f, Optional<Milliseconds> duration = {}, MovementSlot slot = MOTION_SLOT_DEFAULT,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveFollow(Unit* target, float dist, Optional<ChaseAngle> angle = {}, Optional<Milliseconds> duration = {}, bool ignoreTargetWalk = false, MovementSlot slot = MOTION_SLOT_ACTIVE,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveChase(Unit* target, Optional<ChaseRange> dist = {}, Optional<ChaseAngle> angle = {});
-        void MoveChase(Unit* target, float dist, float angle) { MoveChase(target, ChaseRange(dist), ChaseAngle(angle)); }
-        void MoveConfused();
-        void MoveFleeing(Unit* enemy, Milliseconds time = 0ms,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MovePoint(uint32 id, Position const& pos, bool generatePath = true, Optional<float> finalOrient = {}, Optional<float> speed = {},
-            MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default, Optional<float> closeEnoughDistance = {},
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true, Optional<float> finalOrient = {}, Optional<float> speed = {},
-            MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default, Optional<float> closeEnoughDistance = {},
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        /*
-         *  Makes the unit move toward the target until it is at a certain distance from it. The unit then stops.
-         *  Only works in 2D.
-         *  This method doesn't account for any movement done by the target. in other words, it only works if the target is stationary.
-         */
-        void MoveCloserAndStop(uint32 id, Unit* target, float distance);
-        // These two movement types should only be used with creatures having landing/takeoff animations
-        void MoveLand(uint32 id, Position const& pos, Optional<int32> tierTransitionId = {}, Optional<float> velocity = {},
-            MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveTakeoff(uint32 id, Position const& pos, Optional<int32> tierTransitionId = {}, Optional<float> velocity = {},
-            MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveCharge(float x, float y, float z, float speed = SPEED_CHARGE, uint32 id = EVENT_CHARGE, bool generatePath = false, Unit const* target = nullptr, Movement::SpellEffectExtraData const* spellEffectExtraData = nullptr);
-        void MoveCharge(PathGenerator const& path, float speed = SPEED_CHARGE, Unit const* target = nullptr, Movement::SpellEffectExtraData const* spellEffectExtraData = nullptr);
-        void MoveKnockbackFrom(Position const& origin, float speedXY, float speedZ, Movement::SpellEffectExtraData const* spellEffectExtraData = nullptr);
-        void MoveJumpTo(float angle, float speedXY, float speedZ);
-        void MoveJump(Position const& pos, float speedXY, float speedZ, uint32 id = EVENT_JUMP, MovementFacingTarget const& facing = {},
-            bool orientationFixed = false, JumpArrivalCastArgs const* arrivalCast = nullptr, Movement::SpellEffectExtraData const* spellEffectExtraData = nullptr,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveJump(float x, float y, float z, float speedXY, float speedZ, uint32 id = EVENT_JUMP, MovementFacingTarget const& facing = {},
-            bool orientationFixed = false, JumpArrivalCastArgs const* arrivalCast = nullptr, Movement::SpellEffectExtraData const* spellEffectExtraData = nullptr,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveJumpWithGravity(Position const& pos, float speedXY, float gravity, uint32 id = EVENT_JUMP, MovementFacingTarget const& facing = {},
-            bool orientationFixed = false, JumpArrivalCastArgs const* arrivalCast = nullptr, Movement::SpellEffectExtraData const* spellEffectExtraData = nullptr,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveCirclePath(float x, float y, float z, float radius, bool clockwise, uint8 stepCount,
-            Optional<Milliseconds> duration = {}, Optional<float> speed = {},
-            MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        // Walk along spline chain stored in DB (script_spline_chain_meta and script_spline_chain_waypoints)
-        void MoveAlongSplineChain(uint32 pointId, uint16 dbChainId, bool walk);
-        void MoveAlongSplineChain(uint32 pointId, std::vector<SplineChainLink> const& chain, bool walk);
-        void ResumeSplineChain(SplineChainResumeInfo const& info);
-        void MoveFall(uint32 id = 0,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveSeekAssistance(float x, float y, float z);
-        void MoveSeekAssistanceDistract(uint32 timer);
-        void MoveTaxiFlight(uint32 path, uint32 pathnode, Optional<float> speed = {},
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveDistract(uint32 time, float orientation);
-        void MovePath(uint32 pathId, bool repeatable, Optional<Milliseconds> duration = {}, Optional<float> speed = {},
-            MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
-            Optional<std::pair<Milliseconds, Milliseconds>> waitTimeRangeAtPathEnd = {}, Optional<float> wanderDistanceAtPathEnds = {},
-            Optional<bool> followPathBackwardsFromEndToStart = {}, Optional<bool> exactSplinePath = {}, bool generatePath = true,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MovePath(WaypointPath const& path, bool repeatable, Optional<Milliseconds> duration = {}, Optional<float> speed = {},
-            MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
-            Optional<std::pair<Milliseconds, Milliseconds>> waitTimeRangeAtPathEnd = {}, Optional<float> wanderDistanceAtPathEnds = {},
-            Optional<bool> followPathBackwardsFromEndToStart = {}, Optional<bool> exactSplinePath = {}, bool generatePath = true,
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
+    /**
+     * \brief Makes the Unit turn in place
+     * \param id Movement identifier, later passed to script MovementInform hooks
+     * \param direction Rotation direction
+     * \param time How long should this movement last, infinite if not set
+     * \param turnSpeed How fast should the unit rotate, in radians per second. Uses unit's turn speed if not set
+     * \param totalTurnAngle Total angle of the entire movement, infinite if not set
+     * \param scriptResult Awaitable script result (for internal use)
+     */
+    void MoveRotate(uint32 id, RotateDirection direction, Optional<Milliseconds> time = {},
+                    Optional<float> turnSpeed = {}, Optional<float> totalTurnAngle = {},
+                    Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    void MoveFormation(Unit *leader, float range, float angle, uint32 point1, uint32 point2);
 
-        /**
-         * \brief Makes the Unit turn in place
-         * \param id Movement identifier, later passed to script MovementInform hooks
-         * \param direction Rotation direction
-         * \param time How long should this movement last, infinite if not set
-         * \param turnSpeed How fast should the unit rotate, in radians per second. Uses unit's turn speed if not set
-         * \param totalTurnAngle Total angle of the entire movement, infinite if not set
-         * \param scriptResult Awaitable script result (for internal use)
-         */
-        void MoveRotate(uint32 id, RotateDirection direction, Optional<Milliseconds> time = {},
-            Optional<float> turnSpeed = {}, Optional<float> totalTurnAngle = {},
-            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult = {});
-        void MoveFormation(Unit* leader, float range, float angle, uint32 point1, uint32 point2);
+    void LaunchMoveSpline(std::function<void(Movement::MoveSplineInit &init)> &&initializer, uint32 id = 0, MovementGeneratorPriority priority = MOTION_PRIORITY_NORMAL, MovementGeneratorType type = EFFECT_MOTION_TYPE);
+    /*
+        该函数的主要任务是计算跳跃相关的速度参数，
+        用于确定在游戏中单位进行跳跃动作时在不同方向上的速度，以便实现符合物理规律或者游戏设计要求的跳跃效果，
+        比如角色跨越沟壑、爬上高台等跳跃场景下需要合理的速度来保证跳跃的距离、高度等符合预期。
+    */
+    void CalculateJumpSpeeds(float dist, UnitMoveType moveType, float speedMultiplier, float minHeight, float maxHeight, float &speedXY, float &speedZ) const;
 
-        void LaunchMoveSpline(std::function<void(Movement::MoveSplineInit& init)>&& initializer, uint32 id = 0, MovementGeneratorPriority priority = MOTION_PRIORITY_NORMAL, MovementGeneratorType type = EFFECT_MOTION_TYPE);
+private:
+    typedef std::unique_ptr<MovementGenerator, MovementGeneratorDeleter> MovementGeneratorPointer;
+    typedef std::multiset<MovementGenerator *, MovementGeneratorComparator> MotionMasterContainer;
+    typedef std::unordered_multimap<uint32, MovementGenerator const *> MotionMasterUnitStatesContainer;
 
-        void CalculateJumpSpeeds(float dist, UnitMoveType moveType, float speedMultiplier, float minHeight, float maxHeight, float& speedXY, float& speedZ) const;
+    void AddFlag(uint8 const flag) { _flags |= flag; }
+    bool HasFlag(uint8 const flag) const { return (_flags & flag) != 0; }
+    void RemoveFlag(uint8 const flag) { _flags &= ~flag; }
 
-    private:
-        typedef std::unique_ptr<MovementGenerator, MovementGeneratorDeleter> MovementGeneratorPointer;
-        typedef std::multiset<MovementGenerator*, MovementGeneratorComparator> MotionMasterContainer;
-        typedef std::unordered_multimap<uint32, MovementGenerator const*> MotionMasterUnitStatesContainer;
+    void ResolveDelayedActions();
+    void Remove(MotionMasterContainer::iterator iterator, bool active, bool movementInform);
+    void Pop(bool active, bool movementInform);
+    void DirectInitialize();
+    void DirectClear();
+    void DirectClearDefault();
+    void DirectClear(std::function<bool(MovementGenerator *)> const &filter);
+    void DirectAdd(MovementGenerator *movement, MovementSlot slot);
 
-        void AddFlag(uint8 const flag) { _flags |= flag; }
-        bool HasFlag(uint8 const flag) const { return (_flags & flag) != 0; }
-        void RemoveFlag(uint8 const flag) { _flags &= ~flag; }
+    void Delete(MovementGenerator *movement, bool active, bool movementInform);
+    void DeleteDefault(bool active, bool movementInform);
+    void AddBaseUnitState(MovementGenerator const *movement);
+    void ClearBaseUnitState(MovementGenerator const *movement);
+    void ClearBaseUnitStates();
 
-        void ResolveDelayedActions();
-        void Remove(MotionMasterContainer::iterator iterator, bool active, bool movementInform);
-        void Pop(bool active, bool movementInform);
-        void DirectInitialize();
-        void DirectClear();
-        void DirectClearDefault();
-        void DirectClear(std::function<bool(MovementGenerator*)> const& filter);
-        void DirectAdd(MovementGenerator* movement, MovementSlot slot);
-
-        void Delete(MovementGenerator* movement, bool active, bool movementInform);
-        void DeleteDefault(bool active, bool movementInform);
-        void AddBaseUnitState(MovementGenerator const* movement);
-        void ClearBaseUnitState(MovementGenerator const* movement);
-        void ClearBaseUnitStates();
-
-        Unit* _owner;
-        MovementGeneratorPointer _defaultGenerator;
-        MotionMasterContainer _generators;
-        MotionMasterUnitStatesContainer _baseUnitStatesMap;
-        std::deque<DelayedAction> _delayedActions;
-        uint8 _flags;
+    Unit *_owner;
+    MovementGeneratorPointer _defaultGenerator;
+    MotionMasterContainer _generators;
+    MotionMasterUnitStatesContainer _baseUnitStatesMap;
+    std::deque<DelayedAction> _delayedActions;
+    uint8 _flags;
 };
 
 #endif // MOTIONMASTER_H

@@ -919,6 +919,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
             }
 
             // Check name uniqueness in the same step as saving to database
+            //在保存到数据库的同一步骤检查名称的唯一性
             if (sCharacterCache->GetCharacterCacheByName(createInfo->Name))
             {
                 SendCharCreate(CHAR_CREATE_NAME_IN_USE);
@@ -931,9 +932,11 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
                 delete ptr;
             });
             newChar->GetMotionMaster()->Initialize();
+            //player creator
             if (!newChar->Create(sObjectMgr->GetGenerator<HighGuid::Player>().Generate(), createInfo.get()))
             {
                 // Player not create (race/class/etc problem?)
+                ////玩家不创建（种族/职业/等问题？）
                 SendCharCreate(CHAR_CREATE_ERROR);
                 return;
             }
@@ -1072,7 +1075,7 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPackets::Character::PlayerLogin 
 
     SendConnectToInstance(WorldPackets::Auth::ConnectToSerial::WorldAttempt1);
 }
-//处理玩家后续登录
+// 处理玩家后续登录
 void WorldSession::HandleContinuePlayerLogin()
 {
     if (!PlayerLoading() || GetPlayer())
@@ -1111,15 +1114,30 @@ void WorldSession::HandleLoadScreenOpcode(WorldPackets::Character::LoadingScreen
     // TODO: Do something with this packet
 }
 
+// 重要！！！
+// 这里应该处理的是角色登入服务器的逻辑
+// 创建角色是在palyer-》create函数不是new的
 void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 {
     ObjectGuid playerGuid = holder.GetGuid();
 
     Player *pCurrChar = new Player(this);
     // for send server info and strings (config)
+    // 为发送服务器信息和字符串（配置）
     ChatHandler chH = ChatHandler(pCurrChar->GetSession());
 
     // "GetAccountId() == db stored account id" checked in LoadFromDB (prevent login not own character using cheating tools)
+    // 在LoadFromDB中检查db存储的帐户id（防止登录时使用作弊工具）
+
+    // 重要！！！
+    /*
+        他么的
+        如果这个LoadFromDB返回true
+        loadfromdb函数里会对session中的，也就是当前这个类中的_Player成员变量进行赋值，
+        也就是吧这个pCurrChar赋值给了this._player
+        这个函数最后会使用_player 如果忽略了则不知道_player是在哪赋值的
+    */
+
     if (!pCurrChar->LoadFromDB(playerGuid, holder))
     {
         SetPlayer(nullptr);
@@ -1134,22 +1152,39 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     SendAccountDataTimes(ObjectGuid::Empty, GLOBAL_CACHE_MASK);
     SendTutorialsData();
 
+    // 初始化移动控制器？？
     pCurrChar->GetMotionMaster()->Initialize();
+    // ？？？
     pCurrChar->SendDungeonDifficulty();
-
+    // 用于表示一个和角色登录验证相关的数据包结构对象。
     WorldPackets::Character::LoginVerifyWorld loginVerifyWorld;
+
+    // 发送mapid和角色pos
     loginVerifyWorld.MapID = pCurrChar->GetMapId();
     loginVerifyWorld.Pos = pCurrChar->GetPosition();
     SendPacket(loginVerifyWorld.Write());
 
     // load player specific part before send times
     // 在发送次数之前加载播放器的特定部分
+    /*
+        这三行代码的执行顺序可能是一个连贯的流程，先是加载账号数据，确保服务器端获取到了玩家完整准确的账号信息；
+        接着发送账号数据的时间信息给玩家客户端，让客户端能根据时间来同步和更新本地缓存的数据；
+        最后发送功能系统状态信息，使得玩家可以知晓游戏内各功能系统目前的情况，方便玩家进行后续的游戏操作（比如决定是否去查看新的成就、参与社交活动或者在商城购物等），
+        整体上是围绕玩家登录游戏后进行数据准备和信息同步的相关操作逻辑，保障玩家能顺利进入游戏并正常体验游戏中的各种功能。
+    */
     LoadAccountData(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_ACCOUNT_DATA), PER_CHARACTER_CACHE_MASK);
     SendAccountDataTimes(playerGuid, ALL_ACCOUNT_DATA_CACHE_MASK);
 
     SendFeatureSystemStatus();
-
     // Send MOTD
+    // 公告？？？
+    /*
+        “Send MOTD” 通常表示 “发送消息通告（Message Of The Day）” 的操作。
+        在很多网络应用程序中，比如游戏服务器、远程登录服务器等场景下，
+        MOTD 是一种常见的功能，用于在客户端连接到服务器时，
+        向客户端发送一段预先设置好的文本消息，这段消息往往包含了一些重要的提示、
+        欢迎语、服务器相关的公告或者规则说明等内容，方便让用户快速了解服务器的基本情况。
+    */
     {
         for (std::string const &motdLine : sWorld->GetMotd())
             sWorld->SendServerMessage(SERVER_MSG_STRING, motdLine, pCurrChar);
@@ -1158,6 +1193,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     SendSetTimeZoneInformation();
 
     // Send PVPSeason
+    // pvp赛季
     {
         WorldPackets::Battleground::SeasonInfo seasonInfo;
         seasonInfo.PreviousArenaSeason = sWorld->getIntConfig(CONFIG_ARENA_SEASON_ID) - sWorld->getBoolConfig(CONFIG_ARENA_SEASON_IN_PROGRESS);
@@ -1175,6 +1211,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     }
 
     // QueryResult* result = CharacterDatabase.PQuery("SELECT guildid, `rank` FROM guild_member WHERE guid = '{}'", pCurrChar->GetGUIDLow());
+    // 工会信息相关
     if (PreparedQueryResult resultGuild = holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_GUILD))
     {
         Field *fields = resultGuild->Fetch();
@@ -1189,14 +1226,17 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         pCurrChar->SetGuildRank(0);
         pCurrChar->SetGuildLevel(0);
     }
-
+    // 拍卖相关
     SendAuctionFavoriteList();
-
+    // 战宠状态属性
     pCurrChar->GetSession()->GetBattlePetMgr()->SendJournalLockStatus();
 
+    // 进入地图之前发送初始数据包
+    //  这一步骤对于确保角色进入地图后能够顺利开展游戏活动、客户端能正确展示角色相关状态和功能起着关键作用
     pCurrChar->SendInitialPacketsBeforeAddToMap();
 
     // Show cinematic at the first time that player login
+    ////在玩家第一次登录时显示动画
     if (!pCurrChar->getCinematic())
     {
         pCurrChar->setCinematic(1);
@@ -1228,7 +1268,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         if (!sWorld->GetNewCharString().empty())
             chH.PSendSysMessage("%s", sWorld->GetNewCharString().c_str());
     }
-
+    // 把角色添加到地图中
     if (!pCurrChar->GetMap()->AddPlayerToMap(pCurrChar))
     {
         AreaTriggerStruct const *at = sObjectMgr->GetGoBackTrigger(pCurrChar->GetMapId());
@@ -1237,10 +1277,11 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         else
             pCurrChar->TeleportTo(pCurrChar->m_homebind);
     }
-
+    // 访问器 访问器
     ObjectAccessor::AddObject(pCurrChar);
     // TC_LOG_DEBUG("Player {} added to Map.", pCurrChar->GetName());
 
+    // 发送工会信息
     if (pCurrChar->GetGuildId())
     {
         if (Guild *guild = sGuildMgr->GetGuildById(pCurrChar->GetGuildId()))
@@ -1253,8 +1294,9 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         }
     }
 
+    // 登录移除某些光环效果
     pCurrChar->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Login);
-
+    // 发送登录后的初始数据包
     pCurrChar->SendInitialPacketsAfterAddToMap();
 
     CharacterDatabasePreparedStatement *stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_ONLINE);
@@ -1268,6 +1310,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     pCurrChar->SetInGameTime(GameTime::GetGameTimeMS());
 
     // announce group about member online (must be after add to player list to receive announce to self)
+    // 广播组队信息判断是不是队长
     if (Group *group = pCurrChar->GetGroup())
     {
         // pCurrChar->groupInfo.group->SendInit(this); // useless
@@ -1280,12 +1323,15 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     sSocialMgr->SendFriendStatus(pCurrChar, FRIEND_ONLINE, pCurrChar->GetGUID(), true);
 
     // Place character in world (and load zone) before some object loading
+    // 其他obj 加载前吧角色放到世界
     pCurrChar->LoadCorpse(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CORPSE_LOCATION));
 
     // setting Ghost+speed if dead
+    // 如果是死亡状态设置为小精灵并且设置移动速度
     if (pCurrChar->m_deathState == DEAD)
     {
         // not blizz like, we must correctly save and load player instead...
+        // 如果是暗夜精灵则增加一个光环buff.魔兽暗夜精灵死亡状态小精灵的移动速度提高75%
         if (pCurrChar->GetRace() == RACE_NIGHTELF && !pCurrChar->HasAura(20584))
             pCurrChar->CastSpell(pCurrChar, 20584, true); // auras SPELL_AURA_INCREASE_SPEED(+speed in wisp form), SPELL_AURA_INCREASE_SWIM_SPEED(+swim speed in wisp form), SPELL_AURA_TRANSFORM (to wisp form)
 
@@ -1294,7 +1340,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 
         pCurrChar->SetWaterWalking(true);
     }
-
+    // 如果在坐骑上则继续
     pCurrChar->ContinueTaxiFlight();
 
     // reset for all pets before pet loading
@@ -1306,15 +1352,18 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         CharacterDatabase.Execute(stmtSpells);
 
         // Then reset all of the player's pet specualizations
+        // 即在进行宠物（Pet）相关数据加载之前，对所有宠物执行重置操作。
         CharacterDatabasePreparedStatement *stmtSpec = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PET_SPECS_BY_OWNER);
         stmtSpec->setUInt64(0, pCurrChar->GetGUID().GetCounter());
         CharacterDatabase.Execute(stmtSpec);
     }
 
     // Load pet if any (if player not alive and in taxi flight or another then pet will remember as temporary unsummoned)
+    // 重新召唤宠物 但是一些特殊情况除外 如死亡。飞行坐骑上 或者其他特殊情况
     pCurrChar->ResummonPetTemporaryUnSummonedIfAny();
 
     // Set FFA PvP for non GM in non-rest mode
+    // 是不是pvp服务器 gm或者休息状态的判断
     if (sWorld->IsFFAPvPRealm() && !pCurrChar->IsGameMaster() && !pCurrChar->HasPlayerFlag(PLAYER_FLAGS_RESTING))
         pCurrChar->SetPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
 
@@ -1322,6 +1371,8 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         pCurrChar->SetContestedPvP();
 
     // Apply at_login requests
+    // 应用at_login请求
+    // 是否重置所学技能等等 天赋
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_SPELLS))
     {
         pCurrChar->ResetSpells();
@@ -1335,7 +1386,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         pCurrChar->SendTalentsInfoData(); // original talents send already in to SendInitialPacketsBeforeAddToMap, resend reset state
         SendNotification(LANG_RESET_TALENTS);
     }
-
+    // 第一次登录
     bool firstLogin = pCurrChar->HasAtLoginFlag(AT_LOGIN_FIRST);
     if (firstLogin)
     {
@@ -1346,6 +1397,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
             pCurrChar->CastSpell(pCurrChar, spellId, true);
 
         // start with every map explored
+        ////从每个探索过的地图开始
         if (sWorld->getBoolConfig(CONFIG_START_ALL_EXPLORED))
         {
             for (uint32 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; ++i)
@@ -1378,6 +1430,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
             repMgr.SetOneFactionReputation(sFactionStore.LookupEntry(1091), 42999, false); // The Wyrmrest Accord
 
             // Factions depending on team, like cities and some more stuff
+            ////派系取决于团队，如城市和一些更多的东西
             switch (pCurrChar->GetTeam())
             {
             case ALLIANCE:
@@ -1418,6 +1471,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     }
 
     // show time before shutdown if shutdown planned.
+    // 如果计划关机，显示关机前的时间。
     if (sWorld->IsShuttingDown())
         sWorld->ShutdownMsg(true, pCurrChar);
 
@@ -1426,24 +1480,27 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 
     if (pCurrChar->IsGameMaster())
         SendNotification(LANG_GM_ON);
-
+    // 输出日志
+    // palyer属性
     TC_LOG_INFO("entities.player.character", "Account: {} (IP: {}) Login Character: [{}] {} Level: {}, XP: {}/{} ({} left)",
                 GetAccountId(), GetRemoteAddress(), pCurrChar->GetName(), pCurrChar->GetGUID().ToString(), pCurrChar->GetLevel(),
                 _player->GetXP(), _player->GetXPForNextLevel(), std::max(0, (int32)_player->GetXPForNextLevel() - (int32)_player->GetXP()));
 
+    // 是不是正常站立的
     if (!pCurrChar->IsStandState() && !pCurrChar->HasUnitState(UNIT_STATE_STUNNED))
         pCurrChar->SetStandState(UNIT_STAND_STATE_STAND);
-
+    // 更新物品等级和平均等级
     pCurrChar->UpdateAverageItemLevelTotal();
     pCurrChar->UpdateAverageItemLevelEquipped();
-
+    // 清理loading的缓存数据 m_playerLoading：gameobject GUID
     m_playerLoading.Clear();
-
+    // 更新坐骑
     _player->UpdateMountCapability();
 
     // Handle Login-Achievements (should be handled after loading)
+    /// 处理登录成就（应在加载后处理）
     _player->UpdateCriteria(CriteriaType::Login, 1);
-
+    // 后续脚本处理登录
     sScriptMgr->OnPlayerLogin(pCurrChar, firstLogin);
 
     TC_METRIC_EVENT("player_events", "Login", pCurrChar->GetName());
