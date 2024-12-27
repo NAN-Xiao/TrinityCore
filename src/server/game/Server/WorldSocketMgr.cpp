@@ -57,7 +57,6 @@ WorldSocketMgr &WorldSocketMgr::Instance()
     return instance;
 }
 
-
 bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, uint16 instancePort, int threadCount)
 {
     /*

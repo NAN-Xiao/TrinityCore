@@ -1102,7 +1102,12 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPackets::Character::PlayerLogin 
 
     SendConnectToInstance(WorldPackets::Auth::ConnectToSerial::WorldAttempt1);
 }
+// 重要 ！！！！
 // 处理玩家后续登录
+// 这里会处理玩家登录
+// 并且登录完成后会有一系列如创建player、发送公告。
+// 第一次进入播放游戏开场动画
+// 等等类型的消息
 void WorldSession::HandleContinuePlayerLogin()
 {
     if (!PlayerLoading() || GetPlayer())
@@ -1143,7 +1148,7 @@ void WorldSession::HandleLoadScreenOpcode(WorldPackets::Character::LoadingScreen
 
 /// 重要 ！！！！
 /// 处理角色登入逻辑
-
+// 创建了player
 void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 {
     ObjectGuid playerGuid = holder.GetGuid();

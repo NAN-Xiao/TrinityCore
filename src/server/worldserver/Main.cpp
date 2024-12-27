@@ -318,7 +318,7 @@ int main(int argc, char **argv)
     SetProcessPriority("server.worldserver", sConfigMgr->GetIntDefault(CONFIG_PROCESSOR_AFFINITY, 0), sConfigMgr->GetBoolDefault(CONFIG_HIGH_PRIORITY, false));
 
     // Start the databases
-    // 啓動服務器
+    // 啓動数据库
     if (!StartDB())
         return 1;
 
@@ -703,6 +703,7 @@ AsyncAcceptor *StartRaSocketAcceptor(Trinity::Asio::IoContext &ioContext)
 }
 
 /// Initialize connection to the databases
+/// 初始化数据库连接
 bool StartDB()
 {
     MySQL::Library_Init();
@@ -738,6 +739,7 @@ void StopDB()
 }
 
 /// Clear 'online' status for all accounts with characters in this realm
+/// 清除该领域中所有字符的在线状态
 void ClearOnlineAccounts(uint32 realmId)
 {
     // Reset online status for all accounts with characters on the current realm
@@ -789,5 +791,6 @@ variables_map GetConsoleArguments(int argc, char **argv, fs::path &configFile, f
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
 #include "WheatyExceptionReport.h"
 // must be at end of file because of init_seg pragma
+// 必须在文件的末尾，因为init_seg pragma
 INIT_CRASH_HANDLER();
 #endif

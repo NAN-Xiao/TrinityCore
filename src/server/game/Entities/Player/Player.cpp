@@ -146,7 +146,7 @@
 #define DEATH_EXPIRE_STEP (5 * MINUTE)
 #define MAX_DEATH_COUNT 3
 
-//法术枚举
+// 法术枚举
 enum PlayerSpells
 {
     SPELL_EXPERIENCE_ELIMINATED = 206662,
@@ -1003,7 +1003,7 @@ void Player::Update(uint32 p_time)
     Unit::AIUpdateTick(p_time);
 
     // Update items that have just a limited lifetime
-    // 更新生命周期有限的项目
+    // 更新道具持续时间
     if (now > m_Last_tick)
         UpdateItemDuration(uint32(now - m_Last_tick));
 
@@ -17698,7 +17698,7 @@ bool Player::IsLoading() const
     return GetSession()->PlayerLoading();
 }
 
-//从数据库填充player的属性
+// 从数据库填充player的属性
 bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &holder)
 {
     PreparedQueryResult result = holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_FROM);
@@ -21625,6 +21625,7 @@ bool Player::IsLockedToDungeonEncounter(uint32 dungeonEncounterId, Difficulty di
 /*********************************************************/
 
 /// checks the 15 afk reports per 5 minutes limit
+/// 检查每5分钟15个afk报告的限制
 void Player::UpdateAfkReport(time_t currTime)
 {
     if (m_bgData.bgAfkReportedTimer <= currTime)

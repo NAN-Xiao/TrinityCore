@@ -810,6 +810,7 @@ public:
     bool IsGuidAlert() { return _guidAlert; }
 
     // War mode balancing
+    // 战争模式平衡
     void SetForcedWarModeFactionBalanceState(TeamId team, int32 reward = 0);
     void DisableForcedWarModeFactionBalanceState();
 
@@ -817,6 +818,7 @@ protected:
     void _UpdateGameTime();
 
     // callback for UpdateRealmCharacters
+    // UpdateRealmCharacters的回调
     void _UpdateRealmCharCount(PreparedQueryResult resultCharCount);
 
     void InitQuestResetTimes();
@@ -904,6 +906,7 @@ private:
     Queue m_QueuedPlayer;
 
     // sessions that are added async
+    // 异步添加的会话
     void AddSession_(WorldSession *s);
     LockedQueue<WorldSession *> addSessQueue;
 
