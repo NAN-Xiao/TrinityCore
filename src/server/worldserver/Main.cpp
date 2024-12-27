@@ -487,7 +487,6 @@ int main(int argc, char **argv)
     //
     WorldUpdateLoop();
     //
-    
 
     // Shutdown starts here
     // 关闭服务从这里开始
@@ -589,6 +588,8 @@ void ShutdownCLIThread::operator()(std::thread *cliThread) const
     }
 }
 
+// 更新世界
+// 整个世界的逻辑循环
 void WorldUpdateLoop()
 {
     uint32 minUpdateDiff = uint32(sConfigMgr->GetIntDefault("MinWorldUpdateTime", 1));
