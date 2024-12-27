@@ -244,7 +244,6 @@ public:
     }
 
     /// Create an account
-    /// 创建一个账号
     static bool HandleAccountCreateCommand(ChatHandler* handler, std::string const& accountName, std::string const& password, Optional<std::string> const& email)
     {
         if (accountName.find('@') != std::string::npos)

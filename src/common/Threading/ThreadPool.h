@@ -24,7 +24,6 @@
 
 namespace Trinity
 {
-    //Trinity线程池
 class ThreadPool
 {
 public:

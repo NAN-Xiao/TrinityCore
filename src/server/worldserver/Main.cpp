@@ -15,7 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/// \addtogroup Trinityd Trinity Daemon ????
+/// \addtogroup Trinityd Trinity Daemon
 /// @{
 /// \file
 
@@ -72,11 +72,11 @@ using namespace boost::program_options;
 namespace fs = boost::filesystem;
 
 #ifndef _TRINITY_CORE_CONFIG
-#define _TRINITY_CORE_CONFIG "worldserver.conf"
+    #define _TRINITY_CORE_CONFIG  "worldserver.conf"
 #endif
 
 #ifndef _TRINITY_CORE_CONFIG_DIR
-#define _TRINITY_CORE_CONFIG_DIR "worldserver.conf.d"
+    #define _TRINITY_CORE_CONFIG_DIR "worldserver.conf.d"
 #endif
 
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
@@ -90,10 +90,6 @@ TCHAR serviceDescription[] = _T("TrinityCore World of Warcraft emulator world se
  *  0 - stopped
  *  1 - running
  *  2 - paused
- *  -1表示未进入服务模式
- * 0 -停止
- * 1 -运行
- * 2 -暂停
  */
 int m_ServiceStatus = -1;
 
@@ -104,17 +100,19 @@ int m_ServiceStatus = -1;
 class FreezeDetector
 {
 public:
-    FreezeDetector(Trinity::Asio::IoContext &ioContext, uint32 maxCoreStuckTime)
-        : _timer(ioContext), _worldLoopCounter(0), _lastChangeMsTime(getMSTime()), _maxCoreStuckTimeInMs(maxCoreStuckTime) {}
+    FreezeDetector(Trinity::Asio::IoContext& ioContext, uint32 maxCoreStuckTime)
+        : _timer(ioContext), _worldLoopCounter(0), _lastChangeMsTime(getMSTime()), _maxCoreStuckTimeInMs(maxCoreStuckTime) { }
 
-    static void Start(std::shared_ptr<FreezeDetector> const &freezeDetector)
+    static void Start(std::shared_ptr<FreezeDetector> const& freezeDetector)
     {
         freezeDetector->_timer.expires_after(5s);
-        freezeDetector->_timer.async_wait([freezeDetectorRef = std::weak_ptr(freezeDetector)](boost::system::error_code const &error) mutable
-                                          { Handler(std::move(freezeDetectorRef), error); });
+        freezeDetector->_timer.async_wait([freezeDetectorRef = std::weak_ptr(freezeDetector)](boost::system::error_code const& error) mutable
+        {
+            Handler(std::move(freezeDetectorRef), error);
+        });
     }
 
-    static void Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, boost::system::error_code const &error);
+    static void Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, boost::system::error_code const& error);
 
 private:
     Trinity::Asio::DeadlineTimer _timer;
@@ -123,25 +121,18 @@ private:
     uint32 _maxCoreStuckTimeInMs;
 };
 
-void SignalHandler(boost::system::error_code const &error, int signalNumber);
-AsyncAcceptor *StartRaSocketAcceptor(Trinity::Asio::IoContext &ioContext);
+void SignalHandler(boost::system::error_code const& error, int signalNumber);
+AsyncAcceptor* StartRaSocketAcceptor(Trinity::Asio::IoContext& ioContext);
 bool StartDB();
 void StopDB();
 void WorldUpdateLoop();
 void ClearOnlineAccounts(uint32 realmId);
-struct ShutdownTCSoapThread
-{
-    void operator()(std::thread *thread) const;
-};
-struct ShutdownCLIThread
-{
-    void operator()(std::thread *cliThread) const;
-};
-variables_map GetConsoleArguments(int argc, char **argv, fs::path &configFile, fs::path &configDir, std::string &winServiceAction);
+struct ShutdownTCSoapThread { void operator()(std::thread* thread) const; };
+struct ShutdownCLIThread { void operator()(std::thread* cliThread) const; };
+variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, fs::path& configDir, std::string& winServiceAction);
 
-/// Launch the Trinity server//??server
-// 啓動trinity服務器
-int main(int argc, char **argv)
+/// Launch the Trinity server
+int main(int argc, char** argv)
 {
     signal(SIGABRT, &Trinity::AbortHandler);
 
@@ -150,12 +141,11 @@ int main(int argc, char **argv)
     Trinity::Locale::Init();
 
     auto configFile = fs::absolute(_TRINITY_CORE_CONFIG);
-    auto configDir = fs::absolute(_TRINITY_CORE_CONFIG_DIR);
+    auto configDir  = fs::absolute(_TRINITY_CORE_CONFIG_DIR);
     std::string winServiceAction;
 
     auto vm = GetConsoleArguments(argc, argv, configFile, configDir, winServiceAction);
     // exit if help or version is enabled
-    //	如果启用了帮助或版本，则退出
     if (vm.count("help") || vm.count("version"))
         return 0;
 
@@ -163,8 +153,7 @@ int main(int argc, char **argv)
 
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-    auto protobufHandle = Trinity::make_unique_ptr_with_deleter<[](void *)
-                                                                { google::protobuf::ShutdownProtobufLibrary(); }>(&dummy);
+    auto protobufHandle = Trinity::make_unique_ptr_with_deleter<[](void*) { google::protobuf::ShutdownProtobufLibrary(); }>(&dummy);
 
 #ifdef _WIN32
     Trinity::Service::Init(serviceLongName, serviceName, serviceDescription, &main, &m_ServiceStatus);
@@ -177,20 +166,20 @@ int main(int argc, char **argv)
 
     Optional<UINT> newTimerResolution;
     boost::system::error_code dllError;
-
-    // 这是用wimm实现了一个定时器？？？貌似
-    auto winmm = Trinity::make_unique_ptr_with_deleter(new boost::dll::shared_library("winmm.dll", dllError, boost::dll::load_mode::search_system_folders), [&](boost::dll::shared_library *lib)
-                                                       {
+    auto winmm = Trinity::make_unique_ptr_with_deleter(new boost::dll::shared_library("winmm.dll", dllError, boost::dll::load_mode::search_system_folders), [&](boost::dll::shared_library* lib)
+    {
         try
         {
-            if(newTimerResolution)
+            if (newTimerResolution)
                 lib->get<decltype(timeEndPeriod)>("timeEndPeriod")(*newTimerResolution);
-        } catch(std::exception const&)
+        }
+        catch (std::exception const&)
         {
             // ignore
         }
 
-        delete lib; });
+        delete lib;
+    });
 
     if (winmm->is_loaded())
     {
@@ -198,7 +187,6 @@ int main(int argc, char **argv)
         {
             auto timeGetDevCapsPtr = winmm->get<decltype(timeGetDevCaps)>("timeGetDevCaps");
             // setup timer resolution
-            // 设置定时器分辨率
             TIMECAPS timeResolutionLimits;
             if (timeGetDevCapsPtr(&timeResolutionLimits, sizeof(TIMECAPS)) == TIMERR_NOERROR)
             {
@@ -207,7 +195,7 @@ int main(int argc, char **argv)
                 timeBeginPeriodPtr(*newTimerResolution);
             }
         }
-        catch (std::exception const &e)
+        catch (std::exception const& e)
         {
             printf("Failed to initialize timer resolution: %s\n", e.what());
         }
@@ -227,12 +215,12 @@ int main(int argc, char **argv)
     std::vector<std::string> loadedConfigFiles;
     std::vector<std::string> configDirErrors;
     bool additionalConfigFileLoadSuccess = sConfigMgr->LoadAdditionalDir(configDir.generic_string(), true, loadedConfigFiles, configDirErrors);
-    for (std::string const &loadedConfigFile : loadedConfigFiles)
+    for (std::string const& loadedConfigFile : loadedConfigFiles)
         printf("Loaded additional config file %s\n", loadedConfigFile.c_str());
 
     if (!additionalConfigFileLoadSuccess)
     {
-        for (std::string const &configDirError : configDirErrors)
+        for (std::string const& configDirError : configDirErrors)
             printf("Error in additional config files: %s\n", configDirError.c_str());
 
         return 1;
@@ -244,33 +232,34 @@ int main(int argc, char **argv)
 
     sLog->RegisterAppender<AppenderDB>();
     // If logs are supposed to be handled async then we need to pass the IoContext into the Log singleton
-    // 如果日志应该异步处理，那么我们需要将IoContext传递给Log单例
     sLog->Initialize(sConfigMgr->GetBoolDefault("Log.Async.Enable", false) ? ioContext.get() : nullptr);
 
-    Trinity::Banner::Show("worldserver-daemon", [](char const *text)
-                          { TC_LOG_INFO("server.worldserver", "{}", text); }, []()
-                          {
-        TC_LOG_INFO("server.worldserver","Using configuration file {}.",sConfigMgr->GetFilename());
-        TC_LOG_INFO("server.worldserver","Using SSL version: {} (library: {})",OPENSSL_VERSION_TEXT,OpenSSL_version(OPENSSL_VERSION));
-        TC_LOG_INFO("server.worldserver","Using Boost version: {}.{}.{}",BOOST_VERSION / 100000,BOOST_VERSION / 100 % 1000,BOOST_VERSION % 100); });
+    Trinity::Banner::Show("worldserver-daemon",
+        [](char const* text)
+        {
+            TC_LOG_INFO("server.worldserver", "{}", text);
+        },
+        []()
+        {
+            TC_LOG_INFO("server.worldserver", "Using configuration file {}.", sConfigMgr->GetFilename());
+            TC_LOG_INFO("server.worldserver", "Using SSL version: {} (library: {})", OPENSSL_VERSION_TEXT, OpenSSL_version(OPENSSL_VERSION));
+            TC_LOG_INFO("server.worldserver", "Using Boost version: {}.{}.{}", BOOST_VERSION / 100000, BOOST_VERSION / 100 % 1000, BOOST_VERSION % 100);
+        }
+    );
 
-    for (std::string const &key : overriddenKeys)
+    for (std::string const& key : overriddenKeys)
         TC_LOG_INFO("server.worldserver", "Configuration field '{}' was overridden with environment variable.", key);
 
     OpenSSLCrypto::threadsSetup(boost::dll::program_location().remove_filename());
 
-    auto opensslHandle = Trinity::make_unique_ptr_with_deleter<[](void *)
-                                                               { OpenSSLCrypto::threadsCleanup(); }>(&dummy);
+    auto opensslHandle = Trinity::make_unique_ptr_with_deleter<[](void*) { OpenSSLCrypto::threadsCleanup(); }>(&dummy);
 
     // Seed the OpenSSL's PRNG here.
-    // 在这里播种OpenSSL的PRNG。
     // That way it won't auto-seed when calling BigNumber::SetRand and slow down the first world login
-    // 这样就不会在调用bignnumber::SetRand时自动播种，并减慢第一世界登录速度
     BigNumber seed;
     seed.SetRand(16 * 8);
 
     /// worldserver PID file creation
-    //  创建服务器的进程id pid  创建的是守护进程？？？？
     std::string pidFile = sConfigMgr->GetStringDefault("PidFile", "");
     if (!pidFile.empty())
     {
@@ -284,15 +273,6 @@ int main(int argc, char **argv)
     }
 
     // Set signal handlers (this must be done before starting IoContext threads, because otherwise they would unblock and exit)
-    // 设置信号处理程序（这必须在启动IoContext线程之前完成，否则它们会解除阻塞并退出）
-    // SIGINT
-    // 通常是由用户在终端按下 Ctrl + C 组合键时产生的信号，用于请求程序中断运行，
-    // 一般希望程序接收到这个信号后能进行一些必要的资源清理（如关闭文件、断开网络连接等），然后再正常退出。
-
-    // SIGTERM
-    // 信号表示程序接收到了终止请求，
-    // 比如通过系统命令（在类 Unix 系统中可以使用 kill 命令发送 SIGTERM 信号给指定进程）等方式触发，同样期望程序在收到该信号后可以有序地执行清理操作并结束运行
-
     boost::asio::signal_set signals(*ioContext, SIGINT, SIGTERM);
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
     signals.add(SIGBREAK);
@@ -300,32 +280,25 @@ int main(int argc, char **argv)
     signals.async_wait(SignalHandler);
 
     // Start the Boost based thread pool
-    // 启动基于Boost的线程池
     int numThreads = sConfigMgr->GetIntDefault("ThreadPool", 1);
     if (numThreads < 1)
-    {
         numThreads = 1;
-    }
-    // 创建Trinity线程池
+
     std::unique_ptr<Trinity::ThreadPool> threadPool = std::make_unique<Trinity::ThreadPool>(numThreads);
 
     for (int i = 0; i < numThreads; ++i)
-        threadPool->PostWork([ioContext]()
-                             { ioContext->run(); });
+        threadPool->PostWork([ioContext]() { ioContext->run(); });
 
     auto ioContextStopHandle = Trinity::make_unique_ptr_with_deleter<&Trinity::Asio::IoContext::stop>(ioContext.get());
 
     // Set process priority according to configuration settings
-    // 根据配置设置设置进程优先级
     SetProcessPriority("server.worldserver", sConfigMgr->GetIntDefault(CONFIG_PROCESSOR_AFFINITY, 0), sConfigMgr->GetBoolDefault(CONFIG_HIGH_PRIORITY, false));
 
     // Start the databases
-    // 啓動服務器
     if (!StartDB())
         return 1;
 
-    auto dbHandle = Trinity::make_unique_ptr_with_deleter<[](void *)
-                                                          { StopDB(); }>(&dummy);
+    auto dbHandle = Trinity::make_unique_ptr_with_deleter<[](void*) { StopDB(); }>(&dummy);
 
     if (vm.count("update-databases-only"))
         return 0;
@@ -337,7 +310,7 @@ int main(int argc, char **argv)
     auto sRealmListHandle = Trinity::make_unique_ptr_with_deleter<&RealmList::Close>(sRealmList);
 
     ///- Get the realm Id from the configuration file
-    // 从配置文件中获取领域Id  uint32 realmId = sConfigMgr->GetIntDefault("RealmID", 0);
+    uint32 realmId = sConfigMgr->GetIntDefault("RealmID", 0);
     if (!realmId)
     {
         TC_LOG_ERROR("server.worldserver", "Realm ID not defined in configuration file");
@@ -349,7 +322,6 @@ int main(int argc, char **argv)
     TC_LOG_INFO("server.worldserver", "Realm running as realm ID {}", realmId);
 
     ///- Clean the database before starting
-    ///  開始前清理服務器
     ClearOnlineAccounts(realmId);
 
     std::shared_ptr<Realm const> realm = sRealmList->GetCurrentRealm();
@@ -357,24 +329,25 @@ int main(int argc, char **argv)
         return 1;
 
     // Set server offline (not connectable)
-    // 設置服務器離綫
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | {} WHERE id = '{}'", Trinity::Legacy::REALM_FLAG_OFFLINE, realmId);
 
     sMetric->Initialize(realm->Name, *ioContext, []()
-                        {
-        TC_METRIC_VALUE("online_players",sWorld->GetPlayerCount());
-        TC_METRIC_VALUE("db_queue_login",uint64(LoginDatabase.QueueSize()));
-        TC_METRIC_VALUE("db_queue_character",uint64(CharacterDatabase.QueueSize()));
-        TC_METRIC_VALUE("db_queue_world",uint64(WorldDatabase.QueueSize())); });
+    {
+        TC_METRIC_VALUE("online_players", sWorld->GetPlayerCount());
+        TC_METRIC_VALUE("db_queue_login", uint64(LoginDatabase.QueueSize()));
+        TC_METRIC_VALUE("db_queue_character", uint64(CharacterDatabase.QueueSize()));
+        TC_METRIC_VALUE("db_queue_world", uint64(WorldDatabase.QueueSize()));
+    });
 
     realm = nullptr;
 
     TC_METRIC_EVENT("events", "Worldserver started", "");
 
-    auto sMetricHandle = Trinity::make_unique_ptr_with_deleter(sMetric, [](Metric *metric)
-                                                               {
-        TC_METRIC_EVENT("events","Worldserver shutdown","");
-        metric->Unload(); });
+    auto sMetricHandle = Trinity::make_unique_ptr_with_deleter(sMetric, [](Metric* metric)
+    {
+        TC_METRIC_EVENT("events", "Worldserver shutdown", "");
+        metric->Unload();
+    });
 
     auto scriptReloadMgrHandle = Trinity::make_unique_ptr_with_deleter<&ScriptReloadMgr::Unload>(sScriptReloadMgr);
 
@@ -382,7 +355,6 @@ int main(int argc, char **argv)
     auto sScriptMgrHandle = Trinity::make_unique_ptr_with_deleter<&ScriptMgr::Unload>(sScriptMgr);
 
     // Initialize the World
-    // 初始化世界
     sSecretMgr->Initialize(SECRET_OWNER_WORLDSERVER);
     if (!sWorld->SetInitialWorldSettings())
         return 1;
@@ -394,33 +366,27 @@ int main(int argc, char **argv)
     auto outdoorPvpMgrHandle = Trinity::make_unique_ptr_with_deleter<&OutdoorPvPMgr::Die>(sOutdoorPvPMgr);
 
     // unload all grids (including locked in memory)
-    // 卸载所有网格（包括锁定在内存中的网格）
     auto mapManagementHandle = Trinity::make_unique_ptr_with_deleter<&MapManager::UnloadAll>(sMapMgr);
 
     // unload battleground templates before different singletons destroyed
-    // 在不同的单例模式被破坏之前卸载战场模板
     auto battlegroundMgrHandle = Trinity::make_unique_ptr_with_deleter<&BattlegroundMgr::DeleteAllBattlegrounds>(sBattlegroundMgr);
 
     // Start the Remote Access port (acceptor) if enabled
-    // 如果启用，启动远程访问端口（接受者）
     std::unique_ptr<AsyncAcceptor> raAcceptor;
     if (sConfigMgr->GetBoolDefault("Ra.Enable", false))
         raAcceptor.reset(StartRaSocketAcceptor(*ioContext));
 
     // Start soap serving thread if enabled
-    // 启动soap服务线程（如果启用） （Simple Object Access Protocol，简单对象访问协议）
     std::unique_ptr<std::thread, ShutdownTCSoapThread> soapThread;
     if (sConfigMgr->GetBoolDefault("SOAP.Enabled", false))
     {
-        if (std::thread *soap = CreateSoapThread(sConfigMgr->GetStringDefault("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetIntDefault("SOAP.Port", 7878))))
-            soapThread.reset(soap); // 這裏的soapThread是unitque_ptr類型的智能指針。reset傳入參數的把soap的綫程對象給到soapThread裏
+        if (std::thread* soap = CreateSoapThread(sConfigMgr->GetStringDefault("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetIntDefault("SOAP.Port", 7878))))
+            soapThread.reset(soap);
         else
             return -1;
     }
 
     // Launch the worldserver listener socket
-    // 启动worldserver监听套接字
-    // 重要！！！
     uint16 worldPort = uint16(sWorld->getIntConfig(CONFIG_PORT_WORLD));
     uint16 instancePort = uint16(sWorld->getIntConfig(CONFIG_PORT_INSTANCE));
     std::string worldListener = sConfigMgr->GetStringDefault("BindIP", "0.0.0.0");
@@ -441,23 +407,21 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    auto sWorldSocketMgrHandle = Trinity::make_unique_ptr_with_deleter(&sWorldSocketMgr, [realmId](WorldSocketMgr *mgr)
-                                                                       {
-        sWorld->KickAll();                                       // save and kick all players //保存和踢所有球员 
-        sWorld->UpdateSessions(1);                             // real players unload required UpdateSessions call //真实玩家卸载所需的UpdateSessions调用
+    auto sWorldSocketMgrHandle = Trinity::make_unique_ptr_with_deleter(&sWorldSocketMgr, [realmId](WorldSocketMgr* mgr)
+    {
+        sWorld->KickAll();                                       // save and kick all players
+        sWorld->UpdateSessions(1);                             // real players unload required UpdateSessions call
 
         mgr->StopNetwork();
 
         ///- Clean database before leaving
-        ///-离开前清理数据库
-        ClearOnlineAccounts(realmId); });
+        ClearOnlineAccounts(realmId);
+    });
 
     // Set server online (allow connecting now)
-    // 离开前清理数据库
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~{}, population = 0 WHERE id = '{}'", Trinity::Legacy::REALM_FLAG_OFFLINE, realmId);
 
     // Start the freeze check callback cycle in 5 seconds (cycle itself is 1 sec)
-    // 设置服务器在线（现在允许连接）
     std::shared_ptr<FreezeDetector> freezeDetector;
     if (int coreStuckTime = sConfigMgr->GetIntDefault("MaxCoreStuckTime", 60))
     {
@@ -471,10 +435,9 @@ int main(int argc, char **argv)
     TC_LOG_INFO("server.worldserver", "{} (worldserver-daemon) ready...", GitRevision::GetFullVersion());
 
     // Launch CliRunnable thread
-    // 啓動命令綫程(Command Line Interface)
     std::unique_ptr<std::thread, ShutdownCLIThread> cliThread;
 #ifdef _WIN32
-    if (sConfigMgr->GetBoolDefault("Console.Enable", true) && (m_ServiceStatus == -1) /* need disable console in service mode*/)
+    if (sConfigMgr->GetBoolDefault("Console.Enable", true) && (m_ServiceStatus == -1)/* need disable console in service mode*/)
 #else
     if (sConfigMgr->GetBoolDefault("Console.Enable", true))
 #endif
@@ -482,15 +445,9 @@ int main(int argc, char **argv)
         cliThread.reset(new std::thread(CliThread));
     }
 
-    //
-    // 世界主循环
-    //
     WorldUpdateLoop();
-    //
-    //
 
     // Shutdown starts here
-    // 关闭服务从这里开始
     WorldPackets::Auth::ConnectTo::ShutdownEncryption();
     WorldPackets::Auth::EnterEncryptedMode::ShutdownEncryption();
 
@@ -503,7 +460,6 @@ int main(int argc, char **argv)
     sScriptMgr->OnShutdown();
 
     // set server offline
-    // 是服务离线
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | {} WHERE id = '{}'", Trinity::Legacy::REALM_FLAG_OFFLINE, realmId);
 
     TC_LOG_INFO("server.worldserver", "Halting process...");
@@ -512,19 +468,16 @@ int main(int argc, char **argv)
     // 1 - shutdown at error
     // 2 - restart command used, this code can be used by restarter for restart Trinityd
 
-    // 0 -正常关机
-    // 1 -错误关机
-    // 2 - restart命令使用，这个代码可以被restarter用来重启Trinityd
     return World::GetExitCode();
 }
 
-void ShutdownTCSoapThread::operator()(std::thread *thread) const
+void ShutdownTCSoapThread::operator()(std::thread* thread) const
 {
     thread->join();
     delete thread;
 }
 
-void ShutdownCLIThread::operator()(std::thread *cliThread) const
+void ShutdownCLIThread::operator()(std::thread* cliThread) const
 {
     if (cliThread != nullptr)
     {
@@ -540,7 +493,7 @@ void ShutdownCLIThread::operator()(std::thread *cliThread) const
             {
                 LPCSTR errorBuffer;
                 DWORD numCharsWritten = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-                                                      nullptr, errorCode, 0, (LPTSTR)&errorBuffer, 0, nullptr);
+                    nullptr, errorCode, 0, (LPTSTR)&errorBuffer, 0, nullptr);
                 if (!numCharsWritten)
                     errorBuffer = "Unknown error";
 
@@ -595,31 +548,23 @@ void WorldUpdateLoop()
     uint32 realCurrTime = 0;
     uint32 realPrevTime = getMSTime();
 
-    // maxCoreStuckTime是允许阻塞的最大时间
-    // halfMaxCoreStuckTime是一半最大时间
     uint32 maxCoreStuckTime = uint32(sConfigMgr->GetIntDefault("MaxCoreStuckTime", 60)) * 1000;
     uint32 halfMaxCoreStuckTime = maxCoreStuckTime / 2;
-
     if (!halfMaxCoreStuckTime)
         halfMaxCoreStuckTime = std::numeric_limits<uint32>::max();
 
-    // 数据库的各种异步查询
     LoginDatabase.WarnAboutSyncQueries(true);
     CharacterDatabase.WarnAboutSyncQueries(true);
     WorldDatabase.WarnAboutSyncQueries(true);
+    HotfixDatabase.WarnAboutSyncQueries(true);
 
     ///- While we have not World::m_stopEvent, update the world
-    /// 当我们没有World::m_stopEvent时，一直循环更新世界
     while (!World::IsStopped())
     {
-        // 计数器++
         ++World::m_worldLoopCounter;
-        //
         realCurrTime = getMSTime();
-        uint32 diff = getMSTimeDiff(realPrevTime, realCurrTime);
 
-        // 通过上面的realCurrTime和diff比对更新
-        //  如果没有达到设置的时间则sleep  sleep的时间就是差异时间和最小时间的关系
+        uint32 diff = getMSTimeDiff(realPrevTime, realCurrTime);
         if (diff < minUpdateDiff)
         {
             uint32 sleepTime = minUpdateDiff - diff;
@@ -630,8 +575,6 @@ void WorldUpdateLoop()
             continue;
         }
 
-        // 重要！！！！
-        /// 更新世界
         sWorld->Update(diff);
         realPrevTime = realCurrTime;
 
@@ -650,13 +593,13 @@ void WorldUpdateLoop()
     HotfixDatabase.WarnAboutSyncQueries(false);
 }
 
-void SignalHandler(boost::system::error_code const &error, int /*signalNumber*/)
+void SignalHandler(boost::system::error_code const& error, int /*signalNumber*/)
 {
     if (!error)
         World::StopNow(SHUTDOWN_EXIT_CODE);
 }
 
-void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, boost::system::error_code const &error)
+void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, boost::system::error_code const& error)
 {
     if (!error)
     {
@@ -682,18 +625,20 @@ void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, bo
             }
 
             freezeDetector->_timer.expires_after(1s);
-            freezeDetector->_timer.async_wait([freezeDetectorRef = std::move(freezeDetectorRef)](boost::system::error_code const &error) mutable
-                                              { Handler(std::move(freezeDetectorRef), error); });
+            freezeDetector->_timer.async_wait([freezeDetectorRef = std::move(freezeDetectorRef)](boost::system::error_code const& error) mutable
+            {
+                Handler(std::move(freezeDetectorRef), error);
+            });
         }
     }
 }
 
-AsyncAcceptor *StartRaSocketAcceptor(Trinity::Asio::IoContext &ioContext)
+AsyncAcceptor* StartRaSocketAcceptor(Trinity::Asio::IoContext& ioContext)
 {
     uint16 raPort = uint16(sConfigMgr->GetIntDefault("Ra.Port", 3443));
     std::string raListener = sConfigMgr->GetStringDefault("Ra.IP", "0.0.0.0");
 
-    AsyncAcceptor *acceptor = new AsyncAcceptor(ioContext, raListener, raPort);
+    AsyncAcceptor* acceptor = new AsyncAcceptor(ioContext, raListener, raPort);
     if (!acceptor->Bind())
     {
         TC_LOG_ERROR("server.worldserver", "Failed to bind RA socket acceptor");
@@ -722,7 +667,7 @@ bool StartDB()
         return false;
 
     ///- Insert version info into DB
-    WorldDatabase.PExecute("UPDATE version SET core_version = '{}', core_revision = '{}'", GitRevision::GetFullVersion(), GitRevision::GetHash()); // One-time query
+    WorldDatabase.PExecute("UPDATE version SET core_version = '{}', core_revision = '{}'", GitRevision::GetFullVersion(), GitRevision::GetHash());        // One-time query
 
     sWorld->LoadDBVersion();
 
@@ -754,15 +699,23 @@ void ClearOnlineAccounts(uint32 realmId)
 }
 /// @}
 
-variables_map GetConsoleArguments(int argc, char **argv, fs::path &configFile, fs::path &configDir, [[maybe_unused]] std::string &winServiceAction)
+variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, fs::path& configDir, [[maybe_unused]] std::string& winServiceAction)
 {
     options_description all("Allowed options");
-    all.add_options()("help,h", "print usage message")("version,v", "print version build info")("config,c", value<fs::path>(&configFile)->default_value(fs::absolute(_TRINITY_CORE_CONFIG)),
-                                                                                                "use <arg> as configuration file")("config-dir,cd", value<fs::path>(&configDir)->default_value(fs::absolute(_TRINITY_CORE_CONFIG_DIR)),
-                                                                                                                                   "use <arg> as directory with additional config files")("update-databases-only,u", "updates databases only");
+    all.add_options()
+        ("help,h", "print usage message")
+        ("version,v", "print version build info")
+        ("config,c", value<fs::path>(&configFile)->default_value(fs::absolute(_TRINITY_CORE_CONFIG)),
+                     "use <arg> as configuration file")
+        ("config-dir,cd", value<fs::path>(&configDir)->default_value(fs::absolute(_TRINITY_CORE_CONFIG_DIR)),
+                     "use <arg> as directory with additional config files")
+        ("update-databases-only,u", "updates databases only")
+        ;
 #ifdef _WIN32
     options_description win("Windows platform specific options");
-    win.add_options()("service,s", value<std::string>(&winServiceAction)->default_value(""), "Windows service options: [install | uninstall]");
+    win.add_options()
+        ("service,s", value<std::string>(&winServiceAction)->default_value(""), "Windows service options: [install | uninstall]")
+        ;
 
     all.add(win);
 #endif
@@ -772,7 +725,7 @@ variables_map GetConsoleArguments(int argc, char **argv, fs::path &configFile, f
         store(command_line_parser(argc, argv).options(all).allow_unregistered().run(), vm);
         notify(vm);
     }
-    catch (std::exception &e)
+    catch (std::exception& e)
     {
         std::cerr << e.what() << "\n";
     }

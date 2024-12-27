@@ -35,35 +35,34 @@ class ServiceBase;
 
 namespace bgs::protocol
 {
-    class Variant;
+class Variant;
 
-    namespace account::v1
-    {
-        class GetAccountStateRequest;
-        class GetAccountStateResponse;
-        class GetGameAccountStateRequest;
-        class GetGameAccountStateResponse;
-    }
+namespace account::v1
+{
+    class GetAccountStateRequest;
+    class GetAccountStateResponse;
+    class GetGameAccountStateRequest;
+    class GetGameAccountStateResponse;
+}
 
-    namespace authentication::v1
-    {
-        class GenerateWebCredentialsRequest;
-        class LogonRequest;
-        class VerifyWebCredentialsRequest;
-    }
+namespace authentication::v1
+{
+    class GenerateWebCredentialsRequest;
+    class LogonRequest;
+    class VerifyWebCredentialsRequest;
+}
 
-    namespace game_utilities::v1
-    {
-        class ClientRequest;
-        class ClientResponse;
-        class GetAllValuesForAttributeRequest;
-        class GetAllValuesForAttributeResponse;
-    }
+namespace game_utilities::v1
+{
+    class ClientRequest;
+    class ClientResponse;
+    class GetAllValuesForAttributeRequest;
+    class GetAllValuesForAttributeResponse;
+}
 }
 
 using namespace bgs::protocol;
 
-// 战网？
 namespace Battlenet
 {
     class Session : public Socket<Session, SslSocket<>>
@@ -79,10 +78,9 @@ namespace Battlenet
             uint32 LastPlayedTime;
         };
 
-        // 游戏账户信息
         struct GameAccountInfo
         {
-            void LoadResult(Field const *fields);
+            void LoadResult(Field const* fields);
 
             uint32 Id;
             std::string Name;
@@ -112,7 +110,7 @@ namespace Battlenet
             std::unordered_map<uint32, GameAccountInfo> GameAccounts;
         };
 
-        explicit Session(boost::asio::ip::tcp::socket &&socket);
+        explicit Session(boost::asio::ip::tcp::socket&& socket);
         ~Session();
 
         void Start() override;
@@ -121,57 +119,57 @@ namespace Battlenet
         uint32 GetAccountId() const { return _accountInfo->Id; }
         uint32 GetGameAccountId() const { return _gameAccountInfo->Id; }
 
-        void SendResponse(uint32 token, pb::Message const *response);
+        void SendResponse(uint32 token, pb::Message const* response);
         void SendResponse(uint32 token, uint32 status);
 
-        void SendRequest(uint32 serviceHash, uint32 methodId, pb::Message const *request, std::function<void(MessageBuffer)> callback)
+        void SendRequest(uint32 serviceHash, uint32 methodId, pb::Message const* request, std::function<void(MessageBuffer)> callback)
         {
             _responseCallbacks[_requestToken] = std::move(callback);
             SendRequest(serviceHash, methodId, request);
         }
 
-        void SendRequest(uint32 serviceHash, uint32 methodId, pb::Message const *request);
+        void SendRequest(uint32 serviceHash, uint32 methodId, pb::Message const* request);
 
-        uint32 HandleLogon(authentication::v1::LogonRequest const *logonRequest, std::function<void(ServiceBase *, uint32, ::google::protobuf::Message const *)> &continuation);
-        uint32 HandleVerifyWebCredentials(authentication::v1::VerifyWebCredentialsRequest const *verifyWebCredentialsRequest, std::function<void(ServiceBase *, uint32, ::google::protobuf::Message const *)> &continuation);
-        uint32 HandleGenerateWebCredentials(authentication::v1::GenerateWebCredentialsRequest const *request, std::function<void(ServiceBase *, uint32, google::protobuf::Message const *)> &continuation);
-        uint32 HandleGetAccountState(account::v1::GetAccountStateRequest const *request, account::v1::GetAccountStateResponse *response);
-        uint32 HandleGetGameAccountState(account::v1::GetGameAccountStateRequest const *request, account::v1::GetGameAccountStateResponse *response);
-        uint32 HandleProcessClientRequest(game_utilities::v1::ClientRequest const *request, game_utilities::v1::ClientResponse *response);
-        uint32 HandleGetAllValuesForAttribute(game_utilities::v1::GetAllValuesForAttributeRequest const *request, game_utilities::v1::GetAllValuesForAttributeResponse *response);
+        uint32 HandleLogon(authentication::v1::LogonRequest const* logonRequest, std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)>& continuation);
+        uint32 HandleVerifyWebCredentials(authentication::v1::VerifyWebCredentialsRequest const* verifyWebCredentialsRequest, std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)>& continuation);
+        uint32 HandleGenerateWebCredentials(authentication::v1::GenerateWebCredentialsRequest const* request, std::function<void(ServiceBase*, uint32, google::protobuf::Message const*)>& continuation);
+        uint32 HandleGetAccountState(account::v1::GetAccountStateRequest const* request, account::v1::GetAccountStateResponse* response);
+        uint32 HandleGetGameAccountState(account::v1::GetGameAccountStateRequest const* request, account::v1::GetGameAccountStateResponse* response);
+        uint32 HandleProcessClientRequest(game_utilities::v1::ClientRequest const* request, game_utilities::v1::ClientResponse* response);
+        uint32 HandleGetAllValuesForAttribute(game_utilities::v1::GetAllValuesForAttributeRequest const* request, game_utilities::v1::GetAllValuesForAttributeResponse* response);
 
         std::string GetClientInfo() const;
 
     protected:
-        void HandshakeHandler(boost::system::error_code const &error);
+        void HandshakeHandler(boost::system::error_code const& error);
         void ReadHandler() override;
         bool ReadHeaderLengthHandler();
         bool ReadHeaderHandler();
         bool ReadDataHandler();
 
     private:
-        void AsyncWrite(MessageBuffer *packet);
+        void AsyncWrite(MessageBuffer* packet);
 
         void AsyncHandshake();
 
         void CheckIpCallback(PreparedQueryResult result);
 
-        uint32 VerifyWebCredentials(std::string const &webCredentials, std::function<void(ServiceBase *, uint32, ::google::protobuf::Message const *)> &continuation);
+        uint32 VerifyWebCredentials(std::string const& webCredentials, std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)>& continuation);
 
-        typedef uint32 (Session::*ClientRequestHandler)(std::unordered_map<std::string, Variant const *> const &, game_utilities::v1::ClientResponse *);
+        typedef uint32(Session::*ClientRequestHandler)(std::unordered_map<std::string, Variant const*> const&, game_utilities::v1::ClientResponse*);
         static std::unordered_map<std::string, ClientRequestHandler> const ClientRequestHandlers;
 
-        uint32 GetRealmListTicket(std::unordered_map<std::string, Variant const *> const &params, game_utilities::v1::ClientResponse *response);
-        uint32 GetLastCharPlayed(std::unordered_map<std::string, Variant const *> const &params, game_utilities::v1::ClientResponse *response);
-        uint32 GetRealmList(std::unordered_map<std::string, Variant const *> const &params, game_utilities::v1::ClientResponse *response);
-        uint32 JoinRealm(std::unordered_map<std::string, Variant const *> const &params, game_utilities::v1::ClientResponse *response);
+        uint32 GetRealmListTicket(std::unordered_map<std::string, Variant const*> const& params, game_utilities::v1::ClientResponse* response);
+        uint32 GetLastCharPlayed(std::unordered_map<std::string, Variant const*> const& params, game_utilities::v1::ClientResponse* response);
+        uint32 GetRealmList(std::unordered_map<std::string, Variant const*> const& params, game_utilities::v1::ClientResponse* response);
+        uint32 JoinRealm(std::unordered_map<std::string, Variant const*> const& params, game_utilities::v1::ClientResponse* response);
 
         MessageBuffer _headerLengthBuffer;
         MessageBuffer _headerBuffer;
         MessageBuffer _packetBuffer;
 
         std::shared_ptr<AccountInfo> _accountInfo;
-        GameAccountInfo *_gameAccountInfo; // Points at selected game account (inside _gameAccounts)
+        GameAccountInfo* _gameAccountInfo;          // Points at selected game account (inside _gameAccounts)
 
         std::string _locale;
         std::string _os;
