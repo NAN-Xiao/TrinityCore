@@ -57,15 +57,22 @@ WorldSocketMgr &WorldSocketMgr::Instance()
     return instance;
 }
 
+
 bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, uint16 instancePort, int threadCount)
 {
+    /*
+        TCP_NODELAY 是一个套接字（Socket）选项，用于控制 TCP 协议中的 Nagle 算法。Nagle 算法的主要目的是减少网络中小包的发送数量，
+        它会将多个小的 TCP 数据包累积起来，等待足够的数据后再一次性发送，这样可以降低网络中因为大量小包传输而产生的开销。
+        但是在某些场景下，如实时性要求较高的应用（像在线游戏、实时音视频通信等），这种延迟发送的方式可能会导致数据传输延迟过高，
+        影响用户体验。此时可以通过设置 TCP_NODELAY 选项来禁用 Nagle 算法，使数据能够尽快发送，提高数据传输的实时性。
+    */
     _tcpNoDelay = sConfigMgr->GetBoolDefault("Network.TcpNodelay", true);
 
     int const max_connections = TRINITY_MAX_LISTEN_CONNECTIONS;
     TC_LOG_DEBUG("misc", "Max allowed socket connections {}", max_connections);
 
     // -1 means use default
-    //-1表示使用默认值
+    //-1表示使用默认值 send消息缓冲区
     _socketSystemSendBufferSize = sConfigMgr->GetIntDefault("Network.OutKBuff", -1);
 
     _socketApplicationSendBufferSize = sConfigMgr->GetIntDefault("Network.OutUBuff", 65536);

@@ -65,6 +65,7 @@
 #include "World.h"
 #include <sstream>
 
+// 登录查询持有人
 class LoginQueryHolder : public CharacterDatabaseQueryHolder
 {
 private:
@@ -600,8 +601,12 @@ bool WorldSession::ValidateAppearance(Races race, Classes playerClass, Gender ge
     return true;
 }
 
+// 重要！！！
+// 创建角色的处理流程
+// operation code
 void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharacter &charCreate)
 {
+
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_TEAMMASK))
     {
         if (uint32 mask = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED))
@@ -646,6 +651,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
     }
 
     // prevent character creating Expansion race without Expansion account
+    // 这里是不是类似魔兽中的死骑的情况。没有满足条件无法创建某个种族的角色
     RaceUnlockRequirement const *raceExpansionRequirement = sObjectMgr->GetRaceUnlockRequirement(charCreate.CreateInfo->Race);
     if (!raceExpansionRequirement)
     {
@@ -671,6 +677,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
     // }
 
     // prevent character creating Expansion class without Expansion account
+    // 和上面类似。区别就是没有满足条件无法创建某个职业
     if (ClassAvailability const *raceClassExpansionRequirement = sObjectMgr->GetClassExpansionRequirement(charCreate.CreateInfo->Race, charCreate.CreateInfo->Class))
     {
         if (raceClassExpansionRequirement->ActiveExpansionLevel > GetExpansion() || raceClassExpansionRequirement->AccountExpansionLevel > GetAccountExpansion())
@@ -693,7 +700,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
             return;
         }
     }
-    else
+    else // 数据库中没有这个职业
     {
         TC_LOG_ERROR("entities.player.cheat", "Expansion {} account:[{}] tried to Create character for race/class combination that is missing requirements in db ({}/{})",
                      GetAccountExpansion(), GetAccountId(), uint32(charCreate.CreateInfo->Race), uint32(charCreate.CreateInfo->Class));
@@ -729,6 +736,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
     }
 
     // prevent character creating with invalid name
+    // 检查创建角色使用的名字是否合法
     if (!normalizePlayerName(charCreate.CreateInfo->Name))
     {
         TC_LOG_ERROR("entities.player.cheat", "Account:[{}] but tried to Create character with empty [name] ", GetAccountId());
@@ -737,6 +745,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
     }
 
     // check name limitations
+    // 检查名称限制
     ResponseCodes res = ObjectMgr::CheckPlayerName(charCreate.CreateInfo->Name, GetSessionDbcLocale(), true);
     if (res != CHAR_NAME_SUCCESS)
     {
@@ -758,6 +767,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
 
     std::shared_ptr<WorldPackets::Character::CharacterCreateInfo> createInfo = charCreate.CreateInfo;
     CharacterDatabasePreparedStatement *stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHECK_NAME);
+
     stmt->setString(0, charCreate.CreateInfo->Name);
 
     _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt)
@@ -765,7 +775,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
                                                                   {
         if (result)
         {
-            SendCharCreate(CHAR_CREATE_NAME_IN_USE);
+            SendCharCreate(CHAR_CREATE_NAME_IN_USE);//角色名字已经被占用
             return;
         }
 
@@ -783,7 +793,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
 
         if (acctCharCount >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_ACCOUNT))
         {
-            SendCharCreate(CHAR_CREATE_ACCOUNT_LIMIT);
+            SendCharCreate(CHAR_CREATE_ACCOUNT_LIMIT); //因为查询账号限制不能创建角色，返回
             return;
         }
 
@@ -799,7 +809,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
 
             if (createInfo->CharCount >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM))
             {
-                SendCharCreate(CHAR_CREATE_SERVER_LIMIT);
+                SendCharCreate(CHAR_CREATE_SERVER_LIMIT);//服务器人数满了？不能船舰角色
                 return;
             }
         }
@@ -807,15 +817,23 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
         bool allowTwoSideAccounts = !sWorld->IsPvPRealm() || HasPermission(rbac::RBAC_PERM_TWO_SIDE_CHARACTER_CREATION);
         uint32 skipCinematics = sWorld->getIntConfig(CONFIG_SKIP_CINEMATICS);
 
+        ///最终创建角色的func
         std::function<void(PreparedQueryResult)> finalizeCharacterCreation = [this, createInfo](PreparedQueryResult result)
         {
             bool haveSameRace = false;
+            //创建恶魔猎手的限制条件
             uint32 demonHunterReqLevel = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_MIN_LEVEL_FOR_DEMON_HUNTER);
             bool hasDemonHunterReqLevel = (demonHunterReqLevel == 0);
+            //创建唤龙师的限制条件
             uint32 evokerReqLevel = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_MIN_LEVEL_FOR_EVOKER);
             bool hasEvokerReqLevel = (evokerReqLevel == 0);
+            //双阵营的角色
             bool allowTwoSideAccounts = !sWorld->IsPvPRealm() || HasPermission(rbac::RBAC_PERM_TWO_SIDE_CHARACTER_CREATION);
+            //是否跳过开场动画 一般第一次会播放开场
             uint32 skipCinematics = sWorld->getIntConfig(CONFIG_SKIP_CINEMATICS);
+
+
+            //还是检查一些职业的创建条件是否满足
             bool checkClassLevelReqs = (createInfo->Class == CLASS_DEMON_HUNTER || createInfo->Class == CLASS_EVOKER)
                                         && !HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_DEMON_HUNTER);
             int32 evokerLimit = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_EVOKERS_PER_REALM);
@@ -849,7 +867,9 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
                     --evokerLimit;
 
                 // need to check team only for first character
+                //第一个角色需要检查阵营
                 /// @todo what to if account already has characters of both races?
+                //tod的是处理账号已经有俩个种族
                 if (!allowTwoSideAccounts)
                 {
                     uint32 accTeam = 0;
@@ -858,6 +878,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
 
                     if (accTeam != team)
                     {
+                        //验证服务器上的阵营情况。由于限制可能不允许创建player
                         SendCharCreate(CHAR_CREATE_PVP_TEAMS_VIOLATION);
                         return;
                     }
@@ -865,6 +886,8 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
 
                 // search same race for cinematic or same class if need
                 /// @todo check if cinematic already shown? (already logged in?; cinematic field)
+                //搜索相同的种族为电影或相同的类，如果需要
+                /// @todo检查是否已显示过场动画？(已登录？；电影的字段)
                 while ((skipCinematics == 1 && !haveSameRace) || createInfo->Class == CLASS_DEMON_HUNTER || createInfo->Class == CLASS_EVOKER)
                 {
                     if (!result->NextRow())
@@ -919,6 +942,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
             }
 
             // Check name uniqueness in the same step as saving to database
+            //在保存到数据库的同一步骤检查名称的唯一性
             if (sCharacterCache->GetCharacterCacheByName(createInfo->Name))
             {
                 SendCharCreate(CHAR_CREATE_NAME_IN_USE);
@@ -934,22 +958,24 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
             if (!newChar->Create(sObjectMgr->GetGenerator<HighGuid::Player>().Generate(), createInfo.get()))
             {
                 // Player not create (race/class/etc problem?)
+                //玩家不创建（种族/职业/等问题？）
                 SendCharCreate(CHAR_CREATE_ERROR);
                 return;
             }
 
             if ((haveSameRace && skipCinematics == 1) || skipCinematics == 2)
-                newChar->setCinematic(1);                         // not show intro
+                newChar->setCinematic(1);                         // not show intro //不显示前言
 
-            newChar->SetAtLoginFlag(AT_LOGIN_FIRST);              // First login
+            newChar->SetAtLoginFlag(AT_LOGIN_FIRST);              // First login//首次登录
 
             CharacterDatabaseTransaction characterTransaction = CharacterDatabase.BeginTransaction();
             LoginDatabaseTransaction trans = LoginDatabase.BeginTransaction();
 
-                                                                  // Player created, save it now
+            // Player created, save it now
+            //角色创建后需要保存到数据库
             newChar->SaveToDB(trans, characterTransaction, true);
             createInfo->CharCount += 1;
-
+            //登录服的指令
             LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_REP_REALM_CHARACTERS);
             stmt->setUInt32(0, createInfo->CharCount);
             stmt->setUInt32(1, GetAccountId());
@@ -965,7 +991,9 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
                     TC_LOG_INFO("entities.player.character", "Account: {} (IP: {}) Create Character: {} {}", GetAccountId(), GetRemoteAddress(), newChar->GetName(), newChar->GetGUID().ToString());
                     sScriptMgr->OnPlayerCreate(newChar.get());
                     sCharacterCache->AddCharacterCacheEntry(newChar->GetGUID(), GetAccountId(), newChar->GetName(), newChar->GetNativeGender(), newChar->GetRace(), newChar->GetClass(), newChar->GetLevel(), false);
-
+                    //重要！！！
+                    //这里角色才能创建成功
+                    //并且返回角色的唯一id
                     SendCharCreate(CHAR_CREATE_SUCCESS, newChar->GetGUID());
                 }
                 else
@@ -1052,6 +1080,7 @@ void WorldSession::HandleCharDeleteOpcode(WorldPackets::Character::CharDelete &c
 
 void WorldSession::HandlePlayerLoginOpcode(WorldPackets::Character::PlayerLogin &playerLogin)
 {
+
     if (PlayerLoading() || GetPlayer() != nullptr)
     {
         TC_LOG_ERROR("network", "Player tries to login again, AccountId = {}", GetAccountId());
@@ -1063,6 +1092,7 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPackets::Character::PlayerLogin 
 
     TC_LOG_DEBUG("network", "Character {} logging in", playerLogin.Guid.ToString());
 
+    // 验证合法性
     if (!IsLegitCharacterForAccount(playerLogin.Guid))
     {
         TC_LOG_ERROR("network", "Account ({}) can't login with that character ({}).", GetAccountId(), playerLogin.Guid.ToString());
@@ -1072,7 +1102,7 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPackets::Character::PlayerLogin 
 
     SendConnectToInstance(WorldPackets::Auth::ConnectToSerial::WorldAttempt1);
 }
-//处理玩家后续登录
+// 处理玩家后续登录
 void WorldSession::HandleContinuePlayerLogin()
 {
     if (!PlayerLoading() || GetPlayer())
@@ -1111,20 +1141,25 @@ void WorldSession::HandleLoadScreenOpcode(WorldPackets::Character::LoadingScreen
     // TODO: Do something with this packet
 }
 
+/// 重要 ！！！！
+/// 处理角色登入逻辑
+
 void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 {
     ObjectGuid playerGuid = holder.GetGuid();
 
     Player *pCurrChar = new Player(this);
     // for send server info and strings (config)
+    // 为发送服务器信息和字符串（配置）
     ChatHandler chH = ChatHandler(pCurrChar->GetSession());
 
     // "GetAccountId() == db stored account id" checked in LoadFromDB (prevent login not own character using cheating tools)
+    // “GetAccountId() == db存储的帐户id”检查LoadFromDB（防止登录不是自己的字符使用作弊工具）
     if (!pCurrChar->LoadFromDB(playerGuid, holder))
     {
         SetPlayer(nullptr);
-        KickPlayer("WorldSession::HandlePlayerLogin Player::LoadFromDB failed"); // disconnect client, player no set to session and it will not deleted or saved at kick
-        delete pCurrChar;                                                        // delete it manually
+        KickPlayer("WorldSession::HandlePlayerLogin Player::LoadFromDB failed"); ////断开客户端，玩家没有设置到会话，它不会被删除或保存在踢 // disconnect client, player no set to session and it will not deleted or saved at kick
+        delete pCurrChar;                                                        // 删除刚创建的player// delete it manually
         m_playerLoading.Clear();
         return;
     }
@@ -1150,6 +1185,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     SendFeatureSystemStatus();
 
     // Send MOTD
+    // 发送公告
     {
         for (std::string const &motdLine : sWorld->GetMotd())
             sWorld->SendServerMessage(SERVER_MSG_STRING, motdLine, pCurrChar);
@@ -1169,6 +1205,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     }
 
     // send server info
+    // 发送服务器信息
     {
         if (sWorld->getIntConfig(CONFIG_ENABLE_SINFO_LOGIN) == 1)
             chH.PSendSysMessage(GitRevision::GetFullVersion());
@@ -1197,6 +1234,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     pCurrChar->SendInitialPacketsBeforeAddToMap();
 
     // Show cinematic at the first time that player login
+    ////在玩家第一次登录时显示动画
     if (!pCurrChar->getCinematic())
     {
         pCurrChar->setCinematic(1);
@@ -1225,15 +1263,20 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         }
 
         // send new char string if not empty
+        ////如果不为空，则发送新的字符串
         if (!sWorld->GetNewCharString().empty())
             chH.PSendSysMessage("%s", sWorld->GetNewCharString().c_str());
     }
 
+    /// 重要！！！
+    /// 添加玩家到数据中得到的地图
     if (!pCurrChar->GetMap()->AddPlayerToMap(pCurrChar))
     {
         AreaTriggerStruct const *at = sObjectMgr->GetGoBackTrigger(pCurrChar->GetMapId());
+        // 传送到指定位置
         if (at)
             pCurrChar->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, pCurrChar->GetOrientation());
+        // 否则回到绑定的旅店
         else
             pCurrChar->TeleportTo(pCurrChar->m_homebind);
     }
@@ -1248,6 +1291,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         else
         {
             // remove wrong guild data
+            /// 删除错误的公会数据
             TC_LOG_ERROR("misc", "Player {} ({}) marked as member of not existing guild (id: {}), removing guild membership for player.", pCurrChar->GetName(), pCurrChar->GetGUID().ToString(), pCurrChar->GetGuildId());
             pCurrChar->SetInGuild(UI64LIT(0));
         }
@@ -1277,16 +1321,21 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     }
 
     // friend status
+    ////好友状态
     sSocialMgr->SendFriendStatus(pCurrChar, FRIEND_ONLINE, pCurrChar->GetGUID(), true);
 
     // Place character in world (and load zone) before some object loading
+    ////在加载对象之前将角色放置在world（和load zone）中
     pCurrChar->LoadCorpse(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CORPSE_LOCATION));
 
     // setting Ghost+speed if dead
+    // 死亡状态设置速度和鬼魂的状态
     if (pCurrChar->m_deathState == DEAD)
     {
         // not blizz like, we must correctly save and load player instead...
+        ////不像暴雪那样，我们必须正确地保存和加载播放器…
         if (pCurrChar->GetRace() == RACE_NIGHTELF && !pCurrChar->HasAura(20584))
+            // 光环spell_aura_increase（增加小精灵形态的速度），spell_aura_increase（增加小精灵形态的游泳速度），SPELL_AURA_TRANSFORM（变成小精灵形态）
             pCurrChar->CastSpell(pCurrChar, 20584, true); // auras SPELL_AURA_INCREASE_SPEED(+speed in wisp form), SPELL_AURA_INCREASE_SWIM_SPEED(+swim speed in wisp form), SPELL_AURA_TRANSFORM (to wisp form)
 
         if (!pCurrChar->HasAura(8326))
@@ -1298,20 +1347,24 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     pCurrChar->ContinueTaxiFlight();
 
     // reset for all pets before pet loading
+    // 在宠物加载前重置所有宠物
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_PET_TALENTS))
     {
         // Delete all of the player's pet spells
+        // 删除所有玩家的宠物法术
         CharacterDatabasePreparedStatement *stmtSpells = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ALL_PET_SPELLS_BY_OWNER);
         stmtSpells->setUInt64(0, pCurrChar->GetGUID().GetCounter());
         CharacterDatabase.Execute(stmtSpells);
 
         // Then reset all of the player's pet specualizations
+        // 然后重置所有玩家的宠物专业化
         CharacterDatabasePreparedStatement *stmtSpec = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PET_SPECS_BY_OWNER);
         stmtSpec->setUInt64(0, pCurrChar->GetGUID().GetCounter());
         CharacterDatabase.Execute(stmtSpec);
     }
 
     // Load pet if any (if player not alive and in taxi flight or another then pet will remember as temporary unsummoned)
+    // 加载宠物（如果玩家不活着并且在滑行飞行或其他情况下，宠物将被记为临时未召唤）
     pCurrChar->ResummonPetTemporaryUnSummonedIfAny();
 
     // Set FFA PvP for non GM in non-rest mode
@@ -1322,6 +1375,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         pCurrChar->SetContestedPvP();
 
     // Apply at_login requests
+    // 应用at_login请求
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_SPELLS))
     {
         pCurrChar->ResetSpells();
@@ -2825,6 +2879,7 @@ void WorldSession::HandleSavePersonalEmblem(WorldPackets::Character::SavePersona
     SendPacket(WorldPackets::Character::PlayerSavePersonalEmblem(ERR_GUILDEMBLEM_SUCCESS).Write());
 }
 
+// 创建角色消息
 void WorldSession::SendCharCreate(ResponseCodes result, ObjectGuid const &guid /*= ObjectGuid::Empty*/)
 {
     WorldPackets::Character::CreateChar response;
@@ -2833,7 +2888,7 @@ void WorldSession::SendCharCreate(ResponseCodes result, ObjectGuid const &guid /
 
     SendPacket(response.Write());
 }
-
+// 删除角色
 void WorldSession::SendCharDelete(ResponseCodes result)
 {
     WorldPackets::Character::DeleteChar response;
@@ -2841,7 +2896,7 @@ void WorldSession::SendCharDelete(ResponseCodes result)
 
     SendPacket(response.Write());
 }
-
+// 角色重命名
 void WorldSession::SendCharRename(ResponseCodes result, WorldPackets::Character::CharacterRenameInfo const *renameInfo)
 {
     WorldPackets::Character::CharacterRenameResult packet;

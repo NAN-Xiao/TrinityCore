@@ -31,21 +31,21 @@ struct AchievementEntry
     LocalizedString Title;
     LocalizedString Reward;
     uint32 ID;
-    int16 InstanceID;                                               // -1 = none
-    int8 Faction;                                                   // -1 = all, 0 = horde, 1 = alliance
-    int32 Supercedes;                                               // its Achievement parent (can`t start while parent uncomplete, use its Criteria if don`t have own, use its progress on begin)
+    int16 InstanceID; // -1 = none
+    int8 Faction;     // -1 = all, 0 = horde, 1 = alliance
+    int32 Supercedes; // its Achievement parent (can`t start while parent uncomplete, use its Criteria if don`t have own, use its progress on begin)
     int16 Category;
-    int8 MinimumCriteria;                                           // need this count of completed criterias (own or referenced achievement criterias)
+    int8 MinimumCriteria; // need this count of completed criterias (own or referenced achievement criterias)
     int8 Points;
     int32 Flags;
     uint16 UiOrder;
     int32 IconFileID;
     int32 RewardItemID;
     uint32 CriteriaTree;
-    int16 SharesCriteria;                                           // referenced achievement (counting of all completed criterias)
+    int16 SharesCriteria; // referenced achievement (counting of all completed criterias)
     int32 CovenantID;
-    int32 HiddenBeforeDisplaySeason;                                // hidden in UI before this DisplaySeason is active
-    int32 LegacyAfterTimeEvent;                                     // category changes clientside to Legacy after this TimeEvent is passed
+    int32 HiddenBeforeDisplaySeason; // hidden in UI before this DisplaySeason is active
+    int32 LegacyAfterTimeEvent;      // category changes clientside to Legacy after this TimeEvent is passed
 };
 
 struct Achievement_CategoryEntry
@@ -125,7 +125,7 @@ struct AreaGroupMemberEntry
 struct AreaTableEntry
 {
     uint32 ID;
-    char const* ZoneName;
+    char const *ZoneName;
     LocalizedString AreaName;
     uint16 ContinentID;
     uint16 ParentAreaID;
@@ -318,7 +318,7 @@ struct AuctionHouseEntry
 {
     uint32 ID;
     LocalizedString Name;
-    uint16 FactionID;                                               // id of faction.dbc for player factions associated with city
+    uint16 FactionID; // id of faction.dbc for player factions associated with city
     uint8 DepositRate;
     uint8 ConsignmentRate;
 };
@@ -434,8 +434,8 @@ struct BankBagSlotPricesEntry
 struct BannedAddonsEntry
 {
     uint32 ID;
-    char const* Name;
-    char const* Version;
+    char const *Name;
+    char const *Version;
     uint8 Flags;
 };
 
@@ -444,11 +444,11 @@ struct BarberShopStyleEntry
     uint32 ID;
     LocalizedString DisplayName;
     LocalizedString Description;
-    uint8 Type;                                                     // value 0 -> hair, value 2 -> facialhair
+    uint8 Type; // value 0 -> hair, value 2 -> facialhair
     float CostModifier;
     uint8 Race;
     uint8 Sex;
-    uint8 Data;                                                     // real ID to hair/facial hair
+    uint8 Data; // real ID to hair/facial hair
 };
 
 struct BattlePetAbilityEntry
@@ -579,9 +579,9 @@ struct Cfg_CategoriesEntry
 struct Cfg_RegionsEntry
 {
     uint32 ID;
-    char const* Tag;
+    char const *Tag;
     uint16 RegionID;
-    uint32 Raidorigin;                                              // Date of first raid reset, all other resets are calculated as this date plus interval
+    uint32 Raidorigin; // Date of first raid reset, all other resets are calculated as this date plus interval
     uint8 RegionGroupMask;
     uint32 ChallengeOrigin;
 };
@@ -651,14 +651,14 @@ struct ChrClassUIDisplayEntry
     uint32 AdvGuidePlayerConditionID;
     uint32 SplashPlayerConditionID;
 };
-
+// 描述职业相关的属性还有一些职业相关的外貌显示
 struct ChrClassesEntry
 {
     LocalizedString Name;
-    char const* Filename;
+    char const *Filename;
     LocalizedString NameMale;
     LocalizedString NameFemale;
-    char const* PetNameToken;
+    char const *PetNameToken;
     LocalizedString Description;
     LocalizedString RoleInfoString;
     LocalizedString DisabledString;
@@ -771,7 +771,7 @@ struct ChrCustomizationReqEntry
     int32 ClassMask;
     int32 AchievementID;
     int32 QuestID;
-    int32 OverrideArchive;                                          // -1: allow any, otherwise must match OverrideArchive cvar
+    int32 OverrideArchive; // -1: allow any, otherwise must match OverrideArchive cvar
     int32 ItemModifiedAppearanceID;
 
     EnumFlag<ChrCustomizationReqFlag> GetFlags() const { return static_cast<ChrCustomizationReqFlag>(Flags); }
@@ -813,12 +813,12 @@ struct ChrRaceXChrModelEntry
     int32 Sex;
     int32 AllowedTransmogSlots;
 };
-
+//种族相关的一些属性和字段
 struct ChrRacesEntry
 {
     uint32 ID;
-    char const* ClientPrefix;
-    char const* ClientFileString;
+    char const *ClientPrefix;
+    char const *ClientFileString;
     LocalizedString Name;
     LocalizedString NameFemale;
     LocalizedString NameLowercase;
@@ -903,10 +903,10 @@ struct ChrSpecializationEntry
 struct CinematicCameraEntry
 {
     uint32 ID;
-    DBCPosition3D Origin;                                   // Position in map used for basis for M2 co-ordinates
-    uint32 SoundID;                                         // Sound ID       (voiceover for cinematic)
-    float OriginFacing;                                     // Orientation in map used for basis for M2 co
-    uint32 FileDataID;                                      // Model
+    DBCPosition3D Origin; // Position in map used for basis for M2 co-ordinates
+    uint32 SoundID;       // Sound ID       (voiceover for cinematic)
+    float OriginFacing;   // Orientation in map used for basis for M2 co
+    uint32 FileDataID;    // Model
     uint32 ConversationID;
 };
 
@@ -1008,16 +1008,16 @@ struct CorruptionEffectsEntry
     int32 Flags;
 };
 
-//struct CreatureDifficultyEntry
+// struct CreatureDifficultyEntry
 //{
-//    uint32 ID;
-//    int32 LevelDeltaMin;
-//    int32 LevelDeltaMax;
-//    uint16 FactionID;
-//    int32 ContentTuningID;
-//    int32 Flags[8];
-//    uint32 CreatureID;
-//};
+//     uint32 ID;
+//     int32 LevelDeltaMin;
+//     int32 LevelDeltaMax;
+//     uint16 FactionID;
+//     int32 ContentTuningID;
+//     int32 Flags[8];
+//     uint32 CreatureID;
+// };
 
 struct CreatureDisplayInfoEntry
 {
@@ -1038,7 +1038,7 @@ struct CreatureDisplayInfoEntry
     int32 Flags;
     int32 StateSpellVisualKitID;
     float PlayerOverrideScale;
-    float PetInstanceScale;                                         // scale of not own player pets inside dungeons/raids/scenarios
+    float PetInstanceScale; // scale of not own player pets inside dungeons/raids/scenarios
     int8 UnarmedWeaponType;
     int32 MountPoofSpellVisualKitID;
     int32 DissolveEffectID;
@@ -1416,10 +1416,10 @@ struct CurrencyTypesEntry
     bool HasMaxQuantity(bool onLoad = false, bool onUpdateVersion = false) const
     {
         if (onLoad && GetFlags().HasFlag(CurrencyTypesFlags::IgnoreMaxQtyOnLoad))
-           return false;
+            return false;
 
         if (onUpdateVersion && GetFlags().HasFlag(CurrencyTypesFlags::UpdateVersionIgnoreMax))
-           return false;
+            return false;
 
         return MaxQty || MaxQtyWorldStateID || GetFlags().HasFlag(CurrencyTypesFlags::DynamicMaximum);
     }
@@ -1547,7 +1547,7 @@ struct EmotesEntry
 {
     uint32 ID;
     Trinity::RaceMask<int64> RaceMask;
-    char const* EmoteSlashCommand;
+    char const *EmoteSlashCommand;
     int16 AnimID;
     int32 EmoteFlags;
     int32 EmoteSpecProc;
@@ -1560,7 +1560,7 @@ struct EmotesEntry
 struct EmotesTextEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
     uint16 EmoteID;
 };
 
@@ -1622,8 +1622,8 @@ struct FactionEntry
     std::array<uint16, 4> ReputationFlags;
     std::array<int32, 4> ReputationBase;
     std::array<int32, 4> ReputationMax;
-    std::array<float, 2> ParentFactionMod;            // Faction outputs rep * ParentFactionModOut as spillover reputation
-    std::array<uint8, 2> ParentFactionCap;            // The highest rank the faction will profit from incoming spillover
+    std::array<float, 2> ParentFactionMod; // Faction outputs rep * ParentFactionModOut as spillover reputation
+    std::array<uint8, 2> ParentFactionCap; // The highest rank the faction will profit from incoming spillover
 
     // helpers
     bool CanHaveReputation() const
@@ -1648,7 +1648,7 @@ struct FactionTemplateEntry
     //-------------------------------------------------------  end structure
 
     // helpers
-    bool IsFriendlyTo(FactionTemplateEntry const* entry) const
+    bool IsFriendlyTo(FactionTemplateEntry const *entry) const
     {
         if (this == entry)
             return true;
@@ -1663,7 +1663,7 @@ struct FactionTemplateEntry
         }
         return (FriendGroup & entry->FactionGroup) || (FactionGroup & entry->FriendGroup);
     }
-    bool IsHostileTo(FactionTemplateEntry const* entry) const
+    bool IsHostileTo(FactionTemplateEntry const *entry) const
     {
         if (this == entry)
             return false;
@@ -1678,7 +1678,7 @@ struct FactionTemplateEntry
         }
         return (EnemyGroup & entry->FactionGroup) != 0;
     }
-    bool IsHostileToPlayers() const { return (EnemyGroup & FACTION_MASK_PLAYER) !=0; }
+    bool IsHostileToPlayers() const { return (EnemyGroup & FACTION_MASK_PLAYER) != 0; }
     bool IsNeutralToAll() const
     {
         for (int i = 0; i < MAX_FACTION_RELATIONS; ++i)
@@ -1935,7 +1935,7 @@ struct GarrMissionEntry
 struct GarrPlotEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
     uint8 PlotType;
     int32 HordeConstructObjID;
     int32 AllianceConstructObjID;
@@ -1954,7 +1954,7 @@ struct GarrPlotBuildingEntry
 struct GarrPlotInstanceEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
     uint8 GarrPlotID;
 };
 
@@ -2114,7 +2114,7 @@ struct HolidaysEntry
     int8 CalendarFilterType;
     uint8 Flags;
     std::array<uint16, MAX_HOLIDAY_DURATIONS> Duration;
-    std::array<uint32, MAX_HOLIDAY_DATES> Date;                     // dates in unix time starting at January, 1, 2000
+    std::array<uint32, MAX_HOLIDAY_DATES> Date; // dates in unix time starting at January, 1, 2000
     std::array<uint8, MAX_HOLIDAY_DURATIONS> CalendarFlags;
     std::array<int32, 3> TextureFileDataID;
 };
@@ -2230,12 +2230,12 @@ struct ItemBonusListLevelDeltaEntry
     uint32 ID;
 };
 
-//struct ItemBonusSequenceSpellEntry
+// struct ItemBonusSequenceSpellEntry
 //{
-//    uint32 ID;
-//    int32 SpellID;
-//    int32 ItemID;
-//};
+//     uint32 ID;
+//     int32 SpellID;
+//     int32 ItemID;
+// };
 
 struct ItemBonusTreeEntry
 {
@@ -2353,14 +2353,14 @@ struct ItemEffectEntry
     uint16 ChrSpecializationID;
 };
 
-#define MAX_ITEM_EXT_COST_ITEMS         5
-#define MAX_ITEM_EXT_COST_CURRENCIES    5
+#define MAX_ITEM_EXT_COST_ITEMS 5
+#define MAX_ITEM_EXT_COST_CURRENCIES 5
 
 struct ItemExtendedCostEntry
 {
     uint32 ID;
     uint16 RequiredArenaRating;
-    int8 ArenaBracket;                                             // arena slot restrictions (min slot value)
+    int8 ArenaBracket; // arena slot restrictions (min slot value)
     uint8 Flags;
     uint8 MinFactionID;
     int32 MinReputation;
@@ -2644,7 +2644,7 @@ struct JournalTierEntry
     int32 PlayerConditionID;
 };
 
-#define KEYCHAIN_SIZE   32
+#define KEYCHAIN_SIZE 32
 
 struct KeychainEntry
 {
@@ -2663,7 +2663,7 @@ struct KeystoneAffixEntry
 struct LanguageWordsEntry
 {
     uint32 ID;
-    char const* Word;
+    char const *Word;
     uint32 LanguageID;
 };
 
@@ -2731,10 +2731,10 @@ struct LightEntry
 struct LiquidTypeEntry
 {
     uint32 ID;
-    char const* Name;
-    std::array<char const*, 6> Texture;
+    char const *Name;
+    std::array<char const *, 6> Texture;
     uint16 Flags;
-    uint8 SoundBank;                                                // used to be "type", maybe needs fixing (works well for now)
+    uint8 SoundBank; // used to be "type", maybe needs fixing (works well for now)
     uint32 SoundID;
     uint32 SpellID;
     float MaxDarkenDepth;
@@ -2782,13 +2782,13 @@ struct MailTemplateEntry
 struct MapEntry
 {
     uint32 ID;
-    char const* Directory;
+    char const *Directory;
     LocalizedString MapName;
-    LocalizedString MapDescription0;                               // Horde
-    LocalizedString MapDescription1;                               // Alliance
+    LocalizedString MapDescription0; // Horde
+    LocalizedString MapDescription1; // Alliance
     LocalizedString PvpShortDescription;
     LocalizedString PvpLongDescription;
-    DBCPosition2D Corpse;                                           // entrance coordinates in ghost mode  (in most cases = normal entrance)
+    DBCPosition2D Corpse; // entrance coordinates in ghost mode  (in most cases = normal entrance)
     uint8 MapType;
     int8 InstanceType;
     uint8 ExpansionID;
@@ -2799,7 +2799,7 @@ struct MapEntry
     int16 CosmeticParentMapID;
     uint8 TimeOffset;
     float MinimapIconScale;
-    int16 CorpseMapID;                                              // map_id of entrance map in ghost mode (continent always and in most cases = normal entrance)
+    int16 CorpseMapID; // map_id of entrance map in ghost mode (continent always and in most cases = normal entrance)
     uint8 MaxPlayers;
     int16 WindSettingsID;
     int32 ZmpFileDataID;
@@ -2821,7 +2821,7 @@ struct MapEntry
     bool IsScenario() const { return InstanceType == MAP_SCENARIO; }
     bool IsWorldMap() const { return InstanceType == MAP_COMMON; }
 
-    bool GetEntrancePos(int32& mapid, float& x, float& y) const
+    bool GetEntrancePos(int32 &mapid, float &x, float &y) const
     {
         if (CorpseMapID < 0)
             return false;
@@ -2836,20 +2836,20 @@ struct MapEntry
     {
         switch (ID)
         {
-            case 0:
-            case 1:
-            case 530:
-            case 571:
-            case 870:
-            case 1116:
-            case 1220:
-            case 1642:
-            case 1643:
-            case 2222:
-            case 2444:
-                return true;
-            default:
-                return false;
+        case 0:
+        case 1:
+        case 530:
+        case 571:
+        case 870:
+        case 1116:
+        case 1220:
+        case 1642:
+        case 1643:
+        case 2222:
+        case 2444:
+            return true;
+        default:
+            return false;
         }
     }
 
@@ -2858,11 +2858,11 @@ struct MapEntry
     bool IsGarrison() const { return GetFlags().HasFlag(MapFlags::Garrison); }
     bool IsSplitByFaction() const
     {
-        return ID == 609 || // Acherus (DeathKnight Start)
-            ID == 1265 ||   // Assault on the Dark Portal (WoD Intro)
-            ID == 1481 ||   // Mardum (DH Start)
-            ID == 2175 ||   // Exiles Reach - NPE
-            ID == 2570;     // Forbidden Reach (Dracthyr/Evoker Start)
+        return ID == 609 ||  // Acherus (DeathKnight Start)
+               ID == 1265 || // Assault on the Dark Portal (WoD Intro)
+               ID == 1481 || // Mardum (DH Start)
+               ID == 2175 || // Exiles Reach - NPE
+               ID == 2570;   // Forbidden Reach (Dracthyr/Evoker Start)
     }
 
     EnumFlag<MapFlags> GetFlags() const { return static_cast<MapFlags>(Flags[0]); }
@@ -2882,7 +2882,7 @@ struct MapChallengeModeEntry
 
 struct MapDifficultyEntry
 {
-    LocalizedString Message;                                // m_message_lang (text showed when transfer to map failed)
+    LocalizedString Message; // m_message_lang (text showed when transfer to map failed)
     uint32 ID;
     int32 DifficultyID;
     int32 LockID;
@@ -3021,7 +3021,7 @@ struct MythicPlusSeasonEntry
 struct NameGenEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
     uint8 RaceID;
     uint8 Sex;
 };
@@ -3029,20 +3029,20 @@ struct NameGenEntry
 struct NamesProfanityEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
     int8 Language;
 };
 
 struct NamesReservedEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
 };
 
 struct NamesReservedLocaleEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
     uint8 LocaleMask;
 };
 
@@ -3211,7 +3211,7 @@ struct PlayerConditionEntry
 struct PowerDisplayEntry
 {
     uint32 ID;
-    char const* GlobalStringBaseTag;
+    char const *GlobalStringBaseTag;
     int8 ActualType;
     uint8 Red;
     uint8 Green;
@@ -3220,8 +3220,8 @@ struct PowerDisplayEntry
 
 struct PowerTypeEntry
 {
-    char const* NameGlobalStringTag;
-    char const* CostGlobalStringTag;
+    char const *NameGlobalStringTag;
+    char const *CostGlobalStringTag;
     uint32 ID;
     int8 PowerTypeEnum;
     int32 MinPower;
@@ -3445,8 +3445,8 @@ struct ScenarioStepEntry
     uint16 ScenarioID;
     uint32 Criteriatreeid;
     int32 RewardQuestID;
-    int32 RelatedStep;                                              // Bonus step can only be completed if scenario is in the step specified in this field
-    uint16 Supersedes;                                              // Used in conjunction with Proving Grounds scenarios, when sequencing steps (Not using step order?)
+    int32 RelatedStep; // Bonus step can only be completed if scenario is in the step specified in this field
+    uint16 Supersedes; // Used in conjunction with Proving Grounds scenarios, when sequencing steps (Not using step order?)
     uint8 OrderIndex;
     uint8 Flags;
     uint32 VisibilityPlayerConditionID;
@@ -3470,22 +3470,22 @@ struct SceneScriptEntry
 struct SceneScriptGlobalTextEntry
 {
     uint32 ID;
-    char const* Name;
-    char const* Script;
+    char const *Name;
+    char const *Script;
 };
 
 struct SceneScriptPackageEntry
 {
     uint32 ID;
-    char const* Name;
+    char const *Name;
     int32 Unknown915;
 };
 
 struct SceneScriptTextEntry
 {
     uint32 ID;
-    char const* Name;
-    char const* Script;
+    char const *Name;
+    char const *Script;
 };
 
 struct ServerMessagesEntry
@@ -3500,7 +3500,7 @@ struct SkillLineEntry
     LocalizedString AlternateVerb;
     LocalizedString Description;
     LocalizedString HordeDisplayName;
-    char const* OverrideSourceInfoDisplayName;
+    char const *OverrideSourceInfoDisplayName;
     uint32 ID;
     int8 CategoryID;
     int32 SpellIconFileID;
@@ -3830,7 +3830,7 @@ struct SpellItemEnchantmentConditionEntry
 struct SpellKeyboundOverrideEntry
 {
     uint32 ID;
-    char const* Function;
+    char const *Function;
     int8 Type;
     int32 Data;
     int32 Flags;
@@ -3886,7 +3886,7 @@ struct SpellMiscEntry
 
 struct SpellNameEntry
 {
-    uint32 ID;                      // SpellID
+    uint32 ID; // SpellID
     LocalizedString Name;
 };
 
@@ -3905,8 +3905,8 @@ struct SpellPowerEntry
     float PowerPctPerSecond;
     int8 PowerType;
     int32 RequiredAuraSpellID;
-    uint32 OptionalCost;                                            // Spell uses [ManaCost, ManaCost+ManaCostAdditional] power - affects tooltip parsing as multiplier on SpellEffectEntry::EffectPointsPerResource
-                                                                   //   only SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL, SPELL_EFFECT_WEAPON_PERCENT_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE, SPELL_EFFECT_NORMALIZED_WEAPON_DMG
+    uint32 OptionalCost; // Spell uses [ManaCost, ManaCost+ManaCostAdditional] power - affects tooltip parsing as multiplier on SpellEffectEntry::EffectPointsPerResource
+                         //   only SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL, SPELL_EFFECT_WEAPON_PERCENT_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE, SPELL_EFFECT_NORMALIZED_WEAPON_DMG
     uint32 SpellID;
 };
 
@@ -4181,16 +4181,16 @@ struct TaxiNodesEntry
     bool IsPartOfTaxiNetwork() const
     {
         return GetFlags().HasFlag(TaxiNodeFlags::ShowOnAllianceMap | TaxiNodeFlags::ShowOnHordeMap)
-            // manually whitelisted nodes
-            || ID == 1985   // [Hidden] Argus Ground Points Hub (Ground TP out to here, TP to Vindicaar from here)
-            || ID == 1986   // [Hidden] Argus Vindicaar Ground Hub (Vindicaar TP out to here, TP to ground from here)
-            || ID == 1987   // [Hidden] Argus Vindicaar No Load Hub (Vindicaar No Load transition goes through here)
-            || ID == 2627   // [Hidden] 9.0 Bastion Ground Points Hub (Ground TP out to here, TP to Sanctum from here)
-            || ID == 2628   // [Hidden] 9.0 Bastion Ground Hub (Sanctum TP out to here, TP to ground from here)
-            || ID == 2732   // [HIDDEN] 9.2 Resonant Peaks - Teleport Network - Hidden Hub (Connects all Nodes to each other without unique paths)
-            || ID == 2835   // [Hidden] 10.0 Travel Network - Destination Input
-            || ID == 2843   // [Hidden] 10.0 Travel Network - Destination Output
-        ;
+               // manually whitelisted nodes
+               || ID == 1985 // [Hidden] Argus Ground Points Hub (Ground TP out to here, TP to Vindicaar from here)
+               || ID == 1986 // [Hidden] Argus Vindicaar Ground Hub (Vindicaar TP out to here, TP to ground from here)
+               || ID == 1987 // [Hidden] Argus Vindicaar No Load Hub (Vindicaar No Load transition goes through here)
+               || ID == 2627 // [Hidden] 9.0 Bastion Ground Points Hub (Ground TP out to here, TP to Sanctum from here)
+               || ID == 2628 // [Hidden] 9.0 Bastion Ground Hub (Sanctum TP out to here, TP to ground from here)
+               || ID == 2732 // [HIDDEN] 9.2 Resonant Peaks - Teleport Network - Hidden Hub (Connects all Nodes to each other without unique paths)
+               || ID == 2835 // [Hidden] 10.0 Travel Network - Destination Input
+               || ID == 2843 // [Hidden] 10.0 Travel Network - Destination Output
+            ;
     }
 };
 
@@ -4264,7 +4264,7 @@ struct TraitCondEntry
 
 struct TraitCostEntry
 {
-    char const* InternalName;
+    char const *InternalName;
     uint32 ID;
     int32 Amount;
     int32 TraitCurrencyID;
@@ -4421,7 +4421,7 @@ struct TraitSubTreeEntry
     LocalizedString Description;
     uint32 ID;
     int32 UiTextureAtlasElementID;
-    uint32 TraitTreeID;             // Parent tree
+    uint32 TraitTreeID; // Parent tree
 };
 
 struct TraitTreeEntry
@@ -4736,10 +4736,10 @@ struct VehicleSeatEntry
 
     inline bool CanEnterOrExit() const { return HasFlag(VehicleSeatFlags(VEHICLE_SEAT_FLAG_CAN_ENTER_OR_EXIT | VEHICLE_SEAT_FLAG_CAN_CONTROL | VEHICLE_SEAT_FLAG_SHOULD_USE_VEH_SEAT_EXIT_ANIM_ON_VOLUNTARY_EXIT)); }
     inline bool CanSwitchFromSeat() const { return HasFlag(VEHICLE_SEAT_FLAG_CAN_SWITCH); }
-    inline bool IsUsableByOverride() const {
-        return HasFlag(VehicleSeatFlags(VEHICLE_SEAT_FLAG_UNCONTROLLED | VEHICLE_SEAT_FLAG_UNK18))
-            || HasFlag(VehicleSeatFlagsB(VEHICLE_SEAT_FLAG_B_USABLE_FORCED | VEHICLE_SEAT_FLAG_B_USABLE_FORCED_2 |
-                VEHICLE_SEAT_FLAG_B_USABLE_FORCED_3 | VEHICLE_SEAT_FLAG_B_USABLE_FORCED_4));
+    inline bool IsUsableByOverride() const
+    {
+        return HasFlag(VehicleSeatFlags(VEHICLE_SEAT_FLAG_UNCONTROLLED | VEHICLE_SEAT_FLAG_UNK18)) || HasFlag(VehicleSeatFlagsB(VEHICLE_SEAT_FLAG_B_USABLE_FORCED | VEHICLE_SEAT_FLAG_B_USABLE_FORCED_2 |
+                                                                                                                                VEHICLE_SEAT_FLAG_B_USABLE_FORCED_3 | VEHICLE_SEAT_FLAG_B_USABLE_FORCED_4));
     }
     inline bool IsEjectable() const { return HasFlag(VEHICLE_SEAT_FLAG_B_EJECTABLE); }
 };
@@ -4768,9 +4768,9 @@ struct WMOAreaTableEntry
 {
     LocalizedString AreaName;
     uint32 ID;
-    uint16 WmoID;                                                   //  used in root WMO
-    uint8 NameSetID;                                                //  used in adt file
-    int32 WmoGroupID;                                               //  used in group WMO
+    uint16 WmoID;     //  used in root WMO
+    uint8 NameSetID;  //  used in adt file
+    int32 WmoGroupID; //  used in group WMO
     uint8 SoundProviderPref;
     uint8 SoundProviderPrefUnderwater;
     uint16 AmbienceID;
@@ -4816,7 +4816,7 @@ struct WorldMapOverlayEntry
 struct WorldStateExpressionEntry
 {
     uint32 ID;
-    char const* Expression;
+    char const *Expression;
 };
 
 #pragma pack(pop)

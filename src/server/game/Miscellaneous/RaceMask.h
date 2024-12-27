@@ -36,8 +36,8 @@ enum Races
     RACE_GOBLIN                       = 9,  // TITLE Goblin
     RACE_BLOODELF                     = 10, // TITLE Blood Elf
     RACE_DRAENEI                      = 11, // TITLE Draenei
-    //RACE_FEL_ORC                    = 12,
     //RACE_NAGA                       = 13,
+    //RACE_FEL_ORC                    = 12,
     //RACE_BROKEN                     = 14,
     //RACE_SKELETON                   = 15,
     //RACE_VRYKUL                     = 16,

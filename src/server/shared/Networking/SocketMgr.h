@@ -50,6 +50,8 @@ public:
             return false;
         }
 
+
+        //
         if (!acceptor->Bind())
         {
             TC_LOG_ERROR("network", "StartNetwork failed to bind socket acceptor");

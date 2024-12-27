@@ -228,9 +228,11 @@ void WorldSession::SendPacket(WorldPacket const *packet, bool forced /*= false*/
     }
 
     // Default connection index defined in Opcodes.cpp table
+    // Opcodes.cpp表中定义的默认连接索引
     ConnectionType conIdx = handler->ConnectionIndex;
 
     // Override connection index
+    // 覆盖连接索引
     if (packet->GetConnection() != CONNECTION_TYPE_DEFAULT)
     {
         if (packet->GetConnection() != CONNECTION_TYPE_INSTANCE && IsInstanceOnlyOpcode(packet->GetOpcode()))
@@ -819,6 +821,12 @@ void WorldSession::Handle_EarlyProccess(WorldPackets::Null &null)
     TC_LOG_ERROR("network.opcode", "Received opcode {} that must be processed in WorldSocket::ReadDataHandler from {}", GetOpcodeNameForLogging(null.GetOpcode()), GetPlayerInfo());
 }
 
+// 发送登录到instance instance这里发现基本都是各种地图
+/*
+    构建并发送一个包含实例连接关键信息（如账号 ID、连接类型、随机键值、实例服务器地址和端口等）的数据包给客户端，
+    以便客户端能够准确地与游戏服务器的相应实例建立网络连接，
+    整个过程涉及网络地址处理、数据包组装以及发送等多个环节，各个环节紧密配合来保障实例连接相关功能的正常实现。
+*/
 void WorldSession::SendConnectToInstance(WorldPackets::Auth::ConnectToSerial serial)
 {
     boost::system::error_code ignored_error;
@@ -1029,7 +1037,7 @@ TransactionCallback &WorldSession::AddTransactionCallback(TransactionCallback &&
 {
     return _transactionCallbacks.AddCallback(std::move(callback));
 }
-//添加查询持有者的回调
+// 添加查询持有者的回调
 SQLQueryHolderCallback &WorldSession::AddQueryHolderCallback(SQLQueryHolderCallback &&callback)
 {
     return _queryHolderProcessor.AddCallback(std::move(callback));

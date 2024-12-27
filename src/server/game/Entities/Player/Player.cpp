@@ -146,6 +146,7 @@
 #define DEATH_EXPIRE_STEP (5 * MINUTE)
 #define MAX_DEATH_COUNT 3
 
+//法术枚举
 enum PlayerSpells
 {
     SPELL_EXPERIENCE_ELIMINATED = 206662,
@@ -17697,6 +17698,7 @@ bool Player::IsLoading() const
     return GetSession()->PlayerLoading();
 }
 
+//从数据库填充player的属性
 bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &holder)
 {
     PreparedQueryResult result = holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_FROM);
@@ -17883,6 +17885,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // check if the character's account in the db and the logged in account match.
     // player should be able to load/delete character only with correct account!
+    /// 检查db中的角色账号和登录账号是否匹配。
+    // 玩家应该能够加载/删除角色只有正确的帐户！
     if (fields.account != GetSession()->GetAccountId())
     {
         TC_LOG_ERROR("entities.player.loading", "Player::LoadFromDB: Player ({}) loading from wrong account (is: {}, should be: {})", guid.ToString(), GetSession()->GetAccountId(), fields.account);
@@ -17900,6 +17904,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     m_name = std::move(fields.name);
 
     // check name limitations
+    ////检查名称限制
     if (ObjectMgr::CheckPlayerName(m_name, GetSession()->GetSessionDbcLocale()) != CHAR_NAME_SUCCESS ||
         (!GetSession()->HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_RESERVEDNAME) && sObjectMgr->IsReservedName(m_name)))
     {
@@ -17927,6 +17932,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     SetGender(fields.gender);
 
     // check if race/class combination is valid
+    // 检查种族/职业组合是否有效
     PlayerInfo const *info = sObjectMgr->GetPlayerInfo(GetRace(), GetClass());
     if (!info)
     {
@@ -17949,6 +17955,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     SetObjectScale(1.0f);
 
     // load achievements before anything else to prevent multiple gains for the same achievement/criteria on every loading (as loading does call UpdateCriteria)
+    // 首先加载成就，以防止在每次加载时对相同的成就/标准进行多次增益（因为加载会调用updateccriteria）
     m_achievementMgr->LoadFromDB(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_ACHIEVEMENTS), holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS));
     m_questObjectiveCriteriaMgr->LoadFromDB(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_QUEST_STATUS_OBJECTIVES_CRITERIA), holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_QUEST_STATUS_OBJECTIVES_CRITERIA_PROGRESS));
 
@@ -17993,6 +18000,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     }
 
     // set which actionbars the client has active - DO NOT REMOVE EVER AGAIN (can be changed though, if it does change fieldwise)
+    ////设置客户端激活了哪些动作栏-不要再删除（可以更改，如果它确实改变了字段方向）
     SetMultiActionBars(fields.actionBars);
 
     m_fishingSteps = fields.fishingSteps;
@@ -18004,16 +18012,20 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // Need to call it to initialize m_team (m_team can be calculated from race)
     // Other way is to saves m_team into characters table.
+    // 需要调用它来初始化m_team （m_team可以从race中计算）
+    // 另一种方法是保存m_team到characters table中。
     SetFactionForRace(GetRace());
 
     // load home bind and check in same time class/race pair, it used later for restore broken positions
+    // 加载home绑定并在同一时间检入类/比赛对，稍后用于恢复损坏的位置
     if (!_LoadHomeBind(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_HOME_BIND)))
         return false;
 
     InitializeSkillFields();
-    InitPrimaryProfessions(); // to max set before any spell loaded
+    // InitPrimaryProfessions(); // to max set before any spell loaded///任何法术加载前的最大设置
 
     // init saved position, and fix it later if problematic
+    //// init保存位置，如果有问题，稍后修复
     Relocate(fields.position_x, fields.position_y, fields.position_z, fields.orientation);
 
     uint32 mapId = fields.map;
@@ -18047,6 +18059,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
         RelocateToHomebind();
     }
     // Player was saved in Arena or Bg
+    ////玩家在竞技场或战场被保存
     else if (mapEntry->IsBattlegroundOrArena())
     {
         Battleground *currentBg = nullptr;
@@ -18072,9 +18085,11 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
             }
         }
         // Bg was not found - go to Entry Point
+        // 没有找到战场 -到入口点
         else
         {
             // leave bg
+            // 离开战场
             if (player_at_bg)
             {
                 player_at_bg = false;
@@ -18082,13 +18097,16 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
             }
 
             // Do not look for instance if bg not found
+            ////如果没有找到，则不查找实例
             WorldLocation const &_loc = GetBattlegroundEntryPoint();
             mapId = _loc.GetMapId();
             instanceId = 0;
 
             // Db field type is type int16, so it can never be MAPID_INVALID
             // if (mapId == MAPID_INVALID) -- code kept for reference
-            if (int16(mapId) == int16(-1)) // Battleground Entry Point not found (???)
+            // 数据库字段类型是int16类型，所以它永远不会是MAPID_INVALID
+            // if （mapId == MAPID_INVALID）——保留代码供参考
+            if (int16(mapId) == int16(-1)) // Battleground Entry Point not found (???)//没有找到战场入口点（???）
             {
                 TC_LOG_ERROR("entities.player.loading", "Player::LoadFromDB: Player ({}) was in BG in database, but BG was not found and entry point was invalid! Teleport to default race/class locations.",
                              guid.ToString());
@@ -18098,10 +18116,12 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
                 Relocate(&_loc);
 
             // We are not in BG anymore
+            // 我们已经不在BG了
             m_bgData.bgInstanceID = 0;
         }
     }
     // currently we do not support transport in bg
+    // 当前我们不支持bg中的transport
     else if (fields.transguid)
     {
         ObjectGuid transGUID = ObjectGuid::Create<HighGuid::Transport>(fields.transguid);
@@ -18212,8 +18232,10 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     }
 
     // Map could be changed before
+    ////之前可以更改映射
     mapEntry = sMapStore.LookupEntry(mapId);
     // client without expansion support
+    ////不支持扩展的客户端
     if (mapEntry)
     {
         if (GetSession()->GetExpansion() < mapEntry->Expansion())
@@ -18226,6 +18248,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // NOW player must have valid map
     // load the player's map here if it's not already loaded
+    // 现在玩家必须有有效的地图
+    // 如果玩家的地图还没有加载，就在这里加载
     if (!map)
         map = sMapMgr->CreateMap(mapId, this);
     AreaTriggerStruct const *areaTrigger = nullptr;
@@ -18236,24 +18260,24 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
         areaTrigger = sObjectMgr->GetGoBackTrigger(mapId);
         check = true;
     }
-    else if (map->IsDungeon()) // if map is dungeon...
+    else if (map->IsDungeon()) // if map is dungeon...//如果地图是地下城…
     {
-        if (TransferAbortParams denyReason = map->CannotEnter(this)) // ... and can't enter map, then look for entry point.
+        if (TransferAbortParams denyReason = map->CannotEnter(this)) // ... and can't enter map, then look for entry point./ /……又不能进入地图，那就找入口点。
         {
             SendTransferAborted(map->GetId(), denyReason.Reason, denyReason.Arg, denyReason.MapDifficultyXConditionId);
             areaTrigger = sObjectMgr->GetGoBackTrigger(mapId);
             check = true;
         }
-        else if (instanceId && !sInstanceLockMgr.FindActiveInstanceLock(guid, {mapId, map->GetDifficultyID()})) // ... and instance is reseted then look for entrance.
+        else if (instanceId && !sInstanceLockMgr.FindActiveInstanceLock(guid, {mapId, map->GetDifficultyID()})) // ……实例被重置，然后寻找入口。// ... and instance is reseted then look for entrance.
         {
             areaTrigger = sObjectMgr->GetMapEntranceTrigger(mapId);
             check = true;
         }
     }
 
-    if (check) // in case of special event when creating map...
+    if (check) // in case of special event when creating map...//如果在创建映射时发生特殊事件…
     {
-        if (areaTrigger) // ... if we have an areatrigger, then relocate to new map/coordinates.
+        if (areaTrigger) // ... if we have an areatrigger, then relocate to new map/coordinates.//……如果我们有一个区域触发器，那么重新定位到新的地图/坐标。
         {
             Relocate(areaTrigger->target_X, areaTrigger->target_Y, areaTrigger->target_Z, GetOrientation());
             if (mapId != areaTrigger->target_mapId)
@@ -18280,6 +18304,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     UpdatePositionData();
 
     // now that map position is determined, check instance validity
+    // 映射位置确定后，检查实例的有效性
     if (!CheckInstanceValidity(true) && !IsInstanceLoginGameMasterException())
         m_InstanceValid = false;
 
@@ -18288,6 +18313,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // randomize first save time in range [CONFIG_INTERVAL_SAVE] around [CONFIG_INTERVAL_SAVE]
     // this must help in case next save after mass player load after server startup
+    // 在[CONFIG_INTERVAL_SAVE]的范围内随机设置第一次保存时间
+    // 这必须有助于在服务器启动后大量玩家加载后的下一个保存
     m_nextSave = urand(m_nextSave / 2, m_nextSave * 3 / 2);
 
     SaveRecallPosition();
@@ -18298,10 +18325,13 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::LogoutTime), logoutTime);
 
     // since last logout (in seconds)
+    // 自上次注销以来（以秒为单位）
     uint32 time_diff = uint32(now - logoutTime); // uint64 is excessive for a time_diff in seconds.. uint32 allows for 136~ year difference.
 
     // set value, including drunk invisibility detection
     // calculate sobering. after 15 minutes logged out, the player will be sober again
+    // 设置值，包括醉酒隐形检测
+    // 计算清醒。在退出游戏15分钟后，玩家将再次清醒
     if (time_diff < uint32(GetDrunkValue()) * 9)
         SetDrunkValue(GetDrunkValue() - time_diff / 9);
     else
@@ -18316,7 +18346,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     SetTalentResetCost(fields.resettalents_cost);
     SetTalentResetTime(fields.resettalents_time);
 
-    if (!m_taxi.LoadTaxiMask(fields.taximask)) // must be before InitTaxiNodesForLevel
+    if (!m_taxi.LoadTaxiMask(fields.taximask)) // must be before InitTaxiNodesForLevel//必须在InitTaxiNodesForLevel之前
         TC_LOG_WARN("entities.player.loading", "Player::LoadFromDB: Player ({}) has invalid taximask ({}) in DB. Forced partial load.", GetGUID().ToString(), fields.taximask);
 
     uint32 extraflags = fields.extra_flags;
@@ -18331,6 +18361,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // Honor system
     // Update Honor kills data
+    // 荣誉系统
+    // Update Honor杀死数据
     m_lastHonorUpdateTime = logoutTime;
     UpdateHonorFields();
 
@@ -18342,19 +18374,23 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     RemoveUnitFlag2(UNIT_FLAG2_FORCE_MOVEMENT);
 
     // make sure the unit is considered out of combat for proper loading
+    // 确保该单位被认为是正确的加载战斗
     ClearInCombat();
 
     // reset stats before loading any modifiers
+    // 在加载任何修饰符之前重置状态
     InitStatsForLevel();
     InitTaxiNodesForLevel();
     InitRunes();
 
     // rest bonus can only be calculated after InitStatsForLevel()
+    // 休息奖励只能在InitStatsForLevel（）之后计算
     _restMgr->LoadRestBonus(REST_TYPE_XP, fields.restState, fields.rest_bonus);
 
     // load skills after InitStatsForLevel because it triggering aura apply also
+    // 在InitStatsForLevel之后加载技能，因为它触发aura也适用
     _LoadSkills(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_SKILLS));
-    UpdateSkillsForLevel(); // update skills after load, to make sure they are correctly update at player load
+    UpdateSkillsForLevel(); // update skills after load, to make sure they are correctly update at player load//加载后更新技能，确保他们在玩家加载时正确更新
 
     SetNumRespecs(fields.numRespecs);
     SetPrimarySpecialization(fields.primarySpecialization);
@@ -18384,13 +18420,16 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     _LoadAuras(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURAS), holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURA_EFFECTS), time_diff);
     _LoadGlyphAuras();
     // add ghost flag (must be after aura load: PLAYER_FLAGS_GHOST set in aura)
+    // 添加幽灵标志（必须在光环加载后：PLAYER_FLAGS_GHOST设置在光环）
     if (HasPlayerFlag(PLAYER_FLAGS_GHOST))
         m_deathState = DEAD;
 
     // Load spell locations - must be after loading auras
+    // 加载法术位置-必须在加载光环之后
     _LoadStoredAuraTeleportLocations(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURA_STORED_LOCATIONS));
 
     // after spell load, learn rewarded spell if need also
+    // 在咒语加载后，如果需要，也学习奖励咒语
     _LoadQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_QUEST_STATUS));
     _LoadQuestStatusObjectives(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_QUEST_STATUS_OBJECTIVES));
     _LoadQuestStatusRewarded(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_QUEST_STATUS_REW));
@@ -18401,6 +18440,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     _LoadRandomBGStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_RANDOM_BG));
 
     // after spell and quest load
+    // 在咒语和任务加载之后
     InitTalentForLevel();
     LearnDefaultSkills();
     LearnCustomSpells();
@@ -18409,6 +18449,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
                 holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_TRAIT_ENTRIES)); // must be after loading spells
 
     // must be before inventory (some items required reputation check)
+    // 必须在库存之前（有些物品需要信誉检查）
     m_reputationMgr->LoadFromDB(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_REPUTATION));
 
     _LoadInventory(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_INVENTORY),
@@ -18423,11 +18464,13 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
         _LoadVoidStorage(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_VOID_STORAGE));
 
     // update items with duration and realtime
+    // 更新项目的持续时间和实时
     UpdateItemDuration(time_diff, true);
 
     StartLoadingActionButtons();
 
     // unread mails and next delivery time, actual mails not loaded
+    // 未读邮件和下一次发送时间，实际邮件未加载
     _LoadMail(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_MAILS),
               holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_MAIL_ITEMS),
               holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_MAIL_ITEMS_ARTIFACT),
@@ -18440,6 +18483,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // check PLAYER_CHOSEN_TITLE compatibility with PLAYER__FIELD_KNOWN_TITLES
     // note: PLAYER__FIELD_KNOWN_TITLES updated at quest status loaded
+    // 检查PLAYER_CHOSEN_TITLE与player_field_known_titles的兼容性
+    // 注：PLAYER__FIELD_KNOWN_TITLES在任务状态加载时更新
     uint32 curTitle = fields.chosenTitle;
     if (curTitle && !HasTitle(curTitle))
         curTitle = 0;
@@ -18447,6 +18492,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     SetChosenTitle(curTitle);
 
     // has to be called after last Relocate() in Player::LoadFromDB
+    // 必须在Player::LoadFromDB中的最后一次Relocate（）之后调用
     SetFallInformation(0, GetPositionZ());
 
     GetSpellHistory()->LoadFromDB<Player>(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_SPELL_COOLDOWNS), holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_SPELL_CHARGES));
@@ -18457,16 +18503,20 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // Spell code allow apply any auras to dead character in load time in aura/spell/item loading
     // Do now before stats re-calculation cleanup for ghost state unexpected auras
+    // 法术代码允许在光环/法术/物品加载时间内对死亡角色应用任何光环
+    // 在状态重新计算前清理幽灵状态的意外光环
     if (!IsAlive())
         RemoveAllAurasOnDeath();
     else
         RemoveAllAurasRequiringDeadTarget();
 
     // apply all stat bonuses from items and auras
+    // 从物品和光环中应用所有属性加成
     SetCanModifyStats(true);
     UpdateAllStats();
 
     // restore remembered power/health values (but not more max values)
+    // 恢复记忆的能量/生命值（但不是更多的最大值）
     SetHealth(savedHealth > GetMaxHealth() ? GetMaxHealth() : savedHealth);
     uint32 loadedPowers = 0;
     for (uint32 i = 0; i < MAX_POWERS; ++i)
@@ -18486,6 +18536,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     SetPower(POWER_LUNAR_POWER, 0);
     // Init rune recharge
+    ////初始符文充值
     if (GetPowerIndex(POWER_RUNES) != MAX_POWERS)
     {
         int32 runes = GetPower(POWER_RUNES);
@@ -18505,6 +18556,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     outDebugValues();
 
     // GM state
+    // GM状态
     if (GetSession()->HasPermission(rbac::RBAC_PERM_RESTORE_SAVED_GM_STATE))
     {
         switch (sWorld->getIntConfig(CONFIG_GM_LOGIN_STATE))
@@ -18591,6 +18643,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     if (time_diff > 0)
     {
         // speed collect rest bonus in offline, in logout, far from tavern, city (section/in hour)
+        // 在离线，登出，远离酒馆，城市（节/小时）中收集休息加成
         float bubble0 = 0.031f;
         // speed collect rest bonus in offline, in logout, in tavern, city (section/in hour)
         float bubble1 = 0.125f;
@@ -18602,6 +18655,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     }
 
     // Unlock battle pet system if it's enabled in bnet account
+    // 解锁战斗宠物系统，如果它在bnet账户中启用
     if (GetSession()->GetBattlePetMgr()->IsBattlePetSystemEnabled())
         LearnSpell(BattlePets::SPELL_BATTLE_PET_TRAINING, false);
 
