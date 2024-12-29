@@ -371,6 +371,7 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
         plrMover->SetEmoteState(EMOTE_ONESHOT_NONE);
 
     /* handle special cases */
+    // 是否在交通工具上
     if (!movementInfo.transport.guid.IsEmpty())
     {
         // We were teleported, skip packets that were broadcast before teleport
@@ -417,10 +418,12 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
         plrMover->GetTransport()->RemovePassenger(plrMover);
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
+    // 掉落伤害生成（忽略飞行情况下，也可以在瞬间传送到另一张地图时触发）
     if (opcode == CMSG_MOVE_FALL_LAND && plrMover && !plrMover->IsInFlight())
         plrMover->HandleFall(movementInfo);
 
     // interrupt parachutes upon falling or landing in water
+    // 在降落或降落在水中时中断降落伞
     if (opcode == CMSG_MOVE_FALL_LAND || opcode == CMSG_MOVE_START_SWIM || opcode == CMSG_MOVE_SET_FLY)
         mover->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::LandingOrFlight); // Parachutes
 
@@ -432,9 +435,10 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
 
     /* process position-change */
     movementInfo.guid = mover->GetGUID();
+    // 调整客户端的时间戳
     movementInfo.time = AdjustClientMovementTime(movementInfo.time);
     mover->m_movementInfo = movementInfo;
-
+    // 处理车辆 如果没有车辆不自行if
     // Some vehicles allow the passenger to turn by himself
     if (Vehicle *vehicle = mover->GetVehicle())
     {
@@ -458,13 +462,14 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
     moveUpdate.Status = &mover->m_movementInfo;
     mover->SendMessageToSet(moveUpdate.Write(), _player);
 
+    // 魅惑？？
     if (plrMover) // nothing is charmed, or player charmed
     {
         if (plrMover->IsSitState() && (movementInfo.flags & (MOVEMENTFLAG_MASK_MOVING | MOVEMENTFLAG_MASK_TURNING)))
             plrMover->SetStandState(UNIT_STAND_STATE_STAND);
-
+        // 如果需要处理掉落信息
         plrMover->UpdateFallInformationIfNeed(movementInfo, opcode);
-
+        // 处理玩家掉到地图外的情况
         if (movementInfo.pos.GetPositionZ() < plrMover->GetMap()->GetMinHeight(plrMover->GetPhaseShift(), movementInfo.pos.GetPositionX(), movementInfo.pos.GetPositionY()))
         {
             if (!(plrMover->GetBattleground() && plrMover->GetBattleground()->HandlePlayerUnderMap(_player)))
