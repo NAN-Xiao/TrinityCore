@@ -55,6 +55,7 @@ enum SCEquip
     EQUIP_UNEQUIP   = 0
 };
 
+//生物的ai
 class TC_GAME_API CreatureAI : public UnitAI
 {
     protected:

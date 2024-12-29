@@ -382,6 +382,7 @@ enum DuelState
     DUEL_STATE_IN_PROGRESS,
     DUEL_STATE_COMPLETED
 };
+// 关于决斗的信息
 struct DuelInfo
 {
     DuelInfo(Player *opponent, Player *initiator, bool isMounted) : Opponent(opponent), Initiator(initiator), IsMounted(isMounted) {}
@@ -1091,7 +1092,7 @@ struct VoidStorageItem
     ItemContext Context;
     std::vector<int32> BonusListIDs;
 };
-
+// 用于存储与复活（Resurrection）相关的各类数据信息
 struct ResurrectionData
 {
     ObjectGuid GUID;
@@ -1157,7 +1158,7 @@ enum class ZonePVPTypeOverride : uint32
 };
 
 float constexpr TELEPORT_MIN_LOAD_SCREEN_DISTANCE = 200.0f;
-
+// 传送（Teleport）相关的各种关键信息
 struct TeleportLocation
 {
     WorldLocation Location;
@@ -1187,6 +1188,7 @@ public:
 
     void SetObjectScale(float scale) override;
 
+    // 传送到。。。
     bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, TeleportToOptions options = TELE_TO_NONE, Optional<uint32> instanceId = {}, uint32 teleportSpellId = 0);
     bool TeleportTo(WorldLocation const &loc, TeleportToOptions options = TELE_TO_NONE, Optional<uint32> instanceId = {}, uint32 teleportSpellId = 0);
     bool TeleportTo(TeleportLocation const &teleportLocation, TeleportToOptions options = TELE_TO_NONE, uint32 teleportSpellId = 0);
@@ -2866,9 +2868,9 @@ public:
                                 .ModifyValue(&UF::RestInfo::Threshold),
                             threshold);
     }
-
+    // 选项
     void SendPlayerChoice(ObjectGuid sender, int32 choiceId);
-
+    // 检查
     bool MeetPlayerCondition(uint32 conditionId) const;
 
     bool HasPlayerFlag(PlayerFlags flags) const { return (*m_playerData->PlayerFlags & flags) != 0; }
@@ -2880,8 +2882,7 @@ public:
     void SetPlayerFlagEx(PlayerFlagsEx flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlagsEx), flags); }
     void RemovePlayerFlagEx(PlayerFlagsEx flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlagsEx), flags); }
     void ReplaceAllPlayerFlagsEx(PlayerFlagsEx flags) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlagsEx), flags); }
-
-    void SetAverageItemLevel(float newItemLevel, AvgItemLevelCategory category) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::AvgItemLevel, uint32(category)), newItemLevel); }
+    。。大概率与设置平均物品等级相关 void SetAverageItemLevel(float newItemLevel, AvgItemLevelCategory category) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::AvgItemLevel, uint32(category)), newItemLevel); }
 
     uint32 GetCustomizationChoice(uint32 chrCustomizationOptionId) const
     {
@@ -2894,6 +2895,7 @@ public:
         return 0;
     }
 
+    // 角色外貌的显示？？？
     template <typename Iter>
     void SetCustomizations(Trinity::IteratorPair<Iter> customizations, bool markChanged = true)
     {
@@ -2908,13 +2910,17 @@ public:
             newChoice.ChrCustomizationChoiceID = customization.ChrCustomizationChoiceID;
         }
     }
+    // pvp
     void SetPvpTitle(uint8 pvpTitle) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PvpTitle), pvpTitle); }
+    // 竞技场
     void SetArenaFaction(uint8 arenaFaction) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::ArenaFaction), arenaFaction); }
+    // 醉酒效果
     void ApplyModFakeInebriation(int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::FakeInebriation), mod, apply); }
-    // VirtualPlayerRealm 虚拟玩家领域？？领域有可能是一个独立游戏世界环境
+    // VirtualPlayerRealm Realm” 通常指的是游戏世界中的不同区域、服务器分区
     void SetVirtualPlayerRealm(uint32 virtualRealmAddress) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::VirtualPlayerRealm), virtualRealmAddress); }
+    // 设置宠物的品质和
     void SetCurrentBattlePetBreedQuality(uint8 battlePetBreedQuality) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::CurrentBattlePetBreedQuality), battlePetBreedQuality); }
-
+    // 角色扮演游戏中，“Heirloom” 通常指传家宝
     void AddHeirloom(int32 itemId, uint32 flags)
     {
         AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Heirlooms)) = itemId;
@@ -2922,13 +2928,13 @@ public:
     }
     void SetHeirloom(uint32 slot, int32 itemId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Heirlooms, slot), itemId); }
     void SetHeirloomFlags(uint32 slot, uint32 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::HeirloomFlags, slot), flags); }
-
+    // 玩具
     void AddToy(int32 itemId, uint32 flags)
     {
         AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Toys)) = itemId;
         AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ToyFlags)) = flags;
     }
-
+    // 外观幻化
     void AddTransmogBlock(uint32 blockValue) { AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Transmog)) = blockValue; }
     void AddTransmogFlag(uint32 slot, uint32 flag) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Transmog, slot), flag); }
 
@@ -2943,6 +2949,7 @@ public:
     void AddIllusionBlock(uint32 blockValue) { AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TransmogIllusions)) = blockValue; }
     void AddIllusionFlag(uint32 slot, uint32 flag) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TransmogIllusions, slot), flag); }
 
+    // 复活法术。那么 AddSelfResSpell 大概率是用于添加一种能让角色实现自我复活功能的法术相关操作
     void AddSelfResSpell(int32 spellId) { AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells)) = spellId; }
     void RemoveSelfResSpell(int32 spellId)
     {
@@ -2951,24 +2958,27 @@ public:
             RemoveDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells), uint32(index));
     }
     void ClearSelfResSpell() { ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells)); }
-
+    // 已经召唤出来的宠物
     ObjectGuid GetSummonedBattlePetGUID() const { return m_activePlayerData->SummonedBattlePetGUID; }
-    void SetSummonedBattlePetGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SummonedBattlePetGUID), guid); }
-
+    v
+        oid
+        SetSummonedBattlePetGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SummonedBattlePetGUID), guid); }
+    // 设置追踪的flag？
     void SetTrackCreatureFlag(uint32 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackCreatureMask), flags); }
     void RemoveTrackCreatureFlag(uint32 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackCreatureMask), flags); }
 
+    // 属性加成？
     void SetVersatilityBonus(float value) { SetUpdateFieldStatValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::VersatilityBonus), value); }
-
+    // 技能百分比加成
     void ApplyModOverrideSpellPowerByAPPercent(float mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::OverrideSpellPowerByAPPercent), mod, apply); }
 
     void ApplyModOverrideAPBySpellPowerPercent(float mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::OverrideAPBySpellPowerPercent), mod, apply); }
-
+    // player本地标志
     bool HasPlayerLocalFlag(PlayerLocalFlags flags) const { return (*m_activePlayerData->LocalFlags & flags) != 0; }
     void SetPlayerLocalFlag(PlayerLocalFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LocalFlags), flags); }
     void RemovePlayerLocalFlag(PlayerLocalFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LocalFlags), flags); }
     void ReplaceAllPlayerLocalFlags(PlayerLocalFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LocalFlags), flags); }
-
+    // 获取游戏角色的洗点次数
     uint8 GetNumRespecs() const { return m_activePlayerData->NumRespecs; }
     void SetNumRespecs(uint8 numRespecs) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::NumRespecs), numRespecs); }
 
@@ -3344,9 +3354,11 @@ private:
     bool _advancedCombatLoggingEnabled;
 
     // variables to save health and mana before duel and restore them after duel
+    // 决斗之前保存数值方便后面恢复
     uint64 healthBeforeDuel;
     uint32 manaBeforeDuel;
 
+    // 尸体位置
     WorldLocation _corpseLocation;
 
     SceneMgr m_sceneMgr;

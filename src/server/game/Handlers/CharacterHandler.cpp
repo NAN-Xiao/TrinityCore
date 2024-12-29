@@ -2708,7 +2708,7 @@ void WorldSession::HandleRandomizeCharNameOpcode(WorldPackets::Character::Genera
 
     SendPacket(result.Write());
 }
-
+// 排序操作handle
 void WorldSession::HandleReorderCharacters(WorldPackets::Character::ReorderCharacters &reorderChars)
 {
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
@@ -2858,7 +2858,7 @@ void WorldSession::HandleCharUndeleteOpcode(WorldPackets::Character::UndeleteCha
 
         SendUndeleteCharacterResponse(CHARACTER_UNDELETE_RESULT_OK, undeleteInfo.get()); }));
 }
-
+//修改徽章
 void WorldSession::HandleSavePersonalEmblem(WorldPackets::Character::SavePersonalEmblem const &savePersonalEmblem)
 {
     if (!_player->GetNPCIfCanInteractWith(savePersonalEmblem.Vendor, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_PERSONAL_TABARD_DESIGNER))

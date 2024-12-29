@@ -33,22 +33,22 @@
 
 namespace
 {
-bool CompressJson(std::string const& json, std::vector<uint8>* compressed)
-{
-    uLong uncompressedLength = uLong(json.length() + 1);
-    uLong compressedLength = compressBound(uLong(json.length()));
-    compressed->resize(compressedLength + 4);
-    memcpy(compressed->data(), &uncompressedLength, sizeof(uncompressedLength));
-
-    if (compress(compressed->data() + 4, &compressedLength, reinterpret_cast<uint8 const*>(json.data()), uncompressedLength) != Z_OK)
+    bool CompressJson(std::string const &json, std::vector<uint8> *compressed)
     {
-        compressed->clear();
-        return false;
-    }
+        uLong uncompressedLength = uLong(json.length() + 1);
+        uLong compressedLength = compressBound(uLong(json.length()));
+        compressed->resize(compressedLength + 4);
+        memcpy(compressed->data(), &uncompressedLength, sizeof(uncompressedLength));
 
-    compressed->resize(compressedLength + 4);   // trim excess bytes
-    return true;
-}
+        if (compress(compressed->data() + 4, &compressedLength, reinterpret_cast<uint8 const *>(json.data()), uncompressedLength) != Z_OK)
+        {
+            compressed->clear();
+            return false;
+        }
+
+        compressed->resize(compressedLength + 4); // trim excess bytes
+        return true;
+    }
 }
 
 RealmList::RealmList() : _updateInterval(0)
@@ -57,14 +57,15 @@ RealmList::RealmList() : _updateInterval(0)
 
 RealmList::~RealmList() = default;
 
-RealmList* RealmList::Instance()
+RealmList *RealmList::Instance()
 {
     static RealmList instance;
     return &instance;
 }
 
 // Load the realm list from the database
-void RealmList::Initialize(Trinity::Asio::IoContext& ioContext, uint32 updateInterval)
+// 从数据库加载领域
+void RealmList::Initialize(Trinity::Asio::IoContext &ioContext, uint32 updateInterval)
 {
     _updateInterval = updateInterval;
     _updateTimer = std::make_unique<Trinity::Asio::DeadlineTimer>(ioContext);
@@ -72,6 +73,7 @@ void RealmList::Initialize(Trinity::Asio::IoContext& ioContext, uint32 updateInt
 
     ClientBuild::LoadBuildInfo();
     // Get the content of the realmlist table in the database
+    ////获取数据库中realmlist表的内容
     UpdateRealms();
 }
 
@@ -80,10 +82,10 @@ void RealmList::Close()
     _updateTimer->cancel();
 }
 
-void RealmList::UpdateRealm(Realm& realm, Battlenet::RealmHandle const& id, uint32 build, std::string const& name,
-    std::vector<boost::asio::ip::address>&& addresses,
-    uint16 port, uint8 icon, RealmFlags flag, uint8 timezone, AccountTypes allowedSecurityLevel,
-    RealmPopulationState population)
+void RealmList::UpdateRealm(Realm &realm, Battlenet::RealmHandle const &id, uint32 build, std::string const &name,
+                            std::vector<boost::asio::ip::address> &&addresses,
+                            uint16 port, uint8 icon, RealmFlags flag, uint8 timezone, AccountTypes allowedSecurityLevel,
+                            RealmPopulationState population)
 {
     realm.Id = id;
     realm.Build = build;
@@ -106,18 +108,19 @@ void RealmList::UpdateRealms()
     PreparedQueryResult result = LoginDatabase.Query(stmt);
 
     std::map<Battlenet::RealmHandle, std::string> existingRealms;
-    for (auto const& p : _realms)
+    for (auto const &p : _realms)
         existingRealms[p.first] = p.second->Name;
 
     std::unordered_set<std::string> newSubRegions;
     RealmMap newRealms;
 
     // Circle through results and add them to the realm map
+    ////圈出结果并将其添加到领域地图
     if (result)
     {
         do
         {
-            Field* fields = result->Fetch();
+            Field *fields = result->Fetch();
             uint32 realmId = fields[0].GetUInt32();
             std::string name = fields[1].GetString();
             std::vector<boost::asio::ip::address> addresses;
@@ -127,7 +130,7 @@ void RealmList::UpdateRealms()
                 if (fields[2 + i].IsNull())
                     continue;
 
-                for (boost::asio::ip::tcp::endpoint const& endpoint : _resolver->ResolveAll(fields[2 + i].GetStringView(), ""))
+                for (boost::asio::ip::tcp::endpoint const &endpoint : _resolver->ResolveAll(fields[2 + i].GetStringView(), ""))
                 {
                     boost::asio::ip::address address = endpoint.address();
                     if (advstd::ranges::contains(addresses, address))
@@ -157,17 +160,17 @@ void RealmList::UpdateRealms()
             uint8 region = fields[13].GetUInt8();
             uint8 battlegroup = fields[14].GetUInt8();
 
-            Battlenet::RealmHandle id{ region, battlegroup, realmId };
+            Battlenet::RealmHandle id{region, battlegroup, realmId};
 
             UpdateRealm(*newRealms.try_emplace(id, std::make_shared<Realm>()).first->second, id, build, name, std::move(addresses), port, icon,
-                flag, timezone, (allowedSecurityLevel <= SEC_ADMINISTRATOR ? AccountTypes(allowedSecurityLevel) : SEC_ADMINISTRATOR), pop);
+                        flag, timezone, (allowedSecurityLevel <= SEC_ADMINISTRATOR ? AccountTypes(allowedSecurityLevel) : SEC_ADMINISTRATOR), pop);
 
-            newSubRegions.insert(Battlenet::RealmHandle{ region, battlegroup, 0 }.GetAddressString());
+            newSubRegions.insert(Battlenet::RealmHandle{region, battlegroup, 0}.GetAddressString());
 
             auto buildAddressesLogText = [&]
             {
                 std::string text;
-                for (boost::asio::ip::address const& address : newRealms[id]->Addresses)
+                for (boost::asio::ip::address const &address : newRealms[id]->Addresses)
                 {
                     text += address.to_string();
                     text += ' ';
@@ -179,8 +182,7 @@ void RealmList::UpdateRealms()
                 TC_LOG_INFO("realmlist", "Added realm \"{}\" at {}(port {}).", name, buildAddressesLogText(), port);
             else
                 TC_LOG_DEBUG("realmlist", "Updating realm \"{}\" at {}(port {}).", name, buildAddressesLogText(), port);
-        }
-        while (result->NextRow());
+        } while (result->NextRow());
     }
 
     for (auto itr = existingRealms.begin(); itr != existingRealms.end(); ++itr)
@@ -195,23 +197,22 @@ void RealmList::UpdateRealms()
 
         if (_currentRealmId)
             if (std::shared_ptr<Realm> realm = Trinity::Containers::MapGetValuePtr(_realms, *_currentRealmId))
-                _currentRealmId = realm->Id;    // fill other fields of realm id
+                _currentRealmId = realm->Id; // fill other fields of realm id
     }
 
     if (_updateInterval)
     {
         _updateTimer->expires_after(std::chrono::seconds(_updateInterval));
-        _updateTimer->async_wait([this](boost::system::error_code const& error)
-        {
+        _updateTimer->async_wait([this](boost::system::error_code const &error)
+                                 {
             if (error)
                 return;
 
-            UpdateRealms();
-        });
+            UpdateRealms(); });
     }
 }
 
-std::shared_ptr<Realm const> RealmList::GetRealm(Battlenet::RealmHandle const& id) const
+std::shared_ptr<Realm const> RealmList::GetRealm(Battlenet::RealmHandle const &id) const
 {
     std::shared_lock<std::shared_mutex> lock(_realmsMutex);
     return Trinity::Containers::MapGetValuePtr(_realms, id);
@@ -222,7 +223,7 @@ Battlenet::RealmHandle RealmList::GetCurrentRealmId() const
     return _currentRealmId ? *_currentRealmId : Battlenet::RealmHandle();
 }
 
-void RealmList::SetCurrentRealmId(Battlenet::RealmHandle const& id)
+void RealmList::SetCurrentRealmId(Battlenet::RealmHandle const &id)
 {
     _currentRealmId = id;
 }
@@ -234,14 +235,14 @@ std::shared_ptr<Realm const> RealmList::GetCurrentRealm() const
     return nullptr;
 }
 
-void RealmList::WriteSubRegions(bgs::protocol::game_utilities::v1::GetAllValuesForAttributeResponse* response) const
+void RealmList::WriteSubRegions(bgs::protocol::game_utilities::v1::GetAllValuesForAttributeResponse *response) const
 {
     std::shared_lock<std::shared_mutex> lock(_realmsMutex);
-    for (std::string const& subRegion : _subRegions)
+    for (std::string const &subRegion : _subRegions)
         response->add_attribute_value()->set_string_value(subRegion);
 }
 
-void RealmList::FillRealmEntry(Realm const& realm, uint32 clientBuild, AccountTypes accountSecurityLevel, JSON::RealmList::RealmEntry* realmEntry) const
+void RealmList::FillRealmEntry(Realm const &realm, uint32 clientBuild, AccountTypes accountSecurityLevel, JSON::RealmList::RealmEntry *realmEntry) const
 {
     realmEntry->set_wowrealmaddress(realm.Id.GetAddress());
     realmEntry->set_cfgtimezonesid(1);
@@ -252,8 +253,8 @@ void RealmList::FillRealmEntry(Realm const& realm, uint32 clientBuild, AccountTy
 
     realmEntry->set_cfgcategoriesid(realm.Timezone);
 
-    JSON::RealmList::ClientVersion* version = realmEntry->mutable_version();
-    if (ClientBuild::Info const* buildInfo = ClientBuild::GetBuildInfo(realm.Build))
+    JSON::RealmList::ClientVersion *version = realmEntry->mutable_version();
+    if (ClientBuild::Info const *buildInfo = ClientBuild::GetBuildInfo(realm.Build))
     {
         version->set_versionmajor(buildInfo->MajorVersion);
         version->set_versionminor(buildInfo->MinorVersion);
@@ -279,7 +280,7 @@ void RealmList::FillRealmEntry(Realm const& realm, uint32 clientBuild, AccountTy
     realmEntry->set_cfglanguagesid(1);
 }
 
-std::vector<uint8> RealmList::GetRealmEntryJSON(Battlenet::RealmHandle const& id, uint32 build, AccountTypes accountSecurityLevel) const
+std::vector<uint8> RealmList::GetRealmEntryJSON(Battlenet::RealmHandle const &id, uint32 build, AccountTypes accountSecurityLevel) const
 {
     std::vector<uint8> compressed;
     if (std::shared_ptr<Realm const> realm = GetRealm(id))
@@ -297,27 +298,27 @@ std::vector<uint8> RealmList::GetRealmEntryJSON(Battlenet::RealmHandle const& id
     return compressed;
 }
 
-std::vector<uint8> RealmList::GetRealmList(uint32 build, AccountTypes accountSecurityLevel, std::string const& subRegion) const
+std::vector<uint8> RealmList::GetRealmList(uint32 build, AccountTypes accountSecurityLevel, std::string const &subRegion) const
 {
     JSON::RealmList::RealmListUpdates realmList;
     {
         std::shared_lock<std::shared_mutex> lock(_realmsMutex);
-        for (auto const& [_, realm] : _realms)
+        for (auto const &[_, realm] : _realms)
         {
             if (realm->Id.GetSubRegionAddress() != subRegion)
                 continue;
 
-            JSON::RealmList::RealmListUpdatePart* state = realmList.add_updates();
+            JSON::RealmList::RealmListUpdatePart *state = realmList.add_updates();
             FillRealmEntry(*realm, build, accountSecurityLevel, state->mutable_update());
             state->set_deleting(false);
         }
 
-        for (auto const& [id, _] : _removedRealms)
+        for (auto const &[id, _] : _removedRealms)
         {
             if (id.GetSubRegionAddress() != subRegion)
                 continue;
 
-            JSON::RealmList::RealmListUpdatePart* state = realmList.add_updates();
+            JSON::RealmList::RealmListUpdatePart *state = realmList.add_updates();
             state->set_wowrealmaddress(id.GetAddress());
             state->set_deleting(true);
         }
@@ -329,9 +330,9 @@ std::vector<uint8> RealmList::GetRealmList(uint32 build, AccountTypes accountSec
     return compressed;
 }
 
-uint32 RealmList::JoinRealm(uint32 realmAddress, uint32 build, ClientBuild::VariantId const& buildVariant, boost::asio::ip::address const& clientAddress,
-    std::array<uint8, 32> const& clientSecret, LocaleConstant locale, std::string const& os, Minutes timezoneOffset, std::string const& accountName,
-    AccountTypes accountSecurityLevel, bgs::protocol::game_utilities::v1::ClientResponse* response) const
+uint32 RealmList::JoinRealm(uint32 realmAddress, uint32 build, ClientBuild::VariantId const &buildVariant, boost::asio::ip::address const &clientAddress,
+                            std::array<uint8, 32> const &clientSecret, LocaleConstant locale, std::string const &os, Minutes timezoneOffset, std::string const &accountName,
+                            AccountTypes accountSecurityLevel, bgs::protocol::game_utilities::v1::ClientResponse *response) const
 {
     if (std::shared_ptr<Realm const> realm = GetRealm(realmAddress))
     {
@@ -341,10 +342,10 @@ uint32 RealmList::JoinRealm(uint32 realmAddress, uint32 build, ClientBuild::Vari
         boost::asio::ip::address addressForClient = realm->GetAddressForClient(clientAddress);
 
         JSON::RealmList::RealmListServerIPAddresses serverAddresses;
-        JSON::RealmList::RealmIPAddressFamily* addressFamily = serverAddresses.add_families();
+        JSON::RealmList::RealmIPAddressFamily *addressFamily = serverAddresses.add_families();
         addressFamily->set_family(addressForClient.is_v6() ? 2 : 1);
 
-        JSON::RealmList::IPAddress* address = addressFamily->add_addresses();
+        JSON::RealmList::IPAddress *address = addressFamily->add_addresses();
         address->set_ip(addressForClient.to_string());
         address->set_port(realm->Port);
 
@@ -361,7 +362,7 @@ uint32 RealmList::JoinRealm(uint32 realmAddress, uint32 build, ClientBuild::Vari
         keyDestItr = std::ranges::copy(clientSecret, keyDestItr).out;
         keyDestItr = std::ranges::copy(serverSecret, keyDestItr).out;
 
-        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO);
+        LoginDatabasePreparedStatement *stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO);
         stmt->setBinary(0, keyData);
         stmt->setString(1, clientAddress.to_string());
         stmt->setUInt32(2, build);
@@ -377,7 +378,7 @@ uint32 RealmList::JoinRealm(uint32 realmAddress, uint32 build, ClientBuild::Vari
         joinTicket.set_clientarch(buildVariant.Arch);
         joinTicket.set_type(buildVariant.Type);
 
-        bgs::protocol::Attribute* attribute = response->add_attribute();
+        bgs::protocol::Attribute *attribute = response->add_attribute();
         attribute->set_name("Param_RealmJoinTicket");
         attribute->mutable_value()->set_blob_value(JSON::Serialize(joinTicket));
 

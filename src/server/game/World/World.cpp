@@ -218,6 +218,7 @@ World *World::instance()
 }
 
 /// Find a player in a specified zone
+/// 在指定区域找到一个player
 Player *World::FindPlayerInZone(uint32 zone)
 {
     ///- circle through active sessions and return the first player found in the zone
@@ -288,6 +289,7 @@ void World::TriggerGuidWarning()
     time_t today = (gameTime / DAY) * DAY;
 
     // Check if our window to restart today has passed. 5 mins until quiet time
+    ////检查我们今天重新启动的窗口是否已经通过。5分钟后安静下来
     while (gameTime >= GetLocalHourTimestamp(today, getIntConfig(CONFIG_RESPAWN_RESTARTQUIETTIME)) - 1810)
         today += DAY;
 
@@ -333,6 +335,7 @@ void World::SendGuidWarning()
 }
 
 /// Find a session by its id
+/////根据会话id查找会话
 WorldSession *World::FindSession(uint32 id) const
 {
     SessionMap::const_iterator itr = m_sessions.find(id);
@@ -344,6 +347,7 @@ WorldSession *World::FindSession(uint32 id) const
 }
 
 /// Remove a given session
+/////删除一个会话
 bool World::RemoveSession(uint32 id)
 {
     ///- Find the session, kick the user, but we can't delete session at this moment to prevent iterator invalidation
@@ -501,7 +505,7 @@ int32 World::GetQueuePos(WorldSession *sess)
 
     return 0;
 }
-
+// 设置排队？？
 void World::AddQueuedPlayer(WorldSession *sess)
 {
     sess->SetInQueue(true);
@@ -510,7 +514,8 @@ void World::AddQueuedPlayer(WorldSession *sess)
     // The 1st SMSG_AUTH_RESPONSE needs to contain other info too.
     sess->SendAuthResponse(ERROR_OK, true, GetQueuePos(sess));
 }
-
+// 排队结束后
+// 估计会进入登录游戏后续流程就是账号排队结束进入角色选择
 bool World::RemoveQueuedPlayer(WorldSession *sess)
 {
     // sessions count including queued to remove (if removed_session set)
@@ -1744,34 +1749,43 @@ void World::LoadConfigSettings(bool reload)
 }
 
 /// Initialize the World
+//初始化world
 bool World::SetInitialWorldSettings()
 {
     sLog->SetRealmId(sRealmList->GetCurrentRealmId().Realm);
 
     ///- Server startup begin
+    /////-服务器启动开始
     uint32 startupBegin = getMSTime();
 
     ///- Initialize the random number generator
+    /// 随机数生成器
     srand((unsigned int)GameTime::GetGameTime());
 
     ///- Initialize detour memory management
+    ///-初始化迂回内存管理
     dtAllocSetCustom(dtCustomAlloc, dtCustomFree);
 
     ///- Initialize VMapManager function pointers (to untangle game/collision circular deps)
+
     VMAP::VMapManager2 *vmmgr2 = VMAP::VMapFactory::createOrGetVMapManager();
     vmmgr2->GetLiquidFlagsPtr = &DB2Manager::GetLiquidFlags;
     vmmgr2->IsVMAPDisabledForPtr = &DisableMgr::IsVMAPDisabledFor;
 
     ///- Initialize config settings
+    // 初始化配置
     LoadConfigSettings();
 
     ///- Initialize Allowed Security Level
+    // 初始化数据库的安全设置
     LoadDBAllowedSecurityLevel();
 
     ///- Init highest guids before any table loading to prevent using not initialized guids in some code.
+    /// 初始化游戏的guid
     sObjectMgr->SetHighestGuids();
 
     ///- Check the existence of the map files for all races' startup areas.
+    // ///-检查所有种族启动区域的地图文件是否存在。
     if (!TerrainMgr::ExistMapAndVMap(0, -6240.32f, 331.033f) || !TerrainMgr::ExistMapAndVMap(0, -8949.95f, -132.493f) || !TerrainMgr::ExistMapAndVMap(1, -618.518f, -4251.67f) || !TerrainMgr::ExistMapAndVMap(0, 1676.35f, 1677.45f) || !TerrainMgr::ExistMapAndVMap(1, 10311.3f, 832.463f) || !TerrainMgr::ExistMapAndVMap(1, -2917.58f, -257.98f) || (m_int_configs[CONFIG_EXPANSION] && (!TerrainMgr::ExistMapAndVMap(530, 10349.6f, -6357.29f) || !TerrainMgr::ExistMapAndVMap(530, -3961.64f, -13931.2f))))
     {
         TC_LOG_FATAL("server.loading", "Unable to load map and vmap data for starting zones - server shutting down!");
@@ -1779,13 +1793,15 @@ bool World::SetInitialWorldSettings()
     }
 
     ///- Initialize pool manager
+    ///-初始化池管理器
     sPoolMgr->Initialize();
 
     ///- Initialize game event manager
+    ///-初始化事件管理器
     sGameEventMgr->Initialize();
 
     ///- Loading strings. Getting no records means core load has to be canceled because no error message can be output.
-
+    ///-加载字符串。没有记录意味着必须取消核心负载，因为无法输出错误消息。
     TC_LOG_INFO("server.loading", "Loading Trinity strings...");
     if (!sObjectMgr->LoadTrinityStrings())
         return false; // Error message displayed in function already
@@ -1794,6 +1810,10 @@ bool World::SetInitialWorldSettings()
     // No SQL injection as values are treated as integers
 
     // not send custom type REALM_FFA_PVP to realm list
+    ///-使用配置文件中的领域类型更新数据库中的领域条目
+    // 没有SQL注入，因为值被视为整数
+
+    // 不发送自定义类型REALM_FFA_PVP到服务器列表
     uint32 server_type = IsFFAPvPRealm() ? uint32(REALM_TYPE_PVP) : getIntConfig(CONFIG_GAME_TYPE);
     uint32 realm_zone = getIntConfig(CONFIG_REALM_ZONE);
 
@@ -1801,6 +1821,7 @@ bool World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Initialize data stores...");
     ///- Load DB2s
+    ///-加载DB2s
     m_availableDbcLocaleMask = sDB2Manager.LoadStores(m_dataPath, m_defaultDbcLocale);
     if (!(m_availableDbcLocaleMask & (1 << m_defaultDbcLocale)))
     {
@@ -1821,14 +1842,23 @@ bool World::SetInitialWorldSettings()
     sDB2Manager.LoadHotfixData(m_availableDbcLocaleMask);
     TC_LOG_INFO("misc", "Loading hotfix optional data...");
     sDB2Manager.LoadHotfixOptionalData(m_availableDbcLocaleMask);
+
+    /*
+    在游戏开发中，M2 模型通常用于表示游戏里的各种角色、物体等三维模型，
+    而飞行摄像机则可以理解为一种预设的视角路径或者摄像机制，
+    用于在游戏特定场景下（比如展示角色的精彩动作、呈现游戏场景的宏大画面等）为玩家提供特定的视觉效果，
+    通过加载这些摄像机数据，能够让游戏在合适的时候按照预定的方式切换视角、移动镜头，增强游戏的视觉表现力和沉浸感。
+    */
     ///- Load M2 fly by cameras
     LoadM2Cameras(m_dataPath);
     ///- Load GameTables
     LoadGameTables(m_dataPath);
 
     // Load weighted graph on taxi nodes path
+    // 初始化飞行的路径
     TaxiPathGraph::Initialize();
     // Load IP Location Database
+    // ip位置的数据库
     sIPLocation->Load();
 
     // always use declined names in the russian client
@@ -1851,9 +1881,9 @@ bool World::SetInitialWorldSettings()
         else if (mapEntry->CosmeticParentMapID != -1)
             mapData[mapEntry->CosmeticParentMapID].push_back(mapEntry->ID);
     }
-
+    // 初始化地图
     sTerrainMgr.InitializeParentMapData(mapData);
-
+    // 虚拟地图？
     vmmgr2->InitializeThreadUnsafe(mapData);
 
     MMAP::MMapManager *mmmgr = MMAP::MMapFactory::createOrGetMMapManager();
@@ -1865,6 +1895,7 @@ bool World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Initializing PlayerDump tables...");
     PlayerDump::InitializeTables();
 
+    // 初始化法术技能
     TC_LOG_INFO("server.loading", "Loading SpellInfo store...");
     sSpellMgr->LoadSpellInfoStore();
 
@@ -1929,7 +1960,7 @@ bool World::SetInitialWorldSettings()
 
     sObjectMgr->SetDBCLocaleIndex(GetDefaultDbcLocale()); // Get once for all the locale index of DBC language (console/broadcasts)
     TC_LOG_INFO("server.loading", ">> Localization strings loaded in {} ms", GetMSTimeDiffToNow(oldMSTime));
-
+    // RBAC 是 Role - Based Access Control 的缩写，即基于角色的访问控制
     TC_LOG_INFO("server.loading", "Loading Account Roles and Permissions...");
     sAccountMgr->LoadRBAC();
 
@@ -2809,10 +2840,10 @@ void World::Update(uint32 diff)
         }
     }
 
-    /// <li> Handle all other objects
     /// 处理所有其他对象
-    ///- Update objects when the timer has passed (maps, transport, creatures, ...)
     /// 当计时器过去时更新对象（地图、交通工具、生物……）
+    /// <li> Handle all other objects
+    ///- Update objects when the timer has passed (maps, transport, creatures, ...)
     {
         TC_METRIC_TIMER("world_update_time", TC_METRIC_TAG("type", "Update maps"));
         sMapMgr->Update(diff);
@@ -2849,7 +2880,7 @@ void World::Update(uint32 diff)
     }
 
     ///- Delete all characters which have been deleted X days before
-    /// 删除X天前已删除的所有字符
+    /// 删除X天前已删除的所有角色
     if (m_timers[WUPDATE_DELETECHARS].Passed())
     {
         TC_METRIC_TIMER("world_update_time", TC_METRIC_TAG("type", "Delete old characters"));
@@ -2861,7 +2892,7 @@ void World::Update(uint32 diff)
         TC_METRIC_TIMER("world_update_time", TC_METRIC_TAG("type", "Update groups"));
         sGroupMgr->Update(diff);
     }
-
+    // 新寻求组队
     {
         TC_METRIC_TIMER("world_update_time", TC_METRIC_TAG("type", "Update LFG"));
         sLFGMgr->Update(diff);

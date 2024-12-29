@@ -90,8 +90,8 @@ class WorldPacket : public ByteBuffer
         void SetReceiveTime(TimePoint receivedTime) { m_receivedTime = receivedTime; }
 
     protected:
-        uint32 m_opcode;
         ConnectionType _connection;
+        uint32 m_opcode;
         TimePoint m_receivedTime; // only set for a specific set of opcodes, for performance reasons.
 };
 

@@ -31,6 +31,7 @@ namespace Trinity
     {
         /**
           Hack to make it possible to forward declare resolver (one of its template arguments is a typedef to something super long and using nested classes)
+          Hack使转发声明解析器成为可能（它的模板参数之一是一个超长的类型定义，并使用嵌套类）
         */
         class Resolver
         {

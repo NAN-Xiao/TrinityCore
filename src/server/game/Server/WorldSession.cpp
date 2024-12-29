@@ -1182,6 +1182,7 @@ public:
 void WorldSession::InitializeSession()
 {
     std::shared_ptr<AccountInfoQueryHolderPerRealm> realmHolder = std::make_shared<AccountInfoQueryHolderPerRealm>();
+    // 发送验证
     if (!realmHolder->Initialize(GetAccountId(), GetBattlenetAccountId()))
     {
         SendAuthResponse(ERROR_INTERNAL, false);
@@ -1195,6 +1196,14 @@ void WorldSession::InitializeSession()
         return;
     }
 
+    /*
+     “Fork-Join” 模式的异步操作来处理会话初始化过程中所需的账户信息查询工作。
+     通过定义 ForkJoinState 结构体来保存两个不同方面（与角色相关和与登录相关）账户信息查询的结果状态，
+     利用回调机制在各自的数据库查询任务完成后更新状态，
+     并在两个关键查询都完成时触发最终的 InitializeSessionCallback 函数，
+     以此确保在获取到完整且准确的账户相关数据后进行后续的会话初始化关键步骤，避免因等待数据而造成阻塞，
+     提高了程序的并发处理能力以及数据获取的完整性和可靠性。
+    */
     struct ForkJoinState
     {
         std::shared_ptr<AccountInfoQueryHolderPerRealm> Character;
@@ -1240,7 +1249,7 @@ void WorldSession::InitializeSessionCallback(LoginDatabaseQueryHolder const &hol
     SendAvailableHotfixes();
     SendAccountDataTimes(ObjectGuid::Empty, GLOBAL_CACHE_MASK);
     SendTutorialsData();
-
+    // 查询角色处理
     if (PreparedQueryResult characterCountsResult = holder.GetPreparedResult(AccountInfoQueryHolder::GLOBAL_REALM_CHARACTER_COUNTS))
     {
         do

@@ -157,18 +157,25 @@ public:
     void PropagateSpeedChange();
     bool GetDestination(float &x, float &y, float &z);
     bool StopOnDeath();
-
+    // idle动画什么的
     void MoveIdle();
+    // 朝预先设计的点
     void MoveTargetedHome();
+    // 随机移动
     void MoveRandom(float wanderDistance = 0.0f, Optional<Milliseconds> duration = {}, MovementSlot slot = MOTION_SLOT_DEFAULT,
                     Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    // 跟随移动
     void MoveFollow(Unit *target, float dist, Optional<ChaseAngle> angle = {}, Optional<Milliseconds> duration = {}, bool ignoreTargetWalk = false, MovementSlot slot = MOTION_SLOT_ACTIVE,
                     Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    // 追逐
     void MoveChase(Unit *target, Optional<ChaseRange> dist = {}, Optional<ChaseAngle> angle = {});
     void MoveChase(Unit *target, float dist, float angle) { MoveChase(target, ChaseRange(dist), ChaseAngle(angle)); }
+    // 困惑 如致盲？？
     void MoveConfused();
+    // 逃跑
     void MoveFleeing(Unit *enemy, Milliseconds time = 0ms,
                      Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    // 朝指定坐标移动
     void MovePoint(uint32 id, Position const &pos, bool generatePath = true, Optional<float> finalOrient = {}, Optional<float> speed = {},
                    MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default, Optional<float> closeEnoughDistance = {},
                    Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
@@ -179,17 +186,23 @@ public:
      *  Makes the unit move toward the target until it is at a certain distance from it. The unit then stops.
      *  Only works in 2D.
      *  This method doesn't account for any movement done by the target. in other words, it only works if the target is stationary.
+     *  使单位向目标移动，直到它与目标保持一定距离。然后机器停止工作。
+     *  只适用于2D。
+     *  这个方法不考虑目标的任何移动。换句话说，它只在目标静止时起作用。
      */
     void MoveCloserAndStop(uint32 id, Unit *target, float distance);
     // These two movement types should only be used with creatures having landing/takeoff animations
+    // 着陆
     void MoveLand(uint32 id, Position const &pos, Optional<int32> tierTransitionId = {}, Optional<float> velocity = {},
                   MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
                   Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    // 起飞？
     void MoveTakeoff(uint32 id, Position const &pos, Optional<int32> tierTransitionId = {}, Optional<float> velocity = {},
                      MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
                      Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
     void MoveCharge(float x, float y, float z, float speed = SPEED_CHARGE, uint32 id = EVENT_CHARGE, bool generatePath = false, Unit const *target = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr);
     void MoveCharge(PathGenerator const &path, float speed = SPEED_CHARGE, Unit const *target = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr);
+    // 击退
     void MoveKnockbackFrom(Position const &origin, float speedXY, float speedZ, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr);
     void MoveJumpTo(float angle, float speedXY, float speedZ);
     void MoveJump(Position const &pos, float speedXY, float speedZ, uint32 id = EVENT_JUMP, MovementFacingTarget const &facing = {},
@@ -201,11 +214,13 @@ public:
     void MoveJumpWithGravity(Position const &pos, float speedXY, float gravity, uint32 id = EVENT_JUMP, MovementFacingTarget const &facing = {},
                              bool orientationFixed = false, JumpArrivalCastArgs const *arrivalCast = nullptr, Movement::SpellEffectExtraData const *spellEffectExtraData = nullptr,
                              Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
+    // 原型路径移动
     void MoveCirclePath(float x, float y, float z, float radius, bool clockwise, uint8 stepCount,
                         Optional<Milliseconds> duration = {}, Optional<float> speed = {},
                         MovementWalkRunSpeedSelectionMode speedSelectionMode = MovementWalkRunSpeedSelectionMode::Default,
                         Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});
     // Walk along spline chain stored in DB (script_spline_chain_meta and script_spline_chain_waypoints)
+    // 遍历存储在DB中的样条链（script_spline_chain_meta和script_spline_chain_waypoints）
     void MoveAlongSplineChain(uint32 pointId, uint16 dbChainId, bool walk);
     void MoveAlongSplineChain(uint32 pointId, std::vector<SplineChainLink> const &chain, bool walk);
     void ResumeSplineChain(SplineChainResumeInfo const &info);
@@ -235,7 +250,15 @@ public:
      * \param turnSpeed How fast should the unit rotate, in radians per second. Uses unit's turn speed if not set
      * \param totalTurnAngle Total angle of the entire movement, infinite if not set
      * \param scriptResult Awaitable script result (for internal use)
+     * \brief 使单元旋转到位
+     * \param id移动标识符，稍后传递给脚本MovementInform钩子
+     * \param direction旋转方向
+     * \param  这个运动应该持续多长时间，如果没有设置则为无限
+     * \param turnSpeed单位旋转的速度，单位为弧度每秒。使用单位的旋转速度，如果没有设置
+     * \param totalTurnAngle整个移动的总角度，如果没有设置则无限
+     * \param scriptResult可等待的脚本结果（内部使用）
      */
+
     void MoveRotate(uint32 id, RotateDirection direction, Optional<Milliseconds> time = {},
                     Optional<float> turnSpeed = {}, Optional<float> totalTurnAngle = {},
                     Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult = {});

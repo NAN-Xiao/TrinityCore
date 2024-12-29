@@ -56,7 +56,7 @@ WorldSocketMgr& WorldSocketMgr::Instance()
     static WorldSocketMgr instance;
     return instance;
 }
-
+//启动world的网络
 bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, uint16 instancePort, int threadCount)
 {
     _tcpNoDelay = sConfigMgr->GetBoolDefault("Network.TcpNodelay", true);

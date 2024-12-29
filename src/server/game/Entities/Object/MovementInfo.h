@@ -23,7 +23,7 @@
 #include "Position.h"
 #include <algorithm>
 #include <vector>
-
+// 移动的信息
 struct MovementInfo
 {
     // common
@@ -56,11 +56,12 @@ struct MovementInfo
     } transport;
 
     // swimming/flying
+    // 游泳或飞行
     float pitch = 0.0f;
-
+    // 惯性
     struct Inertia
     {
-        Inertia() : id(0), lifetime(0) { }
+        Inertia() : id(0), lifetime(0) {}
 
         int32 id;
         Position force;
@@ -136,8 +137,8 @@ struct MovementInfo
 
 enum class MovementForceType : uint8
 {
-    SingleDirectional   = 0, // always in a single direction
-    Gravity             = 1  // pushes/pulls away from a single point
+    SingleDirectional = 0, // always in a single direction
+    Gravity = 1            // pushes/pulls away from a single point
 };
 
 struct MovementForce
@@ -156,8 +157,8 @@ class MovementForces
 public:
     using Container = std::vector<MovementForce>;
 
-    Container const* GetForces() const { return &_forces; }
-    bool Add(MovementForce const& newForce)
+    Container const *GetForces() const { return &_forces; }
+    bool Add(MovementForce const &newForce)
     {
         auto itr = FindMovementForce(newForce.ID);
         if (itr == _forces.end())
@@ -189,7 +190,8 @@ public:
 private:
     Container::iterator FindMovementForce(ObjectGuid id)
     {
-        return std::find_if(_forces.begin(), _forces.end(), [id](MovementForce const& force) { return force.ID == id; });
+        return std::find_if(_forces.begin(), _forces.end(), [id](MovementForce const &force)
+                            { return force.ID == id; });
     }
 
     Container _forces;

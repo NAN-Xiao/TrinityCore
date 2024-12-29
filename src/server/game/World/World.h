@@ -520,6 +520,7 @@ enum Rates
     RATE_AUCTION_DEPOSIT,
     RATE_AUCTION_CUT,
     RATE_HONOR,
+    RATE_TALENT,
     RATE_CORPSE_DECAY_LOOTED,
     RATE_INSTANCE_RESET_TIME,
     RATE_DURABILITY_LOSS_ON_DEATH,
@@ -586,6 +587,7 @@ public:
     inline uint32 GetPlayerCount() const { return m_PlayerCount; }
     inline uint32 GetMaxPlayerCount() const { return m_MaxPlayerCount; }
     /// Increase/Decrease number of players
+    /////增加/减少玩家数量
     inline void IncreasePlayerCount()
     {
         m_PlayerCount++;
@@ -896,7 +898,7 @@ private:
     static int32 m_visibility_notify_periodInArenas;
 
     // CLI command holder to be thread safe
-    // CLI命令持有人是线程安全的    
+    // CLI命令持有人是线程安全的
     LockedQueue<CliCommandHolder *> cliCmdQueue;
 
     // scheduled reset times

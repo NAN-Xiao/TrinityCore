@@ -292,7 +292,6 @@ int main(int argc, char **argv)
     // SIGTERM
     // 信号表示程序接收到了终止请求，
     // 比如通过系统命令（在类 Unix 系统中可以使用 kill 命令发送 SIGTERM 信号给指定进程）等方式触发，同样期望程序在收到该信号后可以有序地执行清理操作并结束运行
-
     boost::asio::signal_set signals(*ioContext, SIGINT, SIGTERM);
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
     signals.add(SIGBREAK);
@@ -359,7 +358,13 @@ int main(int argc, char **argv)
     // Set server offline (not connectable)
     // 設置服務器離綫
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | {} WHERE id = '{}'", Trinity::Legacy::REALM_FLAG_OFFLINE, realmId);
-
+    /*
+    sMetric 大概率是一个全局或者在当前作用域内具有重要地位的指标管理对象，
+    用于统一收集、存储和汇报游戏服务器相关的各类指标数据。
+    它可能内部维护了一些数据结构（如列表、映射表等）来管理不同指标的名称和对应的值，
+    同时具备与外部系统（比如日志系统、监控系统等）交互的能力，
+    以便将这些指标数据展示给开发人员、运维人员或者用于自动化的监控分析流程。
+    */
     sMetric->Initialize(realm->Name, *ioContext, []()
                         {
         TC_METRIC_VALUE("online_players",sWorld->GetPlayerCount());
@@ -382,8 +387,9 @@ int main(int argc, char **argv)
     auto sScriptMgrHandle = Trinity::make_unique_ptr_with_deleter<&ScriptMgr::Unload>(sScriptMgr);
 
     // Initialize the World
-    // 初始化世界
+    // 加密
     sSecretMgr->Initialize(SECRET_OWNER_WORLDSERVER);
+
     if (!sWorld->SetInitialWorldSettings())
         return 1;
 
@@ -433,7 +439,8 @@ int main(int argc, char **argv)
         World::StopNow(ERROR_EXIT_CODE);
         return 1;
     }
-
+    /// 重要！！！
+    /// 在这里启动了服务器的监听
     if (!sWorldSocketMgr.StartWorldNetwork(*ioContext, worldListener, worldPort, instancePort, networkThreads))
     {
         TC_LOG_ERROR("server.worldserver", "Failed to initialize network");
@@ -656,7 +663,7 @@ void SignalHandler(boost::system::error_code const &error, int /*signalNumber*/)
     if (!error)
         World::StopNow(SHUTDOWN_EXIT_CODE);
 }
-
+//检查客户端卡顿延迟
 void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, boost::system::error_code const &error)
 {
     if (!error)

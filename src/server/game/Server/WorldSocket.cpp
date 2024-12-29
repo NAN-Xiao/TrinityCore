@@ -696,6 +696,8 @@ void WorldSocket::HandleAuthSession(std::shared_ptr<WorldPackets::Auth::AuthSess
     }));
 }
 
+
+
 void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession,
     std::shared_ptr<JSON::RealmList::RealmJoinTicket> joinTicket, PreparedQueryResult result)
 {
