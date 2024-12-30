@@ -35,7 +35,7 @@ class TC_DATABASE_API DatabaseLoader
 public:
     DatabaseLoader(std::string const &logger, uint32 const defaultUpdateMask);
 
-    // 不仅是load 而且同时会创建一个arry有两个成员表示同步和异步连接
+    // 会执行databasepool->open()创建一个arry有两个成员表示同步和异步连接
     // 每个arry元素中维护一个vector用来保存异步和同步连接中的数量
     // Register a database to the loader (lazy implemented)
     template <class T>

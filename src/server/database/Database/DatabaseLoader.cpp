@@ -23,19 +23,19 @@
 
 #include <mysqld_error.h>
 
-DatabaseLoader::DatabaseLoader(std::string const& logger, uint32 const defaultUpdateMask)
+DatabaseLoader::DatabaseLoader(std::string const &logger, uint32 const defaultUpdateMask)
     : _logger(logger), _autoSetup(sConfigMgr->GetBoolDefault("Updates.AutoSetup", true)),
-    _updateFlags(sConfigMgr->GetIntDefault("Updates.EnableDatabases", defaultUpdateMask))
+      _updateFlags(sConfigMgr->GetIntDefault("Updates.EnableDatabases", defaultUpdateMask))
 {
 }
 
 template <class T>
-DatabaseLoader& DatabaseLoader::AddDatabase(DatabaseWorkerPool<T>& pool, std::string const& name)
+DatabaseLoader &DatabaseLoader::AddDatabase(DatabaseWorkerPool<T> &pool, std::string const &name)
 {
     bool const updatesEnabledForThis = DBUpdater<T>::IsEnabled(_updateFlags);
 
     _open.push([this, name, updatesEnabledForThis, &pool]() -> bool
-    {
+               {
         std::string const dbString = sConfigMgr->GetStringDefault(name + "DatabaseInfo", "");
         if (dbString.empty())
         {
@@ -57,14 +57,17 @@ DatabaseLoader& DatabaseLoader::AddDatabase(DatabaseWorkerPool<T>& pool, std::st
         if (uint32 error = pool.Open())
         {
             // Database does not exist
+            //数据库不存在
             if ((error == ER_BAD_DB_ERROR) && updatesEnabledForThis && _autoSetup)
             {
                 // Try to create the database and connect again if auto setup is enabled
+                ////如果启用了自动设置，尝试创建数据库并重新连接
                 if (DBUpdater<T>::Create(pool) && (!pool.Open()))
                     error = 0;
             }
 
             // If the error wasn't handled quit
+            //如果错误没有被处理，退出
             if (error)
             {
                 TC_LOG_ERROR("sql.driver", "\nDatabasePool {} NOT opened. There were errors opening the MySQL connections. Check your SQLDriverLogFile "
@@ -74,46 +77,44 @@ DatabaseLoader& DatabaseLoader::AddDatabase(DatabaseWorkerPool<T>& pool, std::st
             }
         }
         // Add the close operation
+        //添加关闭操作
         _close.push([&pool]
         {
             pool.Close();
         });
-        return true;
-    });
+        return true; });
 
     // Populate and update only if updates are enabled for this pool
+    // 只有当这个池启用更新时才填充和更新
     if (updatesEnabledForThis)
     {
         _populate.push([this, name, &pool]() -> bool
-        {
+                       {
             if (!DBUpdater<T>::Populate(pool))
             {
                 TC_LOG_ERROR(_logger, "Could not populate the {} database, see log for details.", name);
                 return false;
             }
-            return true;
-        });
+            return true; });
 
         _update.push([this, name, &pool]() -> bool
-        {
+                     {
             if (!DBUpdater<T>::Update(pool))
             {
                 TC_LOG_ERROR(_logger, "Could not update the {} database, see log for details.", name);
                 return false;
             }
-            return true;
-        });
+            return true; });
     }
 
     _prepare.push([this, name, &pool]() -> bool
-    {
+                  {
         if (!pool.PrepareStatements())
         {
             TC_LOG_ERROR(_logger, "Could not prepare statements of the {} database, see log for details.", name);
             return false;
         }
-        return true;
-    });
+        return true; });
 
     return *this;
 }
@@ -158,7 +159,7 @@ bool DatabaseLoader::PrepareStatements()
     return Process(_prepare);
 }
 
-bool DatabaseLoader::Process(std::queue<Predicate>& queue)
+bool DatabaseLoader::Process(std::queue<Predicate> &queue)
 {
     while (!queue.empty())
     {
@@ -179,11 +180,7 @@ bool DatabaseLoader::Process(std::queue<Predicate>& queue)
     return true;
 }
 
-template TC_DATABASE_API
-DatabaseLoader& DatabaseLoader::AddDatabase<LoginDatabaseConnection>(DatabaseWorkerPool<LoginDatabaseConnection>&, std::string const&);
-template TC_DATABASE_API
-DatabaseLoader& DatabaseLoader::AddDatabase<CharacterDatabaseConnection>(DatabaseWorkerPool<CharacterDatabaseConnection>&, std::string const&);
-template TC_DATABASE_API
-DatabaseLoader& DatabaseLoader::AddDatabase<WorldDatabaseConnection>(DatabaseWorkerPool<WorldDatabaseConnection>&, std::string const&);
-template TC_DATABASE_API
-DatabaseLoader& DatabaseLoader::AddDatabase<HotfixDatabaseConnection>(DatabaseWorkerPool<HotfixDatabaseConnection>&, std::string const&);
+template TC_DATABASE_API DatabaseLoader &DatabaseLoader::AddDatabase<LoginDatabaseConnection>(DatabaseWorkerPool<LoginDatabaseConnection> &, std::string const &);
+template TC_DATABASE_API DatabaseLoader &DatabaseLoader::AddDatabase<CharacterDatabaseConnection>(DatabaseWorkerPool<CharacterDatabaseConnection> &, std::string const &);
+template TC_DATABASE_API DatabaseLoader &DatabaseLoader::AddDatabase<WorldDatabaseConnection>(DatabaseWorkerPool<WorldDatabaseConnection> &, std::string const &);
+template TC_DATABASE_API DatabaseLoader &DatabaseLoader::AddDatabase<HotfixDatabaseConnection>(DatabaseWorkerPool<HotfixDatabaseConnection> &, std::string const &);
