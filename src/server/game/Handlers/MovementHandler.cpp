@@ -460,15 +460,20 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
 
     if (plrMover) // nothing is charmed, or player charmed
     {
+        // 玩家在坐下的时候如果是移动和旋转都给客户端发送站起来的指令
         if (plrMover->IsSitState() && (movementInfo.flags & (MOVEMENTFLAG_MASK_MOVING | MOVEMENTFLAG_MASK_TURNING)))
             plrMover->SetStandState(UNIT_STAND_STATE_STAND);
 
         plrMover->UpdateFallInformationIfNeed(movementInfo, opcode);
 
+        // 穿模了 掉地图外面去了
         if (movementInfo.pos.GetPositionZ() < plrMover->GetMap()->GetMinHeight(plrMover->GetPhaseShift(), movementInfo.pos.GetPositionX(), movementInfo.pos.GetPositionY()))
         {
             if (!(plrMover->GetBattleground() && plrMover->GetBattleground()->HandlePlayerUnderMap(_player)))
             {
+                // 注意：这个函数会在下落时被调用多次
+                // 即使玩家已经被传送走了
+                /// @todo在玩家扎根后丢弃移动数据包
                 // NOTE: this is actually called many times while falling
                 // even after the player has been teleported away
                 /// @todo discard movement packets after the player is rooted
@@ -477,9 +482,12 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
                     TC_LOG_DEBUG("entities.player.falldamage", "FALLDAMAGE Below map. Map min height: {} , Player debug info:\n{}", plrMover->GetMap()->GetMinHeight(plrMover->GetPhaseShift(), movementInfo.pos.GetPositionX(), movementInfo.pos.GetPositionY()), plrMover->GetDebugInfo());
                     plrMover->SetPlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS);
                     plrMover->EnvironmentalDamage(DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
-                    // player can be alive if GM/etc
-                    // change the death state to CORPSE to prevent the death timer from
-                    // starting in the next player update
+                    // 玩家可以活着，如果GM/等等
+                    // 将死亡状态更改为CORPSE，以防止死亡计时器从
+                    // 从下一个播放器更新开始
+                    //  player can be alive if GM/etc
+                    //  change the death state to CORPSE to prevent the death timer from
+                    //  starting in the next player update
                     if (plrMover->IsAlive())
                         plrMover->KillPlayer();
                 }
@@ -493,7 +501,7 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
             plrMover->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags2::Jump);
             Unit::ProcSkillsAndAuras(plrMover, nullptr, PROC_FLAG_JUMP, PROC_FLAG_NONE, PROC_SPELL_TYPE_MASK_ALL, PROC_SPELL_PHASE_NONE, PROC_HIT_NONE, nullptr, nullptr, nullptr);
         }
-        // 当一个球员停止一个移动动作时，几个基于位置的检查和更新将被执行
+        // 当一个player停止一个移动动作时，几个基于位置的检查和更新将被执行
         //  Whenever a player stops a movement action, several position based checks and updates are being performed
         switch (opcode)
         {
