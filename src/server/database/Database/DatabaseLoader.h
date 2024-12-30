@@ -33,25 +33,27 @@ class DatabaseWorkerPool;
 class TC_DATABASE_API DatabaseLoader
 {
 public:
-    DatabaseLoader(std::string const& logger, uint32 const defaultUpdateMask);
+    DatabaseLoader(std::string const &logger, uint32 const defaultUpdateMask);
 
+    // 不仅是load 而且同时会创建一个arry有两个成员表示同步和异步连接
+    // 每个arry元素中维护一个vector用来保存异步和同步连接中的数量
     // Register a database to the loader (lazy implemented)
     template <class T>
-    DatabaseLoader& AddDatabase(DatabaseWorkerPool<T>& pool, std::string const& name);
+    DatabaseLoader &AddDatabase(DatabaseWorkerPool<T> &pool, std::string const &name);
 
     // Load all databases
     bool Load();
 
     enum DatabaseTypeFlags
     {
-        DATABASE_NONE       = 0,
+        DATABASE_NONE = 0,
 
-        DATABASE_LOGIN      = 1,
-        DATABASE_CHARACTER  = 2,
-        DATABASE_WORLD      = 4,
-        DATABASE_HOTFIX     = 8,
+        DATABASE_LOGIN = 1,
+        DATABASE_CHARACTER = 2,
+        DATABASE_WORLD = 4,
+        DATABASE_HOTFIX = 8,
 
-        DATABASE_MASK_ALL   = DATABASE_LOGIN | DATABASE_CHARACTER | DATABASE_WORLD | DATABASE_HOTFIX
+        DATABASE_MASK_ALL = DATABASE_LOGIN | DATABASE_CHARACTER | DATABASE_WORLD | DATABASE_HOTFIX
     };
 
 private:
@@ -65,7 +67,7 @@ private:
 
     // Invokes all functions in the given queue and closes the databases on errors.
     // Returns false when there was an error.
-    bool Process(std::queue<Predicate>& queue);
+    bool Process(std::queue<Predicate> &queue);
 
     std::string const _logger;
     bool const _autoSetup;
