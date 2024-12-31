@@ -53,23 +53,23 @@
 namespace
 {
 #ifdef TRINITY_DEBUG
-template<typename Database>
-thread_local bool WarnSyncQueries = false;
+    template <typename Database>
+    thread_local bool WarnSyncQueries = false;
 #endif
 }
 
-template<typename T>
+template <typename T>
 struct DatabaseWorkerPool<T>::QueueSizeTracker
 {
-    explicit QueueSizeTracker(DatabaseWorkerPool* pool) : _pool(pool)
+    explicit QueueSizeTracker(DatabaseWorkerPool *pool) : _pool(pool)
     {
         ++_pool->_queueSize;
     }
 
-    QueueSizeTracker(QueueSizeTracker const& other) : _pool(other._pool) { ++_pool->_queueSize; }
-    QueueSizeTracker(QueueSizeTracker&& other) noexcept : _pool(std::exchange(other._pool, nullptr)) { }
+    QueueSizeTracker(QueueSizeTracker const &other) : _pool(other._pool) { ++_pool->_queueSize; }
+    QueueSizeTracker(QueueSizeTracker &&other) noexcept : _pool(std::exchange(other._pool, nullptr)) {}
 
-    QueueSizeTracker& operator=(QueueSizeTracker const& other)
+    QueueSizeTracker &operator=(QueueSizeTracker const &other)
     {
         if (this != &other)
         {
@@ -84,7 +84,7 @@ struct DatabaseWorkerPool<T>::QueueSizeTracker
         }
         return *this;
     }
-    QueueSizeTracker& operator=(QueueSizeTracker&& other) noexcept
+    QueueSizeTracker &operator=(QueueSizeTracker &&other) noexcept
     {
         if (this != &other)
         {
@@ -105,7 +105,7 @@ struct DatabaseWorkerPool<T>::QueueSizeTracker
     }
 
 private:
-    DatabaseWorkerPool* _pool;
+    DatabaseWorkerPool *_pool;
 };
 
 template <class T>
@@ -129,23 +129,23 @@ DatabaseWorkerPool<T>::~DatabaseWorkerPool()
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::SetConnectionInfo(std::string const& infoString,
-    uint8 const asyncThreads, uint8 const synchThreads)
+void DatabaseWorkerPool<T>::SetConnectionInfo(std::string const &infoString,
+                                              uint8 const asyncThreads, uint8 const synchThreads)
 {
     _connectionInfo = std::make_unique<MySQLConnectionInfo>(infoString);
 
     _async_threads = asyncThreads;
     _synch_threads = synchThreads;
 }
-
+/// @brief  open这里会最终分配_Connections中的线程和线程池
 template <class T>
 uint32 DatabaseWorkerPool<T>::Open()
 {
     WPFatal(_connectionInfo.get(), "Connection info was not set!");
 
     TC_LOG_INFO("sql.driver", "Opening DatabasePool '{}'. "
-        "Asynchronous connections: {}, synchronous connections: {}.",
-        GetDatabaseName(), _async_threads, _synch_threads);
+                              "Asynchronous connections: {}, synchronous connections: {}.",
+                GetDatabaseName(), _async_threads, _synch_threads);
 
     _ioContext = std::make_unique<Trinity::Asio::IoContext>(_async_threads);
 
@@ -159,12 +159,13 @@ uint32 DatabaseWorkerPool<T>::Open()
     if (error)
         return error;
 
-    for (std::unique_ptr<T> const& connection : _connections[IDX_ASYNC])
+    for (std::unique_ptr<T> const &connection : _connections[IDX_ASYNC])
         connection->StartWorkerThread(_ioContext.get());
 
     TC_LOG_INFO("sql.driver", "DatabasePool '{}' opened successfully. "
-        "{} total connections running.", GetDatabaseName(),
-        (_connections[IDX_SYNCH].size() + _connections[IDX_ASYNC].size()));
+                              "{} total connections running.",
+                GetDatabaseName(),
+                (_connections[IDX_SYNCH].size() + _connections[IDX_ASYNC].size()));
 
     return 0;
 }
@@ -183,8 +184,8 @@ void DatabaseWorkerPool<T>::Close()
     _ioContext.reset();
 
     TC_LOG_INFO("sql.driver", "Asynchronous connections on DatabasePool '{}' terminated. "
-                "Proceeding with synchronous connections.",
-        GetDatabaseName());
+                              "Proceeding with synchronous connections.",
+                GetDatabaseName());
 
     //! Shut down the synchronous connections
     //! There's no need for locking the connection, because DatabaseWorkerPool<>::Close
@@ -198,9 +199,9 @@ void DatabaseWorkerPool<T>::Close()
 template <class T>
 bool DatabaseWorkerPool<T>::PrepareStatements()
 {
-    for (auto& connections : _connections)
+    for (auto &connections : _connections)
     {
-        for (auto& connection : connections)
+        for (auto &connection : connections)
         {
             connection->LockIfReady();
             if (!connection->PrepareStatements())
@@ -223,7 +224,7 @@ bool DatabaseWorkerPool<T>::PrepareStatements()
                 if (_preparedStatementSize[i] > 0)
                     continue;
 
-                if (MySQLPreparedStatement * stmt = connection->m_stmts[i].get())
+                if (MySQLPreparedStatement *stmt = connection->m_stmts[i].get())
                 {
                     uint32 const paramCount = stmt->GetParameterCount();
 
@@ -240,7 +241,7 @@ bool DatabaseWorkerPool<T>::PrepareStatements()
 }
 
 template <class T>
-QueryResult DatabaseWorkerPool<T>::Query(char const* sql, T* connection /*= nullptr*/)
+QueryResult DatabaseWorkerPool<T>::Query(char const *sql, T *connection /*= nullptr*/)
 {
     if (!connection)
         connection = GetFreeConnection();
@@ -252,9 +253,9 @@ QueryResult DatabaseWorkerPool<T>::Query(char const* sql, T* connection /*= null
 }
 
 template <class T>
-PreparedQueryResult DatabaseWorkerPool<T>::Query(PreparedStatement<T>* stmt)
+PreparedQueryResult DatabaseWorkerPool<T>::Query(PreparedStatement<T> *stmt)
 {
-    T* connection = GetFreeConnection();
+    T *connection = GetFreeConnection();
     PreparedQueryResult ret = PreparedStatementTask::Query(connection, stmt);
     connection->Unlock();
 
@@ -265,24 +266,22 @@ PreparedQueryResult DatabaseWorkerPool<T>::Query(PreparedStatement<T>* stmt)
 }
 
 template <class T>
-QueryCallback DatabaseWorkerPool<T>::AsyncQuery(char const* sql)
+QueryCallback DatabaseWorkerPool<T>::AsyncQuery(char const *sql)
 {
     std::future<QueryResult> result = boost::asio::post(_ioContext->get_executor(), boost::asio::use_future([this, sql = std::string(sql), tracker = QueueSizeTracker(this)]
-    {
+                                                                                                            {
         T* conn = GetAsyncConnectionForCurrentThread();
-        return BasicStatementTask::Query(conn, sql.c_str());
-    }));
+        return BasicStatementTask::Query(conn, sql.c_str()); }));
     return QueryCallback(std::move(result));
 }
 
 template <class T>
-QueryCallback DatabaseWorkerPool<T>::AsyncQuery(PreparedStatement<T>* stmt)
+QueryCallback DatabaseWorkerPool<T>::AsyncQuery(PreparedStatement<T> *stmt)
 {
     std::future<PreparedQueryResult> result = boost::asio::post(_ioContext->get_executor(), boost::asio::use_future([this, stmt = std::unique_ptr<PreparedStatement<T>>(stmt), tracker = QueueSizeTracker(this)]
-    {
+                                                                                                                    {
         T* conn = GetAsyncConnectionForCurrentThread();
-        return PreparedStatementTask::Query(conn, stmt.get());
-    }));
+        return PreparedStatementTask::Query(conn, stmt.get()); }));
     return QueryCallback(std::move(result));
 }
 
@@ -290,11 +289,10 @@ template <class T>
 SQLQueryHolderCallback DatabaseWorkerPool<T>::DelayQueryHolder(std::shared_ptr<SQLQueryHolder<T>> holder)
 {
     std::future<void> result = boost::asio::post(_ioContext->get_executor(), boost::asio::use_future([this, holder, tracker = QueueSizeTracker(this)]
-    {
+                                                                                                     {
         T* conn = GetAsyncConnectionForCurrentThread();
-        SQLQueryHolderTask::Execute(conn, holder.get());
-    }));
-    return { std::move(holder), std::move(result) };
+        SQLQueryHolderTask::Execute(conn, holder.get()); }));
+    return {std::move(holder), std::move(result)};
 }
 
 template <class T>
@@ -324,10 +322,9 @@ void DatabaseWorkerPool<T>::CommitTransaction(SQLTransaction<T> transaction)
 #endif // TRINITY_DEBUG
 
     boost::asio::post(_ioContext->get_executor(), [this, transaction, tracker = QueueSizeTracker(this)]
-    {
+                      {
         T* conn = GetAsyncConnectionForCurrentThread();
-        TransactionTask::Execute(conn, transaction);
-    });
+        TransactionTask::Execute(conn, transaction); });
 }
 
 template <class T>
@@ -339,33 +336,32 @@ TransactionCallback DatabaseWorkerPool<T>::AsyncCommitTransaction(SQLTransaction
     //! so there's no need to waste these CPU cycles in Release mode.
     switch (transaction->GetSize())
     {
-        case 0:
-            TC_LOG_DEBUG("sql.driver", "Transaction contains 0 queries. Not executing.");
-            break;
-        case 1:
-            TC_LOG_DEBUG("sql.driver", "Warning: Transaction only holds 1 query, consider removing Transaction context in code.");
-            break;
-        default:
-            break;
+    case 0:
+        TC_LOG_DEBUG("sql.driver", "Transaction contains 0 queries. Not executing.");
+        break;
+    case 1:
+        TC_LOG_DEBUG("sql.driver", "Warning: Transaction only holds 1 query, consider removing Transaction context in code.");
+        break;
+    default:
+        break;
     }
 #endif // TRINITY_DEBUG
 
     std::future<bool> result = boost::asio::post(_ioContext->get_executor(), boost::asio::use_future([this, transaction, tracker = QueueSizeTracker(this)]
-    {
+                                                                                                     {
         T* conn = GetAsyncConnectionForCurrentThread();
-        return TransactionTask::Execute(conn, transaction);
-    }));
+        return TransactionTask::Execute(conn, transaction); }));
     return TransactionCallback(std::move(result));
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::DirectCommitTransaction(SQLTransaction<T>& transaction)
+void DatabaseWorkerPool<T>::DirectCommitTransaction(SQLTransaction<T> &transaction)
 {
-    T* connection = GetFreeConnection();
+    T *connection = GetFreeConnection();
     int errorCode = connection->ExecuteTransaction(transaction);
     if (!errorCode)
     {
-        connection->Unlock();      // OK, operation succesful
+        connection->Unlock(); // OK, operation succesful
         return;
     }
 
@@ -373,7 +369,7 @@ void DatabaseWorkerPool<T>::DirectCommitTransaction(SQLTransaction<T>& transacti
     /// @todo More elegant way
     if (errorCode == ER_LOCK_DEADLOCK)
     {
-        //todo: handle multiple sync threads deadlocking in a similar way as async threads
+        // todo: handle multiple sync threads deadlocking in a similar way as async threads
         uint8 loopBreaker = 5;
         for (uint8 i = 0; i < loopBreaker; ++i)
         {
@@ -389,18 +385,18 @@ void DatabaseWorkerPool<T>::DirectCommitTransaction(SQLTransaction<T>& transacti
 }
 
 template <class T>
-PreparedStatement<T>* DatabaseWorkerPool<T>::GetPreparedStatement(PreparedStatementIndex index)
+PreparedStatement<T> *DatabaseWorkerPool<T>::GetPreparedStatement(PreparedStatementIndex index)
 {
     return new PreparedStatement<T>(index, _preparedStatementSize[index]);
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::EscapeString(std::string& str)
+void DatabaseWorkerPool<T>::EscapeString(std::string &str)
 {
     if (str.empty())
         return;
 
-    char* buf = new char[str.size() * 2 + 1];
+    char *buf = new char[str.size() * 2 + 1];
     EscapeString(buf, str.c_str(), uint32(str.size()));
     str = buf;
     delete[] buf;
@@ -410,7 +406,7 @@ template <class T>
 void DatabaseWorkerPool<T>::KeepAlive()
 {
     //! Ping synchronous connections
-    for (auto& connection : _connections[IDX_SYNCH])
+    for (auto &connection : _connections[IDX_SYNCH])
     {
         if (connection->LockIfReady())
         {
@@ -426,10 +422,9 @@ void DatabaseWorkerPool<T>::KeepAlive()
     for (uint8 i = 0; i < count; ++i)
     {
         boost::asio::post(_ioContext->get_executor(), [this, tracker = QueueSizeTracker(this)]
-        {
+                          {
             T* conn = GetAsyncConnectionForCurrentThread();
-            conn->Ping();
-        });
+            conn->Ping(); });
     }
 }
 
@@ -441,13 +436,14 @@ void DatabaseWorkerPool<T>::WarnAboutSyncQueries([[maybe_unused]] bool warn)
 }
 #endif
 
+/// 不需要new 这个函数中_connections[type].push_back(std::move(connection));分配了_connections中的对象
 template <class T>
 uint32 DatabaseWorkerPool<T>::OpenConnections(InternalIndex type, uint8 numConnections)
 {
     for (uint8 i = 0; i < numConnections; ++i)
     {
         // Create the connection
-        constexpr std::array<ConnectionFlags, IDX_SIZE> flags = { { CONNECTION_ASYNC, CONNECTION_SYNCH } };
+        constexpr std::array<ConnectionFlags, IDX_SIZE> flags = {{CONNECTION_ASYNC, CONNECTION_SYNCH}};
 
         std::unique_ptr<T> connection = std::make_unique<T>(*_connectionInfo, flags[type]);
 
@@ -482,7 +478,7 @@ uint32 DatabaseWorkerPool<T>::OpenConnections(InternalIndex type, uint8 numConne
 }
 
 template <class T>
-unsigned long DatabaseWorkerPool<T>::EscapeString(char* to, char const* from, unsigned long length)
+unsigned long DatabaseWorkerPool<T>::EscapeString(char *to, char const *from, unsigned long length)
 {
     if (!to || !from || !length)
         return 0;
@@ -497,7 +493,7 @@ size_t DatabaseWorkerPool<T>::QueueSize() const
 }
 
 template <class T>
-T* DatabaseWorkerPool<T>::GetFreeConnection()
+T *DatabaseWorkerPool<T>::GetFreeConnection()
 {
 #ifdef TRINITY_DEBUG
     if (WarnSyncQueries<T>)
@@ -508,7 +504,7 @@ T* DatabaseWorkerPool<T>::GetFreeConnection()
 
     uint8 i = 0;
     auto const num_cons = _connections[IDX_SYNCH].size();
-    T* connection = nullptr;
+    T *connection = nullptr;
     //! Block forever until a connection is free
     for (;;)
     {
@@ -522,10 +518,10 @@ T* DatabaseWorkerPool<T>::GetFreeConnection()
 }
 
 template <class T>
-T* DatabaseWorkerPool<T>::GetAsyncConnectionForCurrentThread() const
+T *DatabaseWorkerPool<T>::GetAsyncConnectionForCurrentThread() const
 {
     std::thread::id id = std::this_thread::get_id();
-    for (auto&& connection : _connections[IDX_ASYNC])
+    for (auto &&connection : _connections[IDX_ASYNC])
         if (connection->GetWorkerThreadId() == id)
             return connection.get();
 
@@ -533,49 +529,47 @@ T* DatabaseWorkerPool<T>::GetAsyncConnectionForCurrentThread() const
 }
 
 template <class T>
-char const* DatabaseWorkerPool<T>::GetDatabaseName() const
+char const *DatabaseWorkerPool<T>::GetDatabaseName() const
 {
     return _connectionInfo->database.c_str();
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::Execute(char const* sql)
+void DatabaseWorkerPool<T>::Execute(char const *sql)
 {
     if (!sql)
         return;
 
     boost::asio::post(_ioContext->get_executor(), [this, sql = std::string(sql), tracker = QueueSizeTracker(this)]
-    {
+                      {
         T* conn = GetAsyncConnectionForCurrentThread();
-        BasicStatementTask::Execute(conn, sql.c_str());
-    });
+        BasicStatementTask::Execute(conn, sql.c_str()); });
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::Execute(PreparedStatement<T>* stmt)
+void DatabaseWorkerPool<T>::Execute(PreparedStatement<T> *stmt)
 {
     boost::asio::post(_ioContext->get_executor(), [this, stmt = std::unique_ptr<PreparedStatement<T>>(stmt), tracker = QueueSizeTracker(this)]
-    {
+                      {
         T* conn = GetAsyncConnectionForCurrentThread();
-        PreparedStatementTask::Execute(conn, stmt.get());
-    });
+        PreparedStatementTask::Execute(conn, stmt.get()); });
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::DirectExecute(char const* sql)
+void DatabaseWorkerPool<T>::DirectExecute(char const *sql)
 {
     if (!sql)
         return;
 
-    T* connection = GetFreeConnection();
+    T *connection = GetFreeConnection();
     BasicStatementTask::Execute(connection, sql);
     connection->Unlock();
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::DirectExecute(PreparedStatement<T>* stmt)
+void DatabaseWorkerPool<T>::DirectExecute(PreparedStatement<T> *stmt)
 {
-    T* connection = GetFreeConnection();
+    T *connection = GetFreeConnection();
     PreparedStatementTask::Execute(connection, stmt);
     connection->Unlock();
 
@@ -584,7 +578,7 @@ void DatabaseWorkerPool<T>::DirectExecute(PreparedStatement<T>* stmt)
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::ExecuteOrAppend(SQLTransaction<T>& trans, char const* sql)
+void DatabaseWorkerPool<T>::ExecuteOrAppend(SQLTransaction<T> &trans, char const *sql)
 {
     if (!trans)
         Execute(sql);
@@ -593,7 +587,7 @@ void DatabaseWorkerPool<T>::ExecuteOrAppend(SQLTransaction<T>& trans, char const
 }
 
 template <class T>
-void DatabaseWorkerPool<T>::ExecuteOrAppend(SQLTransaction<T>& trans, PreparedStatement<T>* stmt)
+void DatabaseWorkerPool<T>::ExecuteOrAppend(SQLTransaction<T> &trans, PreparedStatement<T> *stmt)
 {
     if (!trans)
         Execute(stmt);
