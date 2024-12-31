@@ -22,7 +22,7 @@
 #include "WorldSocket.h"
 #include <boost/system/error_code.hpp>
 
-static void OnSocketAccept(boost::asio::ip::tcp::socket&& sock, uint32 threadIndex)
+static void OnSocketAccept(boost::asio::ip::tcp::socket &&sock, uint32 threadIndex)
 {
     sWorldSocketMgr.OnSocketOpen(std::forward<boost::asio::ip::tcp::socket>(sock), threadIndex);
 }
@@ -51,13 +51,16 @@ WorldSocketMgr::~WorldSocketMgr()
     ASSERT(!_instanceAcceptor, "StopNetwork must be called prior to WorldSocketMgr destruction");
 }
 
-WorldSocketMgr& WorldSocketMgr::Instance()
+WorldSocketMgr &WorldSocketMgr::Instance()
 {
     static WorldSocketMgr instance;
     return instance;
 }
-//启动world的网络
-bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, uint16 instancePort, int threadCount)
+/// 启动world的网络
+/// 创建了一个instanceAcceptor的工厂方法
+/// 当监听到连接请求的时候new一个新的socket
+/// 通过回调（AsyncAcceptWithCallback的模板参数OnSocketAccept）方法把新的socket添加到任务最少线程中
+bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, uint16 instancePort, int threadCount)
 {
     _tcpNoDelay = sConfigMgr->GetBoolDefault("Network.TcpNodelay", true);
 
@@ -65,6 +68,7 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std:
     TC_LOG_DEBUG("misc", "Max allowed socket connections {}", max_connections);
 
     // -1 means use default
+    // 设置socket buffer的大小
     _socketSystemSendBufferSize = sConfigMgr->GetIntDefault("Network.OutKBuff", -1);
 
     _socketApplicationSendBufferSize = sConfigMgr->GetIntDefault("Network.OutUBuff", 65536);
@@ -74,16 +78,17 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std:
         TC_LOG_ERROR("misc", "Network.OutUBuff is wrong in your config file");
         return false;
     }
-
+    // 启动network
+    // 创建_acceptor对象 并设置工厂类
     if (!BaseSocketMgr::StartNetwork(ioContext, bindIp, port, threadCount))
         return false;
 
-    AsyncAcceptor* instanceAcceptor = nullptr;
+    AsyncAcceptor *instanceAcceptor = nullptr;
     try
     {
         instanceAcceptor = new AsyncAcceptor(ioContext, bindIp, instancePort);
     }
-    catch (boost::system::system_error const& err)
+    catch (boost::system::system_error const &err)
     {
         TC_LOG_ERROR("network", "Exception caught in WorldSocketMgr::StartNetwork ({}:{}): {}", bindIp, port, err.what());
         return false;
@@ -98,8 +103,14 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std:
 
     _instanceAcceptor = instanceAcceptor;
 
-    _instanceAcceptor->SetSocketFactory([this]() { return GetSocketForAccept(); });
-
+    _instanceAcceptor->SetSocketFactory([this]()
+                                        { return GetSocketForAccept(); });
+    /*
+    _acceptor和_instanceAcceptor分别处理不同的链接
+    猜测：
+     _acceptor可能监测的是客户端
+    _instanceAcceptor是监测的服务器实例 比如副本地图
+    */
     _acceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
     _instanceAcceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
 
@@ -120,9 +131,10 @@ void WorldSocketMgr::StopNetwork()
     sScriptMgr->OnNetworkStop();
 }
 
-void WorldSocketMgr::OnSocketOpen(boost::asio::ip::tcp::socket&& sock, uint32 threadIndex)
+void WorldSocketMgr::OnSocketOpen(boost::asio::ip::tcp::socket &&sock, uint32 threadIndex)
 {
     // set some options here
+    // 各种设置
     if (_socketSystemSendBufferSize >= 0)
     {
         boost::system::error_code err;
@@ -135,6 +147,7 @@ void WorldSocketMgr::OnSocketOpen(boost::asio::ip::tcp::socket&& sock, uint32 th
     }
 
     // Set TCP_NODELAY.
+    // 设置tcp的延迟
     if (_tcpNoDelay)
     {
         boost::system::error_code err;
@@ -146,12 +159,12 @@ void WorldSocketMgr::OnSocketOpen(boost::asio::ip::tcp::socket&& sock, uint32 th
         }
     }
 
-    //sock->m_OutBufferSize = static_cast<size_t> (m_SockOutUBuff);
+    // sock->m_OutBufferSize = static_cast<size_t> (m_SockOutUBuff);
 
     BaseSocketMgr::OnSocketOpen(std::forward<boost::asio::ip::tcp::socket>(sock), threadIndex);
 }
 
-NetworkThread<WorldSocket>* WorldSocketMgr::CreateThreads() const
+NetworkThread<WorldSocket> *WorldSocketMgr::CreateThreads() const
 {
     return new WorldSocketThread[GetNetworkThreadCount()];
 }

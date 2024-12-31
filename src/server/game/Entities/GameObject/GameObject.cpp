@@ -441,7 +441,7 @@ public:
     ObjectGuid GetTransportGUID() const override { return _owner.GetGUID(); }
 
     float GetTransportOrientation() const override { return _owner.GetOrientation(); }
-
+    //添加乘客
     void AddPassenger(WorldObject* passenger) override
     {
         if (!_owner.IsInWorld())

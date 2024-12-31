@@ -1079,11 +1079,13 @@ void Map::PlayerRelocation(Player *player, float x, float y, float z, float orie
 
     Cell old_cell(player->GetPositionX(), player->GetPositionY());
     Cell new_cell(x, y);
-
+    // 先设置player的位置和朝向
     player->Relocate(x, y, z, orientation);
+    // 保持player和车辆一致
     if (player->IsVehicle())
         player->GetVehicleKit()->RelocatePassengers();
 
+    // 如果玩家所在的cell或者grid变了 则从旧的移动到新的
     if (old_cell.DiffGrid(new_cell) || old_cell.DiffCell(new_cell))
     {
         TC_LOG_DEBUG("maps", "Player {} relocation grid[{}, {}]cell[{}, {}]->grid[{}, {}]cell[{}, {}]", player->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
@@ -1095,8 +1097,9 @@ void Map::PlayerRelocation(Player *player, float x, float y, float z, float orie
 
         AddToGrid(player, new_cell);
     }
-
+    // 更新位置
     player->UpdatePositionData();
+    // 更新可见
     player->UpdateObjectVisibility(false);
 }
 

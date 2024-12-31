@@ -40,6 +40,9 @@ public:
 
     /// Start network, listen at address:port .
     /// 启动网络，监听地址：port
+    /// 启动world的网络
+    /// 创建了一个instanceAcceptor的工厂方法
+    /// 当监听到连接请求的时候new一个新的socket并通过回调（AsyncAcceptWithCallback）方法把新的socket添加到线程中
     bool StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, uint16 instancePort, int networkThreads);
 
     /// Stops all network threads, It will wait for all running threads .

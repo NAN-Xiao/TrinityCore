@@ -24,7 +24,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <memory>
 
-template<class SocketType>
+template <class SocketType>
 class SocketMgr
 {
 public:
@@ -33,16 +33,16 @@ public:
         ASSERT(!_threads && !_acceptor && !_threadCount, "StopNetwork must be called prior to SocketMgr destruction");
     }
 
-    virtual bool StartNetwork(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, int threadCount)
+    virtual bool StartNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, int threadCount)
     {
         ASSERT(threadCount > 0);
 
-        AsyncAcceptor* acceptor = nullptr;
+        AsyncAcceptor *acceptor = nullptr;
         try
         {
             acceptor = new AsyncAcceptor(ioContext, bindIp, port);
         }
-        catch (boost::system::system_error const& err)
+        catch (boost::system::system_error const &err)
         {
             TC_LOG_ERROR("network", "Exception caught in SocketMgr.StartNetwork ({}:{}): {}", bindIp, port, err.what());
             return false;
@@ -64,7 +64,8 @@ public:
         for (int32 i = 0; i < _threadCount; ++i)
             _threads[i].Start();
 
-        _acceptor->SetSocketFactory([this]() { return GetSocketForAccept(); });
+        _acceptor->SetSocketFactory([this]()
+                                    { return GetSocketForAccept(); });
 
         return true;
     }
@@ -92,8 +93,8 @@ public:
             for (int32 i = 0; i < _threadCount; ++i)
                 _threads[i].Wait();
     }
-
-    virtual void OnSocketOpen(boost::asio::ip::tcp::socket&& sock, uint32 threadIndex)
+    /// 把socket扔到任务最少的那个线程
+    virtual void OnSocketOpen(boost::asio::ip::tcp::socket &&sock, uint32 threadIndex)
     {
         try
         {
@@ -102,7 +103,7 @@ public:
 
             _threads[threadIndex].AddSocket(newSocket);
         }
-        catch (boost::system::system_error const& err)
+        catch (boost::system::system_error const &err)
         {
             TC_LOG_WARN("network", "Failed to retrieve client's remote address {}", err.what());
         }
@@ -120,8 +121,8 @@ public:
 
         return min;
     }
-
-    std::pair<boost::asio::ip::tcp::socket*, uint32> GetSocketForAccept()
+    /// 会找到_threads中连接最少的那个
+    std::pair<boost::asio::ip::tcp::socket *, uint32> GetSocketForAccept()
     {
         uint32 threadIndex = SelectThreadWithMinConnections();
         return std::make_pair(_threads[threadIndex].GetSocketForAccept(), threadIndex);
@@ -132,10 +133,10 @@ protected:
     {
     }
 
-    virtual NetworkThread<SocketType>* CreateThreads() const = 0;
+    virtual NetworkThread<SocketType> *CreateThreads() const = 0;
 
-    AsyncAcceptor* _acceptor;
-    NetworkThread<SocketType>* _threads;
+    AsyncAcceptor *_acceptor;
+    NetworkThread<SocketType> *_threads;
     int32 _threadCount;
 };
 

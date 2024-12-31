@@ -348,18 +348,20 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
                  movementInfo.flags, movementInfo.flags2, movementInfo.pos.ToString());
 
     // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
+    // 开始传送的state则返回。
     if (plrMover && plrMover->IsBeingTeleported())
         return;
-
+    // 校验客户端的操作指令是否违法
     GetPlayer()->ValidateMovementInfo(&movementInfo);
 
     // prevent tampered movement data
+    // 移动信息的id和移动者的id不一致 退出
     if (movementInfo.guid != mover->GetGUID())
     {
         TC_LOG_ERROR("network", "HandleMovementOpcodes: guid error");
         return;
     }
-
+    // 移动信息里的位置验证
     if (!movementInfo.pos.IsPositionValid())
         return;
 
@@ -367,18 +369,23 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
         return;
 
     // stop some emotes at player move
+    // 移动停止表情动画
     if (plrMover && (plrMover->GetEmoteState() != 0))
         plrMover->SetEmoteState(EMOTE_ONESHOT_NONE);
 
     /* handle special cases */
-    if (!movementInfo.transport.guid.IsEmpty())
+    // 一些特殊情况
+    if (!movementInfo.transport.guid.IsEmpty()) // 在运输工具上
     {
         // We were teleported, skip packets that were broadcast before teleport
+        // 被传送，跳过传送前广播的数据包
         if (movementInfo.pos.GetExactDist2d(mover) > SIZE_OF_GRIDS)
             return;
 
         // transports size limited
         // (also received at zeppelin leave by some reason with t_* as absolute in continent coordinates, can be safely skipped)
+        // 传输大小有限
+        // （由于某种原因在齐柏林飞艇离开时也收到，在大陆坐标中t_*是绝对的，可以安全地跳过）
         if (fabs(movementInfo.transport.pos.GetPositionX()) > 75.0f || fabs(movementInfo.transport.pos.GetPositionY()) > 75.0f || fabs(movementInfo.transport.pos.GetPositionZ()) > 75.0f)
             return;
 
@@ -387,6 +394,7 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
             return;
 
         // if we boarded a transport, add us to it
+        // 如果我们登上了运输工具，把我们也加进去
         if (plrMover)
         {
             if (!plrMover->GetTransport())
@@ -395,6 +403,7 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
                     if (TransportBase *transport = go->ToTransportBase())
                         transport->AddPassenger(plrMover);
             }
+            // 如果已有的运输id和mover持有的不一致则换乘交通工具
             else if (plrMover->GetTransport()->GetTransportGUID() != movementInfo.transport.guid)
             {
                 plrMover->GetTransport()->RemovePassenger(plrMover);
@@ -413,17 +422,19 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
         if (!mover->GetTransport() && !mover->GetVehicle())
             movementInfo.transport.Reset();
     }
-    else if (plrMover && plrMover->GetTransport()) // if we were on a transport, leave
+    else if (plrMover && plrMover->GetTransport()) // if we were on a transport, leave//如果我们在运输工具上，离开
         plrMover->GetTransport()->RemovePassenger(plrMover);
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
+    // 处理掉落
     if (opcode == CMSG_MOVE_FALL_LAND && plrMover && !plrMover->IsInFlight())
         plrMover->HandleFall(movementInfo);
 
     // interrupt parachutes upon falling or landing in water
+    // 在降落或降落在水中时中断降落伞
     if (opcode == CMSG_MOVE_FALL_LAND || opcode == CMSG_MOVE_START_SWIM || opcode == CMSG_MOVE_SET_FLY)
         mover->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::LandingOrFlight); // Parachutes
-
+    // 飞行或者高级飞行的时候临时解除宠物
     if (opcode == CMSG_MOVE_SET_FLY || opcode == CMSG_MOVE_SET_ADV_FLY)
     {
         _player->UnsummonPetTemporaryIfAny(); // always do the pet removal on current client activeplayer only
@@ -431,11 +442,13 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
     }
 
     /* process position-change */
+    // 处理位置变化
     movementInfo.guid = mover->GetGUID();
     movementInfo.time = AdjustClientMovementTime(movementInfo.time);
     mover->m_movementInfo = movementInfo;
 
     // Some vehicles allow the passenger to turn by himself
+    // 有些车辆允许乘客自行转弯
     if (Vehicle *vehicle = mover->GetVehicle())
     {
         if (VehicleSeatEntry const *seat = vehicle->GetSeatForPassenger(mover))
@@ -444,7 +457,9 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
             {
                 if (movementInfo.pos.GetOrientation() != mover->GetOrientation())
                 {
+                    // 设置方向
                     mover->SetOrientation(movementInfo.pos.GetOrientation());
+                    // 移除带有中断标志的光环
                     mover->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Turning);
                 }
             }

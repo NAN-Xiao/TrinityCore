@@ -156,9 +156,9 @@ enum PlayerSpells
 static uint32 copseReclaimDelay[MAX_DEATH_COUNT] = {30, 60, 120};
 
 uint64 const MAX_MONEY_AMOUNT = 99999999999ULL;
-//重要！！！
-//整个构造应该是已有角色登录用new
-//如果是创建角色是palyer的create函数
+// 重要！！！
+// 整个构造应该是已有角色登录用new
+// 如果是创建角色是palyer的create函数
 Player::Player(WorldSession *session) : Unit(true), m_sceneMgr(this)
 {
     m_objectType |= TYPEMASK_PLAYER;
@@ -404,9 +404,9 @@ void Player::CleanupsBeforeDelete(bool finalCleanup)
     Unit::CleanupsBeforeDelete(finalCleanup);
 }
 
-//重要！！！
-//创建角色
-//create函数应该是对应玩家创建角色而不是登录角色
+// 重要！！！
+// 创建角色
+// create函数应该是对应玩家创建角色而不是登录角色
 bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::CharacterCreateInfo const *createInfo)
 {
     // FIXME: outfitId not used in player creating
@@ -17702,7 +17702,7 @@ bool Player::IsLoading() const
     return GetSession()->PlayerLoading();
 }
 
-//从数据库填充player的数据并且验证合法性
+// 从数据库填充player的数据并且验证合法性
 bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &holder)
 {
     PreparedQueryResult result = holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_FROM);
@@ -29895,6 +29895,8 @@ bool Player::CanUseMastery() const
 
 void Player::ValidateMovementInfo(MovementInfo *mi)
 {
+// !反作弊检查。请将它们放在单独的if（）块中，以保持清晰的概述。
+// !可能会有延迟，因此只需删除不适当的标志。
 //! Anti-cheat checks. Please keep them in seperate if () blocks to maintain a clear overview.
 //! Might be subject to latency, so just remove improper flags.
 #ifdef TRINITY_DEBUG
@@ -29917,6 +29919,10 @@ void Player::ValidateMovementInfo(MovementInfo *mi)
     if (!m_unitMovedByMe->GetVehicleBase() || !(m_unitMovedByMe->GetVehicle()->GetVehicleInfo()->Flags & VEHICLE_FLAG_FIXED_POSITION))
         REMOVE_VIOLATING_FLAGS(mi->HasMovementFlag(MOVEMENTFLAG_ROOT), MOVEMENTFLAG_ROOT);
 
+    /* !这一定是数据包欺骗企图。从客户端发送的MOVEMENTFLAG_ROOT无效
+        与任何移动的移动标志（如MOVEMENTFLAG_FORWARD）一起使用。
+        接收到该玩家移动信息的客户端会被冻结。
+    */
     /*! This must be a packet spoofing attempt. MOVEMENTFLAG_ROOT sent from the client is not valid
         in conjunction with any of the moving movement flags such as MOVEMENTFLAG_FORWARD.
         It will freeze clients that receive this player's movement info.
@@ -29927,11 +29933,11 @@ void Player::ValidateMovementInfo(MovementInfo *mi)
     //! Cannot hover without SPELL_AURA_HOVER
     REMOVE_VIOLATING_FLAGS(mi->HasMovementFlag(MOVEMENTFLAG_HOVER) && !m_unitMovedByMe->HasAuraType(SPELL_AURA_HOVER),
                            MOVEMENTFLAG_HOVER);
-
+    //同时上下是错误的
     //! Cannot ascend and descend at the same time
     REMOVE_VIOLATING_FLAGS(mi->HasMovementFlag(MOVEMENTFLAG_ASCENDING) && mi->HasMovementFlag(MOVEMENTFLAG_DESCENDING),
                            MOVEMENTFLAG_ASCENDING | MOVEMENTFLAG_DESCENDING);
-
+    //同时左右运动也是错误的
     //! Cannot move left and right at the same time
     REMOVE_VIOLATING_FLAGS(mi->HasMovementFlag(MOVEMENTFLAG_LEFT) && mi->HasMovementFlag(MOVEMENTFLAG_RIGHT),
                            MOVEMENTFLAG_LEFT | MOVEMENTFLAG_RIGHT);

@@ -2270,8 +2270,9 @@ public:
     void SendResetFailedNotify(uint32 mapid) const;
     bool IsLockedToDungeonEncounter(uint32 dungeonEncounterId) const;
     bool IsLockedToDungeonEncounter(uint32 dungeonEncounterId, Difficulty difficulty) const;
-
+    // 更新位置
     bool UpdatePosition(float x, float y, float z, float orientation, bool teleport = false) override;
+    // 更新位置
     bool UpdatePosition(Position const &pos, bool teleport = false) override { return UpdatePosition(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), teleport); }
     void ProcessTerrainStatusUpdate(ZLiquidStatus oldLiquidStatus, Optional<LiquidData> const &newLiquidData) override;
     void AtEnterCombat() override;
@@ -2815,7 +2816,7 @@ public:
     void AddWhisperWhiteList(ObjectGuid guid) { WhisperList.push_back(guid); }
     bool IsInWhisperWhiteList(ObjectGuid guid);
     void RemoveFromWhisperWhiteList(ObjectGuid guid) { WhisperList.remove(guid); }
-
+    // 用来校验客户端的移动信息是否违法
     void ValidateMovementInfo(MovementInfo *mi);
 
     void SendMovementSetCollisionHeight(float height, WorldPackets::Movement::UpdateCollisionHeightReason reason);
