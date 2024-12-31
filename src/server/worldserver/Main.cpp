@@ -719,7 +719,7 @@ bool StartDB()
 {
     MySQL::Library_Init();
 
-    // Load databases
+    // Load databases1
     DatabaseLoader loader("server.worldserver", DatabaseLoader::DATABASE_NONE);
     loader
         .AddDatabase(LoginDatabase, "Login")
