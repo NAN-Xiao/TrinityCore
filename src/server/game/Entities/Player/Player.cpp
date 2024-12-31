@@ -948,7 +948,7 @@ void Player::SetDrunkValue(uint8 newDrunkValue, uint32 itemId /*= 0*/)
     SendMessageToSet(data.Write(), true);
 }
 
-// 更新玩家
+// 玩家更新
 void Player::Update(uint32 p_time)
 {
     if (!IsInWorld())
@@ -1623,6 +1623,7 @@ void Player::RemoveFromWorld()
     }
 
     // Remove items from world before self - player must be found in Item::RemoveFromObjectUpdate
+    /// 在自我玩家之前从世界中移除物品必须在Item::RemoveFromObjectUpdate中找到
     for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
         if (m_items[i])
             m_items[i]->RemoveFromWorld();
@@ -1630,6 +1631,9 @@ void Player::RemoveFromWorld()
     ///- Do not add/remove the player from the object storage
     ///- It will crash when updating the ObjectAccessor
     ///- The player should only be removed when logging out
+    ///-不要从对象存储中添加/删除播放器
+    ///-更新ObjectAccessor时会崩溃
+    ///-玩家应该只在注销时被删除
     Unit::RemoveFromWorld();
 
     for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
@@ -29933,11 +29937,11 @@ void Player::ValidateMovementInfo(MovementInfo *mi)
     //! Cannot hover without SPELL_AURA_HOVER
     REMOVE_VIOLATING_FLAGS(mi->HasMovementFlag(MOVEMENTFLAG_HOVER) && !m_unitMovedByMe->HasAuraType(SPELL_AURA_HOVER),
                            MOVEMENTFLAG_HOVER);
-    //同时上下是错误的
+    // 同时上下是错误的
     //! Cannot ascend and descend at the same time
     REMOVE_VIOLATING_FLAGS(mi->HasMovementFlag(MOVEMENTFLAG_ASCENDING) && mi->HasMovementFlag(MOVEMENTFLAG_DESCENDING),
                            MOVEMENTFLAG_ASCENDING | MOVEMENTFLAG_DESCENDING);
-    //同时左右运动也是错误的
+    // 同时左右运动也是错误的
     //! Cannot move left and right at the same time
     REMOVE_VIOLATING_FLAGS(mi->HasMovementFlag(MOVEMENTFLAG_LEFT) && mi->HasMovementFlag(MOVEMENTFLAG_RIGHT),
                            MOVEMENTFLAG_LEFT | MOVEMENTFLAG_RIGHT);

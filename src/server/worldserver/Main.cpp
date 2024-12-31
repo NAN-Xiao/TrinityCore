@@ -714,6 +714,7 @@ AsyncAcceptor *StartRaSocketAcceptor(Trinity::Asio::IoContext &ioContext)
 }
 
 /// Initialize connection to the databases
+//初始化 链接  到数据库
 bool StartDB()
 {
     MySQL::Library_Init();

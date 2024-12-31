@@ -53,11 +53,9 @@ DatabaseLoader &DatabaseLoader::AddDatabase(DatabaseWorkerPool<T> &pool, std::st
 
         uint8 const synchThreads = uint8(sConfigMgr->GetIntDefault(name + "Database.SynchThreads", 1));
 
-        pool.SetConnectionInfo(dbString, asyncThreads, synchThreads);
+       pool.SetConnectionInfo(dbString, asyncThreads, synchThreads);
         if (uint32 error = pool.Open())
         {
-            // Database does not exist
-            //数据库不存在
             if ((error == ER_BAD_DB_ERROR) && updatesEnabledForThis && _autoSetup)
             {
                 // Try to create the database and connect again if auto setup is enabled
@@ -66,6 +64,15 @@ DatabaseLoader &DatabaseLoader::AddDatabase(DatabaseWorkerPool<T> &pool, std::st
                     error = 0;
             }
 
+            // Database does not exist
+            //数据库不存在
+              if ((error == ER_BAD_DB_ERROR) && updatesEnabledForThis && _autoSetup)
+            {
+                // Try to create the database and connect again if auto setup is enabled
+                ////如果启用了自动设置，尝试创建数据库并重新连接
+                if (DBUpdater<T>::Create(pool) && (!pool.Open()))
+                    error = 0;
+            }
             // If the error wasn't handled quit
             //如果错误没有被处理，退出
             if (error)

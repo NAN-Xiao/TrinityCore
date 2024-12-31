@@ -269,7 +269,7 @@ void WorldSession::HandleSuspendTokenResponse(WorldPackets::Movement::SuspendTok
     if (_player->IsBeingTeleportedSeamlessly())
         HandleMoveWorldportAck();
 }
-
+/// 处理移动和传送
 void WorldSession::HandleMoveTeleportAck(WorldPackets::Movement::MoveTeleportAck &packet)
 {
     TC_LOG_DEBUG("network", "CMSG_MOVE_TELEPORT_ACK: Guid: {}, Sequence: {}, Time: {}", packet.MoverGUID.ToString(), packet.AckIndex, packet.MoveTime);
@@ -323,6 +323,7 @@ void WorldSession::HandleMoveTeleportAck(WorldPackets::Movement::MoveTeleportAck
     GetPlayer()->ResummonPetTemporaryUnSummonedIfAny();
 
     // lets process all delayed operations on successful teleport
+    //传送成功后处理所有延迟的操作
     GetPlayer()->ProcessDelayedOperations();
 }
 
@@ -466,7 +467,7 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
         }
         return;
     }
-
+    //更新位置
     mover->UpdatePosition(movementInfo.pos);
 
     WorldPackets::Movement::MoveUpdate moveUpdate;
