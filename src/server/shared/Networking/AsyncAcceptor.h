@@ -90,6 +90,8 @@ public:
 
         // v6_only is enabled on some *BSD distributions by default
         // we want to allow both v4 and v6 connections to the same listener
+        // v6_only在一些*BSD发行版上默认是启用的
+        // 我们希望同时允许v4和v6连接到同一个监听器
         if (_endpoint.protocol() == boost::asio::ip::tcp::v6())
             _acceptor.set_option(boost::asio::ip::v6_only(false));
 
