@@ -575,6 +575,7 @@ public:
     /////获取当前活动会话数
     void UpdateMaxSessionCounters();
     SessionMap const &GetAllSessions() const { return m_sessions; }
+    // 激活的会话数量
     uint32 GetActiveAndQueuedSessionCount() const { return uint32(m_sessions.size()); }
     uint32 GetActiveSessionCount() const { return uint32(m_sessions.size() - m_QueuedPlayer.size()); }
     uint32 GetQueuedSessionCount() const { return uint32(m_QueuedPlayer.size()); }
@@ -915,6 +916,7 @@ private:
     Queue m_QueuedPlayer;
 
     // sessions that are added async
+    ////异步添加的会话
     void AddSession_(WorldSession *s);
     LockedQueue<WorldSession *> addSessQueue;
 

@@ -382,6 +382,10 @@ void World::AddSession_(WorldSession *s)
 
     ///- kick already loaded player with same account (if any) and remove session
     ///- if player is in loading and want to load again, return
+    // 注意-在套接字中使用的WorldSession*仍然存在竞争条件
+
+    ///-踢已经加载的玩家与相同的帐户（如果有），并删除会话
+    ///-如果玩家正在加载并且想要再次加载，返回
     if (!RemoveSession(s->GetAccountId()))
     {
         s->KickPlayer("World::AddSession_ Couldn't remove the other session while on loading screen");
@@ -390,19 +394,24 @@ void World::AddSession_(WorldSession *s)
     }
 
     // decrease session counts only at not reconnection case
+    ////只在没有重连接的情况下减少会话计数
     bool decrease_session = true;
 
     // if session already exist, prepare to it deleting at next world update
     // NOTE - KickPlayer() should be called on "old" in RemoveSession()
+    // 如果会话已经存在，准备在下次世界更新时删除它
+    // 注意- KickPlayer（）应该在RemoveSession（）中调用“old”
     {
         SessionMap::const_iterator old = m_sessions.find(s->GetAccountId());
 
         if (old != m_sessions.end())
         {
             // prevent decrease sessions count if session queued
+            // 如果会话排队，防止减少会话计数
             if (RemoveQueuedPlayer(old->second))
                 decrease_session = false;
             // not remove replaced session form queue if listed
+            // 不删除被替换的会话表单队列
             Trinity::Containers::MultimapErasePair(m_sessionsByBnetGuid, old->second->GetBattlenetAccountGUID(), old->second);
             delete old->second;
         }
@@ -433,6 +442,7 @@ void World::AddSession_(WorldSession *s)
     UpdateMaxSessionCounters();
 
     // Updates the population
+    // 更新人口
     if (pLimit > 0)
     {
         float popu = (float)GetActiveSessionCount(); // updated number of users on the server
@@ -1749,7 +1759,7 @@ void World::LoadConfigSettings(bool reload)
 }
 
 /// Initialize the World
-//初始化world
+// 初始化world
 bool World::SetInitialWorldSettings()
 {
     sLog->SetRealmId(sRealmList->GetCurrentRealmId().Realm);
@@ -3519,12 +3529,14 @@ void World::UpdateSessions(uint32 diff)
     }
 
     ///- Then send an update signal to remaining ones
+    ///-然后发送一个更新信号给剩余的
     for (SessionMap::iterator itr = m_sessions.begin(), next; itr != m_sessions.end(); itr = next)
     {
         next = itr;
         ++next;
 
         ///- and remove not active sessions from the list
+        ///-从列表中删除非活动会话
         WorldSession *pSession = itr->second;
         WorldSessionFilter updater(pSession);
 
