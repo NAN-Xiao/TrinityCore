@@ -971,7 +971,7 @@ struct PacketCounter
 };
 
 /// Player session in the World
-/// 玩家在世界中的绘画
+/// 玩家在世界中的会话
 class TC_GAME_API WorldSession
 {
 public:

@@ -949,7 +949,8 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
             CharacterDatabaseTransaction characterTransaction = CharacterDatabase.BeginTransaction();
             LoginDatabaseTransaction trans = LoginDatabase.BeginTransaction();
 
-                                                                  // Player created, save it now
+            // Player created, save it now
+            //创建的新角色需要保存到数据库
             newChar->SaveToDB(trans, characterTransaction, true);
             createInfo->CharCount += 1;
 
@@ -1154,7 +1155,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 
     // 初始化移动控制器？？
     pCurrChar->GetMotionMaster()->Initialize();
-    // ？？？
+    //发送地下城难度？
     pCurrChar->SendDungeonDifficulty();
     // 用于表示一个和角色登录验证相关的数据包结构对象。
     WorldPackets::Character::LoginVerifyWorld loginVerifyWorld;
@@ -2858,7 +2859,7 @@ void WorldSession::HandleCharUndeleteOpcode(WorldPackets::Character::UndeleteCha
 
         SendUndeleteCharacterResponse(CHARACTER_UNDELETE_RESULT_OK, undeleteInfo.get()); }));
 }
-//修改徽章
+// 修改徽章
 void WorldSession::HandleSavePersonalEmblem(WorldPackets::Character::SavePersonalEmblem const &savePersonalEmblem)
 {
     if (!_player->GetNPCIfCanInteractWith(savePersonalEmblem.Vendor, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_PERSONAL_TABARD_DESIGNER))

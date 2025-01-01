@@ -423,6 +423,9 @@ void Unit::Update(uint32 p_time)
     // WARNING! Order of execution here is important, do not change.
     // Spells must be processed with event system BEFORE they go to _UpdateSpells.
     // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
+    // 警告 !这里的执行顺序很重要，不要改变。
+    // 法术必须在进入_UpdateSpells之前被事件系统处理。
+    // 否则我们可能会有一些SPELL_STATE_FINISHED法术在指针中停滞，这很糟糕。
     WorldObject::Update(p_time);
 
     if (!IsInWorld())
@@ -432,6 +435,8 @@ void Unit::Update(uint32 p_time)
 
     // If this is set during update SetCantProc(false) call is missing somewhere in the code
     // Having this would prevent spells from being proced, so let's crash
+    // 如果在更新期间设置SetCantProc（false）调用在代码的某个地方丢失
+    // 这样做会阻止咒语被执行，所以让我们崩溃
     ASSERT(!m_procDeep);
 
     m_combatManager.Update(p_time);
@@ -467,6 +472,7 @@ void Unit::Update(uint32 p_time)
     }
 
     // update abilities available only for fraction of time
+    ////更新能力只在一小部分时间内可用
     UpdateReactives(p_time);
 
     if (IsAlive())
@@ -484,12 +490,14 @@ void Unit::Update(uint32 p_time)
     i_motionMaster->Update(p_time);
 
     // Wait with the aura interrupts until we have updated our movement generators and position
+    // 等待光环中断，直到我们更新了我们的移动生成器和位置
     if (GetTypeId() == TYPEID_PLAYER)
         InterruptMovementBasedAuras();
     else if (!movespline->Finalized())
         InterruptMovementBasedAuras();
 
     // All position info based actions have been executed, reset info
+    // 所有基于位置信息的动作已经执行，重置信息
     _positionUpdateInfo.Reset();
 
     if (HasScheduledAIChange() && (GetTypeId() != TYPEID_PLAYER || (IsCharmed() && GetCharmerGUID().IsCreature())))

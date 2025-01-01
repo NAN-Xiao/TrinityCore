@@ -439,8 +439,10 @@ int main(int argc, char **argv)
         World::StopNow(ERROR_EXIT_CODE);
         return 1;
     }
-    /// 重要！！！
-    /// 在这里启动了服务器的监听
+    ///////////////////////////////
+    /// 重要！！！              ////
+    /// 从这里开始了服务器的监听 ////
+    ///////////////////////////////
     if (!sWorldSocketMgr.StartWorldNetwork(*ioContext, worldListener, worldPort, instancePort, networkThreads))
     {
         TC_LOG_ERROR("server.worldserver", "Failed to initialize network");
@@ -450,7 +452,7 @@ int main(int argc, char **argv)
 
     auto sWorldSocketMgrHandle = Trinity::make_unique_ptr_with_deleter(&sWorldSocketMgr, [realmId](WorldSocketMgr *mgr)
                                                                        {
-        sWorld->KickAll();                                       // save and kick all players //保存和踢所有球员 
+        sWorld->KickAll();                                       // save and kick all players //保存和踢所有玩家
         sWorld->UpdateSessions(1);                           //真实玩家卸载所需的UpdateSessions调用  // real players unload required UpdateSessions call 
 
         mgr->StopNetwork();
@@ -460,11 +462,11 @@ int main(int argc, char **argv)
         ClearOnlineAccounts(realmId); });
 
     // Set server online (allow connecting now)
-    // 离开前清理数据库
+    // 使服务器上线
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~{}, population = 0 WHERE id = '{}'", Trinity::Legacy::REALM_FLAG_OFFLINE, realmId);
 
     // Start the freeze check callback cycle in 5 seconds (cycle itself is 1 sec)
-    // 设置服务器在线（现在允许连接）
+    // 在5秒内启动冻结检查回调周期（周期本身为1秒）
     std::shared_ptr<FreezeDetector> freezeDetector;
     if (int coreStuckTime = sConfigMgr->GetIntDefault("MaxCoreStuckTime", 60))
     {
@@ -472,7 +474,7 @@ int main(int argc, char **argv)
         FreezeDetector::Start(freezeDetector);
         TC_LOG_INFO("server.worldserver", "Starting up anti-freeze thread ({} seconds max stuck time)...", coreStuckTime);
     }
-
+    // 启动脚本
     sScriptMgr->OnStartup();
 
     TC_LOG_INFO("server.worldserver", "{} (worldserver-daemon) ready...", GitRevision::GetFullVersion());
@@ -663,7 +665,7 @@ void SignalHandler(boost::system::error_code const &error, int /*signalNumber*/)
     if (!error)
         World::StopNow(SHUTDOWN_EXIT_CODE);
 }
-//检查客户端卡顿延迟
+// 检查客户端卡顿延迟
 void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, boost::system::error_code const &error)
 {
     if (!error)
@@ -679,6 +681,7 @@ void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, bo
                 freezeDetector->_worldLoopCounter = worldLoopCounter;
             }
             // possible freeze
+            // 可能的冻结
             else
             {
                 uint32 msTimeDiff = getMSTimeDiff(freezeDetector->_lastChangeMsTime, curtime);
@@ -714,7 +717,7 @@ AsyncAcceptor *StartRaSocketAcceptor(Trinity::Asio::IoContext &ioContext)
 }
 
 /// Initialize connection to the databases
-//初始化 链接  到数据库
+// 初始化 链接  到数据库
 bool StartDB()
 {
     MySQL::Library_Init();

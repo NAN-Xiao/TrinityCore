@@ -625,8 +625,11 @@ struct PositionUpdateInfo
 };
 
 // delay time next attack to prevent client attack animation problems
+// 延迟下一次攻击时间以防止客户端攻击动画问题
 #define ATTACK_DISPLAY_DELAY 200
-#define MAX_PLAYER_STEALTH_DETECT_RANGE 30.0f // max distance for detection targets by player
+// max distance for detection targets by player
+//玩家检测目标的最大距离
+#define MAX_PLAYER_STEALTH_DETECT_RANGE 30.0f 
 
 class TC_GAME_API Unit : public WorldObject
 {

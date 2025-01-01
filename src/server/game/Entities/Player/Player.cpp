@@ -20101,6 +20101,8 @@ void Player::SaveToDB(bool create /*=false*/)
     LoginDatabase.CommitTransaction(loginTransaction);
 }
 
+
+//保存到数据库
 void Player::SaveToDB(LoginDatabaseTransaction loginTransaction, CharacterDatabaseTransaction trans, bool create /* = false */)
 {
     // delay auto save at any saves (manual, in code, or autosave)
