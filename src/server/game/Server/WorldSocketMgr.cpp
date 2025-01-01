@@ -106,10 +106,11 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
     _instanceAcceptor->SetSocketFactory([this]()
                                         { return GetSocketForAccept(); });
     /*
-    _acceptor和_instanceAcceptor分别处理不同的链接
-    猜测：
-     _acceptor可能监测的是客户端
-    _instanceAcceptor是监测的服务器实例 比如副本地图
+      sorket的start在此
+      _acceptor和_instanceAcceptor分别处理不同的链接
+      猜测：
+      _acceptor可能监测的是客户端
+      _instanceAcceptor是监测的服务器实例 比如副本地图
     */
     _acceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
     _instanceAcceptor->AsyncAcceptWithCallback<&OnSocketAccept>();

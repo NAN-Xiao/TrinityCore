@@ -110,7 +110,8 @@ public:
     }
 
     int32 GetNetworkThreadCount() const { return _threadCount; }
-    /// 会找到_threads中连接最少的那个
+
+    /// 会找到_threads中使用连接最少的那个
     uint32 SelectThreadWithMinConnections() const
     {
         uint32 min = 0;
@@ -121,6 +122,7 @@ public:
 
         return min;
     }
+
 
     std::pair<boost::asio::ip::tcp::socket *, uint32> GetSocketForAccept()
     {

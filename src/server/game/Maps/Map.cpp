@@ -2254,7 +2254,7 @@ void Map::DoRespawn(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 gr
         ABORT_MSG("Invalid spawn type %u (spawnid " UI64FMTD ") on map %u", uint32(type), spawnId, GetId());
     }
 }
-
+// 处理重生
 void Map::ProcessRespawns()
 {
     time_t now = GameTime::GetGameTime();
