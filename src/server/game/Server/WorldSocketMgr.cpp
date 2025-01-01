@@ -109,6 +109,9 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
       猜测：
       _acceptor可能监测的是客户端
       _instanceAcceptor是监测的服务器实例 比如副本地图
+      -------------------------------------------------------------------------------------------
+      “AsyncAcceptWithCallback” 函数内先调用前面先调用前面设置的_socketFactory
+      _socketFactory返回的是socket和threadIndex
     */
     _acceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
     _instanceAcceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
