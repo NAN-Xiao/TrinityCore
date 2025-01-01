@@ -94,6 +94,7 @@ public:
                 _threads[i].Wait();
     }
     /// 把socket扔到任务最少的那个线程
+    ///  函数内的socket的start具体实现WorldSocket::Start()
     virtual void OnSocketOpen(boost::asio::ip::tcp::socket &&sock, uint32 threadIndex)
     {
         try

@@ -42,7 +42,7 @@ public:
     template <class T>
     void AsyncAccept();
 
-    // 异步回调
+    // 异步回调 先调用前面设置的_socketFactory
     template <AcceptCallback acceptCallback>
     void AsyncAcceptWithCallback()
     {

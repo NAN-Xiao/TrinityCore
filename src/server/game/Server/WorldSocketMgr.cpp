@@ -112,6 +112,9 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
       -------------------------------------------------------------------------------------------
       “AsyncAcceptWithCallback” 函数内先调用前面先调用前面设置的_socketFactory
       _socketFactory返回的是socket和threadIndex
+      -------------------------------------------------------------------------------------------
+      最后会执行模板函数OnSocketAccept
+      OnSocketAccept会一步步调用base的OnSocketOpen中把新的socket加入threadindex到对应的线程中
     */
     _acceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
     _instanceAcceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
