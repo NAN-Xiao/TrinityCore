@@ -70,7 +70,6 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
     // -1 means use default
     // 设置socket buffer的大小
     _socketSystemSendBufferSize = sConfigMgr->GetIntDefault("Network.OutKBuff", -1);
-
     _socketApplicationSendBufferSize = sConfigMgr->GetIntDefault("Network.OutUBuff", 65536);
 
     if (_socketApplicationSendBufferSize <= 0)
@@ -79,7 +78,7 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
         return false;
     }
     // 启动network
-    // 创建_acceptor对象 并设置工厂类
+    // 根据参数创建_acceptor和 instanceAcceptor对象 并设置工厂类
     if (!BaseSocketMgr::StartNetwork(ioContext, bindIp, port, threadCount))
         return false;
 
@@ -102,7 +101,6 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
     }
 
     _instanceAcceptor = instanceAcceptor;
-
     _instanceAcceptor->SetSocketFactory([this]()
                                         { return GetSocketForAccept(); });
     /*

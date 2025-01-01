@@ -495,10 +495,12 @@ int main(int argc, char **argv)
     // 世界主循环
     //
     WorldUpdateLoop();
-    //
 
-    // Shutdown starts here
-    // 关闭服务从这里开始
+    /*-----------------------------------------------------------------------------------------------------------------------------*/
+    ///////////////////////////////////////
+    //// Shutdown starts here         /////
+    //// 关闭服务从这里开始            /////
+    ///////////////////////////////////////
     WorldPackets::Auth::ConnectTo::ShutdownEncryption();
     WorldPackets::Auth::EnterEncryptedMode::ShutdownEncryption();
 
