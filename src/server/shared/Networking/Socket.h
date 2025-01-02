@@ -58,22 +58,22 @@
 
             tcp::socket::endpoint_type remote_endpoint() const;
 */
-template<class T, class Stream = boost::asio::ip::tcp::socket>
+template <class T, class Stream = boost::asio::ip::tcp::socket>
 class Socket : public std::enable_shared_from_this<T>
 {
 public:
-    template<typename... Args>
-    explicit Socket(boost::asio::ip::tcp::socket&& socket, Args&&... args) : _socket(std::move(socket), std::forward<Args>(args)...),
-        _remoteAddress(_socket.remote_endpoint().address()), _remotePort(_socket.remote_endpoint().port()),
-        _closed(false), _closing(false), _isWritingAsync(false)
+    template <typename... Args>
+    explicit Socket(boost::asio::ip::tcp::socket &&socket, Args &&...args) : _socket(std::move(socket), std::forward<Args>(args)...),
+                                                                             _remoteAddress(_socket.remote_endpoint().address()), _remotePort(_socket.remote_endpoint().port()),
+                                                                             _closed(false), _closing(false), _isWritingAsync(false)
     {
         _readBuffer.Resize(READ_BLOCK_SIZE);
     }
 
-    Socket(Socket const& other) = delete;
-    Socket(Socket&& other) = delete;
-    Socket& operator=(Socket const& other) = delete;
-    Socket& operator=(Socket&& other) = delete;
+    Socket(Socket const &other) = delete;
+    Socket(Socket &&other) = delete;
+    Socket &operator=(Socket const &other) = delete;
+    Socket &operator=(Socket &&other) = delete;
 
     virtual ~Socket()
     {
@@ -118,13 +118,13 @@ public:
         _readBuffer.Normalize();
         _readBuffer.EnsureFreeSpace();
         _socket.async_read_some(boost::asio::buffer(_readBuffer.GetWritePointer(), _readBuffer.GetRemainingSpace()),
-            [self = this->shared_from_this()](boost::system::error_code const& error, size_t transferredBytes)
-            {
-                self->ReadHandlerInternal(error, transferredBytes);
-            });
+                                [self = this->shared_from_this()](boost::system::error_code const &error, size_t transferredBytes)
+                                {
+                                    self->ReadHandlerInternal(error, transferredBytes);
+                                });
     }
 
-    void AsyncReadWithCallback(void (T::*callback)(boost::system::error_code const&, std::size_t))
+    void AsyncReadWithCallback(void (T::*callback)(boost::system::error_code const &, std::size_t))
     {
         if (!IsOpen())
             return;
@@ -132,13 +132,13 @@ public:
         _readBuffer.Normalize();
         _readBuffer.EnsureFreeSpace();
         _socket.async_read_some(boost::asio::buffer(_readBuffer.GetWritePointer(), _readBuffer.GetRemainingSpace()),
-            [self = this->shared_from_this(), callback](boost::system::error_code const& error, size_t transferredBytes)
-            {
-                (self.get()->*callback)(error, transferredBytes);
-            });
+                                [self = this->shared_from_this(), callback](boost::system::error_code const &error, size_t transferredBytes)
+                                {
+                                    (self.get()->*callback)(error, transferredBytes);
+                                });
     }
-
-    void QueuePacket(MessageBuffer&& buffer)
+    /// push到写队列
+    void QueuePacket(MessageBuffer &&buffer)
     {
         _writeQueue.push(std::move(buffer));
 
@@ -158,7 +158,7 @@ public:
         _socket.shutdown(boost::asio::socket_base::shutdown_send, shutdownError);
         if (shutdownError)
             TC_LOG_DEBUG("network", "Socket::CloseSocket: {} errored when shutting down socket: {} ({})", GetRemoteIpAddress().to_string(),
-                shutdownError.value(), shutdownError.message());
+                         shutdownError.value(), shutdownError.message());
 
         OnClose();
     }
@@ -173,10 +173,10 @@ public:
             CloseSocket();
     }
 
-    MessageBuffer& GetReadBuffer() { return _readBuffer; }
+    MessageBuffer &GetReadBuffer() { return _readBuffer; }
 
 protected:
-    virtual void OnClose() { }
+    virtual void OnClose() {}
 
     virtual void ReadHandler() = 0;
 
@@ -188,18 +188,18 @@ protected:
         _isWritingAsync = true;
 
 #ifdef TC_SOCKET_USE_IOCP
-        MessageBuffer& buffer = _writeQueue.front();
+        MessageBuffer &buffer = _writeQueue.front();
         _socket.async_write_some(boost::asio::buffer(buffer.GetReadPointer(), buffer.GetActiveSize()),
-            [self = this->shared_from_this()](boost::system::error_code const& error, std::size_t transferedBytes)
-            {
-                self->WriteHandler(error, transferedBytes);
-            });
+                                 [self = this->shared_from_this()](boost::system::error_code const &error, std::size_t transferedBytes)
+                                 {
+                                     self->WriteHandler(error, transferedBytes);
+                                 });
 #else
         _socket.async_write_some(boost::asio::null_buffers(),
-            [self = this->shared_from_this()](boost::system::error_code const& error, std::size_t transferedBytes)
-            {
-                self->WriteHandlerWrapper(error, transferedBytes);
-            });
+                                 [self = this->shared_from_this()](boost::system::error_code const &error, std::size_t transferedBytes)
+                                 {
+                                     self->WriteHandlerWrapper(error, transferedBytes);
+                                 });
 #endif
 
         return false;
@@ -211,16 +211,16 @@ protected:
         _socket.set_option(boost::asio::ip::tcp::no_delay(enable), err);
         if (err)
             TC_LOG_DEBUG("network", "Socket::SetNoDelay: failed to set_option(boost::asio::ip::tcp::no_delay) for {} - {} ({})",
-                GetRemoteIpAddress().to_string(), err.value(), err.message());
+                         GetRemoteIpAddress().to_string(), err.value(), err.message());
     }
 
-    Stream& underlying_stream()
+    Stream &underlying_stream()
     {
         return _socket;
     }
 
 private:
-    void ReadHandlerInternal(boost::system::error_code const& error, size_t transferredBytes)
+    void ReadHandlerInternal(boost::system::error_code const &error, size_t transferredBytes)
     {
         if (error)
         {
@@ -234,7 +234,7 @@ private:
 
 #ifdef TC_SOCKET_USE_IOCP
 
-    void WriteHandler(boost::system::error_code const& error, std::size_t transferedBytes)
+    void WriteHandler(boost::system::error_code const &error, std::size_t transferedBytes)
     {
         if (!error)
         {
@@ -254,7 +254,7 @@ private:
 
 #else
 
-    void WriteHandlerWrapper(boost::system::error_code const& /*error*/, std::size_t /*transferedBytes*/)
+    void WriteHandlerWrapper(boost::system::error_code const & /*error*/, std::size_t /*transferedBytes*/)
     {
         _isWritingAsync = false;
         HandleQueue();
@@ -265,7 +265,7 @@ private:
         if (_writeQueue.empty())
             return false;
 
-        MessageBuffer& queuedMessage = _writeQueue.front();
+        MessageBuffer &queuedMessage = _writeQueue.front();
 
         std::size_t bytesToSend = queuedMessage.GetActiveSize();
 

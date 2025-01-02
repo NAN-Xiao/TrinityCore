@@ -182,6 +182,8 @@ private:
 
     MessageBuffer _headerBuffer;
     MessageBuffer _packetBuffer;
+    // 一个安全写入队列 用与准备发送packet
+    //  MPSC表示可以由多个源输入 但是由单一消费者处理
     MPSCQueue<EncryptablePacket, &EncryptablePacket::SocketQueueLink> _bufferQueue;
     std::size_t _sendBufferSize;
 
