@@ -2654,7 +2654,6 @@ void World::LoadAutobroadcasts()
 }
 
 /// Update the World !
-/// 真正的world的更新逻辑
 void World::Update(uint32 diff)
 {
     TC_METRIC_TIMER("world_update_time_total");
