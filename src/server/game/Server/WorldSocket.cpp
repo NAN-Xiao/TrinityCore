@@ -224,7 +224,7 @@ bool WorldSocket::Update()
 
         if (buffer.GetRemainingSpace() >= packetSize + sizeof(PacketHeader))
             WritePacketToBuffer(*queued, buffer);
-        else //单个数据包大于_sendBufferSize //single packet larger than _sendBufferSize
+        else // 单个数据包大于_sendBufferSize //single packet larger than _sendBufferSize
         {
             MessageBuffer packetBuffer(packetSize + sizeof(PacketHeader));
             WritePacketToBuffer(*queued, packetBuffer);
@@ -404,6 +404,7 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
         if (_authed)
         {
             // locking just to safely log offending user is probably overkill but we are disconnecting him anyway
+            // 仅仅为了安全地记录违规用户就进行锁定可能有点过头了，但不管怎样我们都会将他断开连接。
             if (sessionGuard.try_lock())
                 TC_LOG_ERROR("network", "WorldSocket::ProcessIncoming: received duplicate CMSG_AUTH_SESSION from {}", _worldSession->GetPlayerInfo());
             return ReadDataHandlerResult::Error;
@@ -677,7 +678,7 @@ struct AccountInfo
             Game.Locale = LOCALE_enUS;
     }
 };
-
+// 处理验证会话
 void WorldSocket::HandleAuthSession(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession)
 {
     std::shared_ptr<JSON::RealmList::RealmJoinTicket> joinTicket = std::make_shared<JSON::RealmList::RealmJoinTicket>();
@@ -689,6 +690,7 @@ void WorldSocket::HandleAuthSession(std::shared_ptr<WorldPackets::Auth::AuthSess
     }
 
     // Get the account information from the auth database
+    // 从验证数据库中获取账号信息
     LoginDatabasePreparedStatement *stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_INFO_BY_NAME);
     stmt->setInt32(0, int32(sRealmList->GetCurrentRealmId().Realm));
     stmt->setString(1, joinTicket->gameaccount());
@@ -696,15 +698,20 @@ void WorldSocket::HandleAuthSession(std::shared_ptr<WorldPackets::Auth::AuthSess
     _queryProcessor.AddCallback(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback([this, authSession = std::move(authSession), joinTicket = std::move(joinTicket)](PreparedQueryResult result) mutable
                                                                                     { HandleAuthSessionCallback(std::move(authSession), std::move(joinTicket), std::move(result)); }));
 }
-
-// 验证成功
+///////////////////////////////////////////////////////////
+/// 重要！！！                                          ///
+/// 这里通过AuthSession验证通过以后会创建worldsession    ///
+/// worldsession是worldsocket的成员                    ///
+/////////////////////////////////////////////////////////
 void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession,
                                             std::shared_ptr<JSON::RealmList::RealmJoinTicket> joinTicket, PreparedQueryResult result)
 {
     // Stop if the account is not found
+    ////如果找不到帐户，则停止
     if (!result)
     {
         // We can not log here, as we do not know the account. Thus, no accountId.
+        // 我们无法在此处进行记录，因为我们不知道账号信息。因此，没有账号 ID。
         TC_LOG_ERROR("network", "WorldSocket::HandleAuthSession: Sent Auth Response (unknown account).");
         DelayedCloseSocket();
         return;
@@ -734,6 +741,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     }
 
     // For hook purposes, we get Remoteaddress at this point.
+    // 为了钩子的目的，我们在这里得到Remoteaddress。
     std::string address = GetRemoteIpAddress().to_string();
 
     Trinity::Crypto::SHA512 digestKeyHash;
@@ -748,6 +756,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     hmac.Finalize();
 
     // Check that Key and account name are the same on client and server
+    // 检查客户端和服务器端的Key和account name是否相同
     if (memcmp(hmac.GetDigest().data(), authSession->Digest.data(), authSession->Digest.size()) != 0)
     {
         SendAuthResponseError(ERROR_DENIED);
@@ -776,6 +785,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     encryptKeyGen.Finalize();
 
     // only first 32 bytes of the hmac are used
+    // 仅使用 HMAC（哈希消息认证码）的前 32 个字节
     memcpy(_encryptKey.data(), encryptKeyGen.GetDigest().data(), 32);
 
     LoginDatabasePreparedStatement *stmt = nullptr;
@@ -783,11 +793,13 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     if (sWorld->getBoolConfig(CONFIG_ALLOW_LOGGING_IP_ADDRESSES_IN_DATABASE))
     {
         // As we don't know if attempted login process by ip works, we update last_attempt_ip right away
+        // 由于我们不知道尝试登录过程的ip是否有效，我们立即更新last_attempt_ip
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_LAST_ATTEMPT_IP);
         stmt->setString(0, address);
         stmt->setString(1, joinTicket->gameaccount());
         LoginDatabase.Execute(stmt);
         // This also allows to check for possible "hack" attempts on account
+        // 这也允许检查帐户上可能的“黑客”企图
     }
 
     stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_INFO_CONTINUED_SESSION);
@@ -796,6 +808,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     LoginDatabase.Execute(stmt);
 
     // First reject the connection if packet contains invalid data or realm state doesn't allow logging in
+    // 如果数据包包含无效数据或域状态不允许登录，首先拒绝连接
     if (sWorld->IsClosed())
     {
         SendAuthResponseError(ERROR_DENIED);
@@ -814,6 +827,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     }
 
     // Must be done before WorldSession is created
+    // 必须在创建WorldSession之前完成
     bool wardenActive = sWorld->getBoolConfig(CONFIG_WARDEN_ENABLED);
     if (wardenActive && !ClientBuild::Platform::IsValid(account.Game.OS))
     {
@@ -826,7 +840,8 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     if (IpLocationRecord const *location = sIPLocation->GetLocationRecord(address))
         _ipCountry = location->CountryCode;
 
-    ///- Re-check ip locking (same check as in auth).
+    ///- Re-check ip locking (same check as in auth).、
+    ///-重新检查ip锁（与auth检查相同）。
     if (account.BattleNet.IsLockedToIP)
     {
         if (account.BattleNet.LastIP != address)
@@ -834,6 +849,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
             SendAuthResponseError(ERROR_RISK_ACCOUNT_LOCKED);
             TC_LOG_DEBUG("network", "WorldSocket::HandleAuthSession: Sent Auth Response (Account IP differs. Original IP: {}, new IP: {}).", account.BattleNet.LastIP, address);
             // We could log on hook only instead of an additional db log, however action logger is config based. Better keep DB logging as well
+            // 我们可以只在hook上记录日志，而不是额外的db日志，但是action logger是基于配置的。最好也保留DB日志记录
             sScriptMgr->OnFailedAccountLogin(account.Game.Id);
             DelayedCloseSocket();
             return;
@@ -846,6 +862,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
             SendAuthResponseError(ERROR_RISK_ACCOUNT_LOCKED);
             TC_LOG_DEBUG("network", "WorldSocket::HandleAuthSession: Sent Auth Response (Account country differs. Original country: {}, new country: {}).", account.BattleNet.LockCountry, _ipCountry);
             // We could log on hook only instead of an additional db log, however action logger is config based. Better keep DB logging as well
+            // 我们可以只在hook上记录日志，而不是额外的db日志，但是action logger是基于配置的。最好也保留DB日志记录
             sScriptMgr->OnFailedAccountLogin(account.Game.Id);
             DelayedCloseSocket();
             return;
@@ -854,6 +871,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
 
     int64 mutetime = account.Game.MuteTime;
     //! Negative mutetime indicates amount of seconds to be muted effective on next login - which is now.
+    // !负mutetime表示在下次登录时静音有效的秒数-现在。
     if (mutetime < 0)
     {
         mutetime = GameTime::GetGameTime() + std::llabs(mutetime);
@@ -874,6 +892,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     }
 
     // Check locked state for server
+    // 检查服务器的锁定状态
     AccountTypes allowedAccountType = sWorld->GetPlayerSecurityLimit();
     TC_LOG_DEBUG("network", "Allowed Level: {} Player Level {}", allowedAccountType, account.Game.Security);
     if (allowedAccountType > SEC_PLAYER && account.Game.Security < allowedAccountType)
@@ -890,6 +909,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     if (sWorld->getBoolConfig(CONFIG_ALLOW_LOGGING_IP_ADDRESSES_IN_DATABASE))
     {
         // Update the last_ip in the database as it was successful for login
+        // 登录成功后更新数据库中的last_ip
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_LAST_IP);
 
         stmt->setString(0, address);
@@ -899,6 +919,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     }
 
     // At this point, we can safely hook a successful login
+    // 此时，我们可以安全地钩住一个成功的登录
     sScriptMgr->OnAccountLogin(account.Game.Id);
 
     _authed = true;
@@ -918,7 +939,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
 void WorldSocket::LoadSessionPermissionsCallback(PreparedQueryResult result)
 {
     // RBAC must be loaded before adding session to check for skip queue permission
-    // RBAC must be loaded before adding session to check for skip queue permission
+    // 在添加会话之前必须加载RBAC以检查跳过队列权限
     _worldSession->GetRBACData()->LoadFromDBCallback(result);
 
     SendPacketAndLogOpcode(*WorldPackets::Auth::EnterEncryptedMode(_encryptKey, true).Write());

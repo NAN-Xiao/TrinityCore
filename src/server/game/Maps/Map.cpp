@@ -688,6 +688,8 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
     ++_zonePlayerCountMap[newZone];
 }
 
+
+/// 地图更新
 void Map::Update(uint32 t_diff)
 {
     _dynamicTree.update(t_diff);

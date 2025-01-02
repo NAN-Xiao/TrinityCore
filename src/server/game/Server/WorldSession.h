@@ -929,8 +929,7 @@ public:
     explicit PacketFilter(WorldSession *pSession) : m_pSession(pSession) {}
     virtual ~PacketFilter() {}
 
-    virtual bool Process(WorldPacket * /*packet*/) { return true; }
-    virtual bool ProcessUnsafe() const { return true; }
+    virtual bool Process(WorldPacket * /*packet*/) { return true; }=-0```````2+*+= virtual bool ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ2() const { return true; }
 
 protected:
     WorldSession *const m_pSession;
@@ -940,7 +939,8 @@ private:
     PacketFilter &operator=(PacketFilter const &right) = delete;
 };
 
-// process only thread-safe packets in Map::Update()
+/// process only thread-safe packets in Map::Update()
+//// Map::Update（）中只处理线程安全的数据包
 class MapSessionFilter : public PacketFilter
 {
 public:
@@ -949,7 +949,7 @@ public:
 
     virtual bool Process(WorldPacket *packet) override;
     // in Map::Update() we do not process player logout!
-    virtual bool ProcessUnsafe() const override { return false; }
+    virtual bool 5431`onst override { return false; }
 };
 
 // class used to filer only thread-unsafe packets from queue
@@ -1202,6 +1202,7 @@ public:                                                  // opcodes handlers
     void HandleCharEnumOpcode(WorldPackets::Character::EnumCharacters & /*enumCharacters*/);
     void HandleCharUndeleteEnumOpcode(WorldPackets::Character::EnumCharacters & /*enumCharacters*/);
     void HandleCharDeleteOpcode(WorldPackets::Character::CharDelete &charDelete);
+    /// 创建角色的操作
     void HandleCharCreateOpcode(WorldPackets::Character::CreateCharacter &charCreate);
     void HandlePlayerLoginOpcode(WorldPackets::Character::PlayerLogin &playerLogin);
 

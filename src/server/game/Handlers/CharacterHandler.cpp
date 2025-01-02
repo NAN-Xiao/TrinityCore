@@ -1130,15 +1130,14 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
     // "GetAccountId() == db stored account id" checked in LoadFromDB (prevent login not own character using cheating tools)
     // 在LoadFromDB中检查db存储的帐户id（防止登录时使用作弊工具）
 
-    // 重要！！！
-    /*
-        他么的
-        如果这个LoadFromDB返回true
-        loadfromdb函数里会对session中的，也就是当前这个类中的_Player成员变量进行赋值，
-        也就是吧这个pCurrChar赋值给了this._player
-        这个函数最后会使用_player 如果忽略了则不知道_player是在哪赋值的
-    */
-
+    //////////////////////////////////////////////////////////////////////////////////////
+    /// 重要！！！                                                                     ///
+    /// 他么的                                                                         ///
+    /// 如果这个LoadFromDB返回true                                                      ///
+    /// loadfromdb函数里会对session中的，也就是当前这个类中的_Player成员变量进行赋值，      ///
+    /// 也就是吧这个pCurrChar赋值给了this._player                                        ///
+    ///  这个函数最后会使用_player, 如果忽略了会不知道_player是在哪赋值的                    ///
+    /////////////////////////////////////////////////////////////////////////////////////
     if (!pCurrChar->LoadFromDB(playerGuid, holder))
     {
         SetPlayer(nullptr);
@@ -1155,7 +1154,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 
     // 初始化移动控制器？？
     pCurrChar->GetMotionMaster()->Initialize();
-    //发送地下城难度？
+    // 发送地下城难度？
     pCurrChar->SendDungeonDifficulty();
     // 用于表示一个和角色登录验证相关的数据包结构对象。
     WorldPackets::Character::LoginVerifyWorld loginVerifyWorld;

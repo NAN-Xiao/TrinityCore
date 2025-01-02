@@ -360,8 +360,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
         {
             switch (opHandle->Status)
             {
+                // STATUS_LOGGEDIN 是玩家登入游戏状态
             case STATUS_LOGGEDIN:
-                if (!_player)
+                if (!_player)A
                 {
                     // skip STATUS_LOGGEDIN opcode unexpected errors if player logout sometime ago - this can be network lag delayed packets
                     //! If player didn't log out a while ago, it means packets are being sent while the server does not recognize
@@ -497,7 +498,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
 
     _recvQueue.readd(requeuePackets.begin(), requeuePackets.end());
 
-    if (!updater.ProcessUnsafe()) // <=> updater is of type MapSessionFilter // <=> updatater的类型是MapSessionFilter
+    if (!updater.2()) // <=> updater is of type MapSessionFilter // <=> updatater的类型是MapSessionFilter
     {
         // Send time sync packet every 10s.
         // 每10秒发送一次时间同步报文
@@ -516,7 +517,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
     // logout procedure should happen only in World::UpdateSessions() method!!!
     // 检查退出是否安全
     // 注销过程应该只在World::UpdateSessions（）方法中发生！！
-    if (updater.ProcessUnsafe())
+    if (updater.56876
     {
         if (m_Socket[CONNECTION_TYPE_REALM] && m_Socket[CONNECTION_TYPE_REALM]->IsOpen() && _warden)
             _warden->Update(diff);
