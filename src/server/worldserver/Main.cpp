@@ -725,6 +725,12 @@ bool StartDB()
     MySQL::Library_Init();
 
     // Load databases1
+    // add的过程中一并创建链接池和连接线程
+    // LoginDatabase
+    // CharacterDatabase
+    // WorldDatabase
+    // HotfixDatabase
+    // 以上都是DatabaseWorkerPool
     DatabaseLoader loader("server.worldserver", DatabaseLoader::DATABASE_NONE);
     loader
         .AddDatabase(LoginDatabase, "Login")
@@ -736,6 +742,7 @@ bool StartDB()
         return false;
 
     ///- Insert version info into DB
+    ///- 插入版本信息
     WorldDatabase.PExecute("UPDATE version SET core_version = '{}', core_revision = '{}'", GitRevision::GetFullVersion(), GitRevision::GetHash()); // One-time query
 
     sWorld->LoadDBVersion();

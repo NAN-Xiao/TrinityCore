@@ -127,7 +127,9 @@ template <class T>
 DatabaseWorkerPool<T>::~DatabaseWorkerPool()
 {
 }
-
+/// 模板类型
+/// 假设模板和类型和数据库类型对应
+/// 那理解这里的T就是worlddatabase或者characterdatabase 这种
 template <class T>
 void DatabaseWorkerPool<T>::SetConnectionInfo(std::string const &infoString,
                                               uint8 const asyncThreads, uint8 const synchThreads)
@@ -137,7 +139,8 @@ void DatabaseWorkerPool<T>::SetConnectionInfo(std::string const &infoString,
     _async_threads = asyncThreads;
     _synch_threads = synchThreads;
 }
-/// @brief  open这里会最终分配_Connections中的线程和线程池
+/// open这里会最终分配_Connections中的线程和线程池
+/// 假设这里是<worldconnection>类型的pool
 template <class T>
 uint32 DatabaseWorkerPool<T>::Open()
 {
@@ -147,6 +150,8 @@ uint32 DatabaseWorkerPool<T>::Open()
                               "Asynchronous connections: {}, synchronous connections: {}.",
                 GetDatabaseName(), _async_threads, _synch_threads);
 
+    //_async_threads和_synch_threads的值用来指定iocontext的并发数量
+    // 这段调用是告诉iocontext会被最大_async_threads个线程并发调用 受iocontext库的影响可能不支持
     _ioContext = std::make_unique<Trinity::Asio::IoContext>(_async_threads);
 
     uint32 error = OpenConnections(IDX_ASYNC, _async_threads);
@@ -436,20 +441,28 @@ void DatabaseWorkerPool<T>::WarnAboutSyncQueries([[maybe_unused]] bool warn)
 }
 #endif
 
-/// 不需要new 这个函数中_connections[type].push_back(std::move(connection));分配了_connections中的对象
+/// 这个函数中_connections[type].push_back(std::move(connection))
+/// 分配了_connections中的对象
+/// 这里的<T>类型应该是mysqlconnection类型
 template <class T>
 uint32 DatabaseWorkerPool<T>::OpenConnections(InternalIndex type, uint8 numConnections)
 {
     for (uint8 i = 0; i < numConnections; ++i)
     {
         // Create the connection
+        // 创建链接
         constexpr std::array<ConnectionFlags, IDX_SIZE> flags = {{CONNECTION_ASYNC, CONNECTION_SYNCH}};
 
+        // 假设这里的<T>是WorldDatabaseConnection或者characterdatabaseconnection
         std::unique_ptr<T> connection = std::make_unique<T>(*_connectionInfo, flags[type]);
-
+        /////////////////////////////////////////////////////////////
+        /// 这里的open就是Mysqlconnection.open函数                 ///
+        /// 这个open里面会建立真正数据库连接 mysql_real_connect()   ///
+        /////////////////////////////////////////////////////////////
         if (uint32 error = connection->Open())
         {
             // Failed to open a connection or invalid version, abort and cleanup
+            // 打开连接失败或无效版本，中止并清理
             _connections[type].clear();
             return error;
         }
@@ -469,6 +482,8 @@ uint32 DatabaseWorkerPool<T>::OpenConnections(InternalIndex type, uint8 numConne
         }
         else
         {
+            //_connections是一个数组或者说是二位数组
+            // connection是一个mysqlconnection的类型或子类型
             _connections[type].push_back(std::move(connection));
         }
     }

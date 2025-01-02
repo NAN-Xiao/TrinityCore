@@ -29,6 +29,7 @@ DatabaseLoader::DatabaseLoader(std::string const &logger, uint32 const defaultUp
 {
 }
 
+// 假设这里的<T>是CharacterDatabaseConnection或者WorldDatabaseConnection
 template <class T>
 DatabaseLoader &DatabaseLoader::AddDatabase(DatabaseWorkerPool<T> &pool, std::string const &name)
 {
@@ -44,6 +45,7 @@ DatabaseLoader &DatabaseLoader::AddDatabase(DatabaseWorkerPool<T> &pool, std::st
         }
 
         uint8 const asyncThreads = uint8(sConfigMgr->GetIntDefault(name + "Database.WorkerThreads", 1));
+        //配置的异步工作线程数量必须在1到32之间
         if (asyncThreads < 1 || asyncThreads > 32)
         {
             TC_LOG_ERROR(_logger, "{} database: invalid number of worker threads specified. "
@@ -53,7 +55,9 @@ DatabaseLoader &DatabaseLoader::AddDatabase(DatabaseWorkerPool<T> &pool, std::st
 
         uint8 const synchThreads = uint8(sConfigMgr->GetIntDefault(name + "Database.SynchThreads", 1));
 
-       pool.SetConnectionInfo(dbString, asyncThreads, synchThreads);
+        //设置数据库连接的基本信息
+        pool.SetConnectionInfo(dbString, asyncThreads, synchThreads);
+        //open会创建和开启线程和线程池
         if (uint32 error = pool.Open())
         {
             if ((error == ER_BAD_DB_ERROR) && updatesEnabledForThis && _autoSetup)

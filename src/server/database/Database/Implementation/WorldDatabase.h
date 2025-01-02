@@ -94,10 +94,11 @@ class TC_DATABASE_API WorldDatabaseConnection : public MySQLConnection
 public:
     typedef WorldDatabaseStatements Statements;
 
-    WorldDatabaseConnection(MySQLConnectionInfo& connInfo, ConnectionFlags connectionFlags);
+    WorldDatabaseConnection(MySQLConnectionInfo &connInfo, ConnectionFlags connectionFlags);
     ~WorldDatabaseConnection();
 
     //- Loads database type specific prepared statements
+    // 加载特定于数据库类型的预处理语句
     void DoPrepareStatements() override;
 };
 

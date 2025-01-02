@@ -38,7 +38,7 @@ enum ConnectionFlags
 
 struct TC_DATABASE_API MySQLConnectionInfo
 {
-    explicit MySQLConnectionInfo(std::string const& infoString);
+    explicit MySQLConnectionInfo(std::string const &infoString);
 
     std::string user;
     std::string password;
@@ -50,69 +50,73 @@ struct TC_DATABASE_API MySQLConnectionInfo
 
 class TC_DATABASE_API MySQLConnection
 {
-    template <class T> friend class DatabaseWorkerPool;
+    template <class T>
+    friend class DatabaseWorkerPool;
     friend class PingOperation;
 
-    public:
-        MySQLConnection(MySQLConnectionInfo& connInfo, ConnectionFlags connectionFlags);
-        virtual ~MySQLConnection();
+public:
+    MySQLConnection(MySQLConnectionInfo &connInfo, ConnectionFlags connectionFlags);
+    virtual ~MySQLConnection();
 
-        uint32 Open();
-        void Close();
+    uint32 Open();
+    void Close();
 
-        bool PrepareStatements();
+    bool PrepareStatements();
 
-        bool Execute(char const* sql);
-        bool Execute(PreparedStatementBase* stmt);
-        ResultSet* Query(char const* sql);
-        PreparedResultSet* Query(PreparedStatementBase* stmt);
-        bool _Query(char const* sql, MySQLResult** pResult, MySQLField** pFields, uint64* pRowCount, uint32* pFieldCount);
-        bool _Query(PreparedStatementBase* stmt, MySQLPreparedStatement** mysqlStmt, MySQLResult** pResult, uint64* pRowCount, uint32* pFieldCount);
+    bool Execute(char const *sql);
+    bool Execute(PreparedStatementBase *stmt);
+    ResultSet *Query(char const *sql);
+    PreparedResultSet *Query(PreparedStatementBase *stmt);
+    bool _Query(char const *sql, MySQLResult **pResult, MySQLField **pFields, uint64 *pRowCount, uint32 *pFieldCount);
+    bool _Query(PreparedStatementBase *stmt, MySQLPreparedStatement **mysqlStmt, MySQLResult **pResult, uint64 *pRowCount, uint32 *pFieldCount);
 
-        void BeginTransaction();
-        void RollbackTransaction();
-        void CommitTransaction();
-        int ExecuteTransaction(std::shared_ptr<TransactionBase> transaction);
-        size_t EscapeString(char* to, const char* from, size_t length);
-        void Ping();
+    void BeginTransaction();
+    void RollbackTransaction();
+    void CommitTransaction();
+    int ExecuteTransaction(std::shared_ptr<TransactionBase> transaction);
+    size_t EscapeString(char *to, const char *from, size_t length);
+    void Ping();
 
-        uint32 GetLastError();
+    uint32 GetLastError();
 
-        void StartWorkerThread(Trinity::Asio::IoContext* context);
-        std::thread::id GetWorkerThreadId() const;
+    void StartWorkerThread(Trinity::Asio::IoContext *context);
+    std::thread::id GetWorkerThreadId() const;
 
-    protected:
-        /// Tries to acquire lock. If lock is acquired by another thread
-        /// the calling parent will just try another connection
-        bool LockIfReady();
+protected:
+    /// Tries to acquire lock. If lock is acquired by another thread
+    /// the calling parent will just try another connection
+    /// 尝试获取锁。如果锁被另一个线程获取
+    /// 调用父进程将尝试另一个连接
+    bool LockIfReady();
 
-        /// Called by parent databasepool. Will let other threads access this connection
-        void Unlock();
+    /// Called by parent databasepool. Will let other threads access this connection
+    /// 由父数据库池调用。是否允许其他线程访问此连接
+    void Unlock();
 
-        uint32 GetServerVersion() const;
-        MySQLPreparedStatement* GetPreparedStatement(uint32 index);
-        void PrepareStatement(uint32 index, std::string_view sql, ConnectionFlags flags);
+    uint32 GetServerVersion() const;
+    MySQLPreparedStatement *GetPreparedStatement(uint32 index);
+    void PrepareStatement(uint32 index, std::string_view sql, ConnectionFlags flags);
 
-        virtual void DoPrepareStatements() = 0;
+    virtual void DoPrepareStatements() = 0;
 
-        typedef std::vector<std::unique_ptr<MySQLPreparedStatement>> PreparedStatementContainer;
+    typedef std::vector<std::unique_ptr<MySQLPreparedStatement>> PreparedStatementContainer;
 
-        PreparedStatementContainer           m_stmts;         //!< PreparedStatements storage
-        bool                                 m_reconnecting;  //!< Are we reconnecting?
-        bool                                 m_prepareError;  //!< Was there any error while preparing statements?
+    PreparedStatementContainer m_stmts; //!< PreparedStatements storage
+    bool m_reconnecting;                //!< Are we reconnecting? 需要重新链接吗
+    bool m_prepareError;                //!< Was there any error while preparing statements?
 
-    private:
-        bool _HandleMySQLErrno(uint32 errNo, uint8 attempts = 5);
+private:
+    bool _HandleMySQLErrno(uint32 errNo, uint8 attempts = 5);
 
-        struct WorkerThread;
-        std::unique_ptr<WorkerThread> m_workerThread;       //!< Core worker thread.
-        MySQLHandle*          m_Mysql;                      //!< MySQL Handle.
-        MySQLConnectionInfo&  m_connectionInfo;             //!< Connection info (used for logging)
-        ConnectionFlags       m_connectionFlags;            //!< Connection flags (for preparing relevant statements)
-        std::mutex            m_Mutex;
+    struct WorkerThread;
+    std::unique_ptr<WorkerThread> m_workerThread; //!< Core worker thread.核心工作线程
+    MySQLHandle *m_Mysql;                         //!< MySQL Handle. 数据库的handle
+    MySQLConnectionInfo &m_connectionInfo;        //!< Connection info (used for logging)
+    ConnectionFlags m_connectionFlags;            //!< Connection flags (for preparing relevant statements)
+    std::mutex m_Mutex;
 
-        MySQLConnection(MySQLConnection const& right) = delete;
-        MySQLConnection& operator=(MySQLConnection const& right) = delete;
+    MySQLConnection(MySQLConnection const &right) = delete;
+    MySQLConnection &operator=(MySQLConnection const &right) = delete;
 };
 
 #endif

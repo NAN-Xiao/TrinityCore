@@ -85,7 +85,8 @@ void MySQLConnection::Close()
         m_Mysql = nullptr;
     }
 }
-
+/// MySQLConnection open
+///
 uint32 MySQLConnection::Open()
 {
     MYSQL *mysqlInit;
