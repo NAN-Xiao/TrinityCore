@@ -511,11 +511,14 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
     }
 
     ProcessQueryCallbacks();
-
-    // check if we are safe to proceed with logout
+    ///////////////////////////////////////////////////////////////////////////////////
+    // check if we are safe to proceed with logout              
     // logout procedure should happen only in World::UpdateSessions() method!!!
     // 检查退出是否安全
     // 注销过程应该只在World::UpdateSessions（）方法中发生！！
+    // 如果是MapSessionFilter类型的updater。那ProcessUnsafe重载永远返回false
+    // 否则是worldSessionFilter则返回true
+    ////////////////////////////////////////////////////////////////////////////////////
     if (updater.ProcessUnsafe())
     {
         if (m_Socket[CONNECTION_TYPE_REALM] && m_Socket[CONNECTION_TYPE_REALM]->IsOpen() && _warden)
