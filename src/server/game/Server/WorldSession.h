@@ -929,8 +929,8 @@ public:
     explicit PacketFilter(WorldSession *pSession) : m_pSession(pSession) {}
     virtual ~PacketFilter() {}
 
-    virtual bool Process(WorldPacket * /*packet*/) { return true; }=-0```````2+*+= virtual bool ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ2() const { return true; }
-
+    virtual bool Process(WorldPacket * /*packet*/) { return true; }
+    virtual bool ProcessUnsafe() const { return true; }
 protected:
     WorldSession *const m_pSession;
 
