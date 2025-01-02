@@ -12759,6 +12759,7 @@ void Unit::UpdateOrientation(float orientation)
 }
 
 //! Only server-side height update, does not broadcast to client
+// !只有服务器端方向更新，不广播到客户端
 void Unit::UpdateHeight(float newZ)
 {
     Relocate(GetPositionX(), GetPositionY(), newZ);

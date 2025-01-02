@@ -215,6 +215,7 @@ bool WorldSocket::Update()
             packetSize = deflateBound(_compressionStream, packetSize) + sizeof(CompressedWorldPacket);
 
         // Flush current buffer if too small for next packet
+        ////如果对下一个数据包来说太小，则刷新当前缓冲区
         if (buffer.GetRemainingSpace() < packetSize + sizeof(PacketHeader))
         {
             QueuePacket(std::move(buffer));
@@ -223,7 +224,7 @@ bool WorldSocket::Update()
 
         if (buffer.GetRemainingSpace() >= packetSize + sizeof(PacketHeader))
             WritePacketToBuffer(*queued, buffer);
-        else // single packet larger than _sendBufferSize
+        else //单个数据包大于_sendBufferSize //single packet larger than _sendBufferSize
         {
             MessageBuffer packetBuffer(packetSize + sizeof(PacketHeader));
             WritePacketToBuffer(*queued, packetBuffer);
@@ -499,9 +500,11 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
         }
 
         // Our Idle timer will reset on any non PING opcodes on login screen, allowing us to catch people idling.
+        // 我们的空闲计时器将在登录屏幕上的任何非PING操作码上重置，允许我们捕获空闲的人。
         _worldSession->ResetTimeOutTime(false);
 
         // Copy the packet to the heap before enqueuing
+        // 在排队前将数据包复制到堆中
         _worldSession->QueuePacket(new WorldPacket(std::move(packet)));
         break;
     }

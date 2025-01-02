@@ -323,7 +323,7 @@ void WorldSession::HandleMoveTeleportAck(WorldPackets::Movement::MoveTeleportAck
     GetPlayer()->ResummonPetTemporaryUnSummonedIfAny();
 
     // lets process all delayed operations on successful teleport
-    //传送成功后处理所有延迟的操作
+    // 传送成功后处理所有延迟的操作
     GetPlayer()->ProcessDelayedOperations();
 }
 
@@ -374,8 +374,9 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
     if (plrMover && (plrMover->GetEmoteState() != 0))
         plrMover->SetEmoteState(EMOTE_ONESHOT_NONE);
 
-    /* handle special cases */
-    // 一些特殊情况
+/* handle special cases */
+#pragma region // 处理特殊情况
+    /*------------------------------------------------------------------------------------*/
     if (!movementInfo.transport.guid.IsEmpty()) // 在运输工具上
     {
         // We were teleported, skip packets that were broadcast before teleport
@@ -467,7 +468,8 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo &movem
         }
         return;
     }
-    //更新位置
+#pragma endregion /*------------------------------------------------------------------------------------*/
+    // 更新位置
     mover->UpdatePosition(movementInfo.pos);
 
     WorldPackets::Movement::MoveUpdate moveUpdate;

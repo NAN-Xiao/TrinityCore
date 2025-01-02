@@ -319,7 +319,7 @@ int main(int argc, char **argv)
     SetProcessPriority("server.worldserver", sConfigMgr->GetIntDefault(CONFIG_PROCESSOR_AFFINITY, 0), sConfigMgr->GetBoolDefault(CONFIG_HIGH_PRIORITY, false));
 
     // Start the databases
-    // 啓動服務器
+    // 啓動数据库
     if (!StartDB())
         return 1;
 

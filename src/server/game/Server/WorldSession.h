@@ -1169,7 +1169,8 @@ public:
     void SetLatency(uint32 latency) { m_latency = latency; }
 
     std::atomic<time_t> m_timeOutTime;
-
+    /// @brief 重置超时时间
+    /// @param onlyActive
     void ResetTimeOutTime(bool onlyActive);
 
     bool IsConnectionIdle() const;
@@ -1243,42 +1244,57 @@ public:                                                  // opcodes handlers
     void HandlePlayedTime(WorldPackets::Character::RequestPlayedTime &packet);
 
     // cemetery/graveyard related
+    // 复活之前请求服务器给一个墓地
     void HandlePortGraveyard(WorldPackets::Misc::PortGraveyard &packet);
     void HandleRequestCemeteryList(WorldPackets::Misc::RequestCemeteryList &packet);
 
     // Inspect
     void HandleInspectOpcode(WorldPackets::Inspect::Inspect &inspect);
     void HandleQueryInspectAchievements(WorldPackets::Inspect::QueryInspectAchievements &inspect);
-
+    // 播放动画
     void HandleMountSpecialAnimOpcode(WorldPackets::Misc::MountSpecial &mountSpecial);
 
     // repair
     void HandleRepairItemOpcode(WorldPackets::Item::RepairItem &packet);
 
     // Knockback
+    // 击退
     void HandleMoveKnockBackAck(WorldPackets::Movement::MoveKnockBackAck &movementAck);
-
+    // 闪现瞬移
     void HandleMoveTeleportAck(WorldPackets::Movement::MoveTeleportAck &packet);
+    // 加速减速
     void HandleForceSpeedChangeAck(WorldPackets::Movement::MovementSpeedAck &packet);
+    // 飞行
     void HandleSetAdvFlyingSpeedAck(WorldPackets::Movement::MovementSpeedAck &speedAck);
     void HandleSetAdvFlyingSpeedRangeAck(WorldPackets::Movement::MovementSpeedRangeAck &speedRangeAck);
+    // 碰撞
     void HandleSetCollisionHeightAck(WorldPackets::Movement::MoveSetCollisionHeightAck &setCollisionHeightAck);
 
     // Movement forces
+    // 影响位移的各种力
     void HandleMoveApplyMovementForceAck(WorldPackets::Movement::MoveApplyMovementForceAck &moveApplyMovementForceAck);
     void HandleMoveRemoveMovementForceAck(WorldPackets::Movement::MoveRemoveMovementForceAck &moveRemoveMovementForceAck);
     void HandleMoveSetModMovementForceMagnitudeAck(WorldPackets::Movement::MovementSpeedAck &setModMovementForceMagnitudeAck);
 
+    // 复活
     void HandleRepopRequest(WorldPackets::Misc::RepopRequest &packet);
+    // 自动拾取
     void HandleAutostoreLootItemOpcode(WorldPackets::Loot::LootItem &packet);
+    // 自动捡钱
     void HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney &packet);
+    // 摸尸体
     void HandleLootOpcode(WorldPackets::Loot::LootUnit &packet);
+    // 摸完了
     void HandleLootReleaseOpcode(WorldPackets::Loot::LootRelease &packet);
+    // 团长分配战利品
     void HandleLootMasterGiveOpcode(WorldPackets::Loot::MasterLootItem &masterLootItem);
+    // 按职业分配
     void HandleSetLootSpecialization(WorldPackets::Loot::SetLootSpecialization &packet);
-
+    // 处理游戏内发送的"/who"这个命令
     void HandleWhoOpcode(WorldPackets::Who::WhoRequestPkt &whoRequest);
+    // 角色登出了
     void HandleLogoutRequestOpcode(WorldPackets::Character::LogoutRequest &logoutRequest);
+    // 放弃登出了
     void HandleLogoutCancelOpcode(WorldPackets::Character::LogoutCancel &logoutCancel);
 
     // GM Ticket opcodes
@@ -1298,6 +1314,7 @@ public:                                                  // opcodes handlers
     void HandleEmoteOpcode(WorldPackets::Chat::EmoteClient &packet);
 
     // Social
+    // 社交
     void HandleContactListOpcode(WorldPackets::Social::SendContactList &packet);
     void HandleAddFriendOpcode(WorldPackets::Social::AddFriend &packet);
     void HandleDelFriendOpcode(WorldPackets::Social::DelFriend &packet);
@@ -1475,6 +1492,7 @@ public:                                                  // opcodes handlers
     void HandleAuctionSetFavoriteItem(WorldPackets::AuctionHouse::AuctionSetFavoriteItem &setFavoriteItem);
 
     // Bank
+    // 银行
     void HandleAutoBankItemOpcode(WorldPackets::Bank::AutoBankItem &packet);
     void HandleAutoStoreBankItemOpcode(WorldPackets::Bank::AutoStoreBankItem &packet);
     void HandleBuyBankSlotOpcode(WorldPackets::Bank::BuyBankSlot &packet);
@@ -1484,6 +1502,7 @@ public:                                                  // opcodes handlers
     void HandleReagentBankDepositOpcode(WorldPackets::Bank::ReagentBank &reagentBank);
 
     // Black Market
+    // 黑市
     void HandleBlackMarketOpen(WorldPackets::BlackMarket::BlackMarketOpen &blackMarketOpen);
     void HandleBlackMarketRequestItems(WorldPackets::BlackMarket::BlackMarketRequestItems &blackMarketRequestItems);
     void HandleBlackMarketBidOnItem(WorldPackets::BlackMarket::BlackMarketBidOnItem &blackMarketBidOnItem);
@@ -1615,6 +1634,7 @@ public:                                                  // opcodes handlers
     void HandleTutorialFlag(WorldPackets::Misc::TutorialSetFlag &packet);
 
     // Pet
+    // 宠物
     void HandlePetAction(WorldPackets::Pet::PetAction &packet);
     void HandlePetStopAttack(WorldPackets::Pet::PetStopAttack &packet);
     void HandlePetActionHelper(Unit *pet, ObjectGuid guid1, uint32 spellid, uint16 flag, ObjectGuid guid2, Position const &pos);
@@ -1633,6 +1653,7 @@ public:                                                  // opcodes handlers
     void HandleDismissCritter(WorldPackets::Pet::DismissCritter &dismissCritter);
 
     // Battleground
+    // 战场
     void HandleBattlemasterHelloOpcode(WorldPackets::NPC::Hello &hello);
     void HandleBattlemasterJoinOpcode(WorldPackets::Battleground::BattlemasterJoin &battlemasterJoin);
     void HandlePVPLogDataOpcode(WorldPackets::Battleground::PVPLogDataRequest &pvpLogDataRequest);
@@ -1661,6 +1682,7 @@ public:                                                  // opcodes handlers
     void HandleInstanceLockResponse(WorldPackets::Instance::InstanceLockResponse &packet);
 
     // Looking for Dungeon/Raid
+    // 搜索地下城和副本
     void SendLfgPlayerLockInfo();
     void SendLfgPartyLockInfo();
     void HandleLfgJoinOpcode(WorldPackets::LFG::DFJoin &dfJoin);
@@ -1688,6 +1710,7 @@ public:                                                  // opcodes handlers
     void HandleRequestPetInfo(WorldPackets::Pet::RequestPetInfo &requestPetInfo);
 
     // Socket gem
+    // 宝石和镶嵌
     void HandleSocketGems(WorldPackets::Item::SocketGems &socketGems);
     void HandleSortAccountBankBags(WorldPackets::Item::SortAccountBankBags &sortBankBags);
     void HandleSortBags(WorldPackets::Item::SortBags &sortBags);
@@ -1703,6 +1726,7 @@ public:                                                  // opcodes handlers
     void HandleSetTaxiBenchmark(WorldPackets::Misc::SetTaxiBenchmarkMode &packet);
 
     // Guild Bank
+    // 工会银行
     void HandleGuildPermissionsQuery(WorldPackets::Guild::GuildPermissionsQuery &packet);
     void HandleGuildBankMoneyWithdrawn(WorldPackets::Guild::GuildBankRemainingWithdrawMoneyQuery &packet);
     void HandleGuildBankActivate(WorldPackets::Guild::GuildBankActivate &packet);
@@ -1729,6 +1753,7 @@ public:                                                  // opcodes handlers
     void HandleGuildBankSetTabText(WorldPackets::Guild::GuildBankSetTabText &packet);
 
     // Calendar
+    // 日历
     void HandleCalendarGetCalendar(WorldPackets::Calendar::CalendarGetCalendar &calendarGetCalendar);
     void HandleCalendarGetEvent(WorldPackets::Calendar::CalendarGetEvent &calendarGetEvent);
     void HandleCalendarCommunityInvite(WorldPackets::Calendar::CalendarCommunityInviteRequest &calendarCommunityInvite);
@@ -1750,6 +1775,7 @@ public:                                                  // opcodes handlers
     void HandleSetSavedInstanceExtend(WorldPackets::Calendar::SetSavedInstanceExtend &setSavedInstanceExtend);
 
     // Void Storage
+    // 存储和查询
     void HandleVoidStorageUnlock(WorldPackets::VoidStorage::UnlockVoidStorage &unlockVoidStorage);
     void HandleVoidStorageQuery(WorldPackets::VoidStorage::QueryVoidStorage &queryVoidStorage);
     void HandleVoidStorageTransfer(WorldPackets::VoidStorage::VoidStorageTransfer &voidStorageTransfer);
@@ -1760,9 +1786,11 @@ public:                                                  // opcodes handlers
     void HandleCollectionItemSetFavorite(WorldPackets::Collections::CollectionItemSetFavorite &collectionItemSetFavorite);
 
     // Transmogrification
+    // 道具幻化
     void HandleTransmogrifyItems(WorldPackets::Transmogrification::TransmogrifyItems &transmogrifyItems);
 
     // Miscellaneous
+    // 杂项
     void HandleSpellClick(WorldPackets::Spells::SpellClick &spellClick);
     void HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorImageData &getMirrorImageData);
     void HandleGuildSetFocusedAchievement(WorldPackets::Achievement::GuildSetFocusedAchievement &setFocusedAchievement);
@@ -1781,14 +1809,17 @@ public:                                                  // opcodes handlers
     void HandleQueryCountdownTimer(WorldPackets::Misc::QueryCountdownTimer &queryCountdownTimer);
 
     // Adventure Journal
+    // Adventure Journal 是《魔兽世界》中的一个功能，于**4.2版本（火源之地）**中首次引入。它的中文翻译为“冒险指南”
     void HandleAdventureJournalOpenQuest(WorldPackets::AdventureJournal::AdventureJournalOpenQuest &openQuest);
     void HandleAdventureJournalUpdateSuggestions(WorldPackets::AdventureJournal::AdventureJournalUpdateSuggestions &updateSuggestions);
 
     // Adventure Map
+    // 冒险地图
     void HandleCheckIsAdventureMapPoiValid(WorldPackets::AdventureMap::CheckIsAdventureMapPoiValid &CheckIsAdventureMapPoiValid);
     void HandleAdventureMapStartQuest(WorldPackets::AdventureMap::AdventureMapStartQuest &startQuest);
 
     // Toys
+
     void HandleAddToy(WorldPackets::Toy::AddToy &packet);
     void HandleUseToy(WorldPackets::Toy::UseToy &packet);
     void HandleToyClearFanfare(WorldPackets::Toy::ToyClearFanfare &toyClearFanfare);
@@ -1796,6 +1827,7 @@ public:                                                  // opcodes handlers
     void HandleMountSetFavorite(WorldPackets::Misc::MountSetFavorite &mountSetFavorite);
 
     // Scenes
+    // 动画
     void HandleSceneTriggerEvent(WorldPackets::Scenes::SceneTriggerEvent &sceneTriggerEvent);
     void HandleScenePlaybackComplete(WorldPackets::Scenes::ScenePlaybackComplete &scenePlaybackComplete);
     void HandleScenePlaybackCanceled(WorldPackets::Scenes::ScenePlaybackCanceled &scenePlaybackCanceled);
@@ -1805,10 +1837,12 @@ public:                                                  // opcodes handlers
     void HandleCommerceTokenGetMarketPrice(WorldPackets::Token::CommerceTokenGetMarketPrice &requestWowTokenMarketPrice);
 
     // Compact Unit Frames (4.x)
+    // 显示头像优化 4.x以后的新功能
     void HandleSaveCUFProfiles(WorldPackets::Misc::SaveCUFProfiles &packet);
     void SendLoadCUFProfiles();
 
     // Garrison
+    // 要塞
     void HandleGetGarrisonInfo(WorldPackets::Garrison::GetGarrisonInfo &getGarrisonInfo);
     void HandleGarrisonPurchaseBuilding(WorldPackets::Garrison::GarrisonPurchaseBuilding &garrisonPurchaseBuilding);
     void HandleGarrisonCancelConstruction(WorldPackets::Garrison::GarrisonCancelConstruction &garrisonCancelConstruction);
@@ -1829,6 +1863,7 @@ public:                                                  // opcodes handlers
     void HandleCageBattlePet(WorldPackets::BattlePet::CageBattlePet &cageBattlePet);
 
     // Warden
+    // 反作弊
     void HandleWardenData(WorldPackets::Warden::WardenData &packet);
 
     // Battlenet
@@ -1848,14 +1883,17 @@ public:                                                  // opcodes handlers
     void HandleQueryRealmName(WorldPackets::Query::QueryRealmName &queryRealmName);
 
     // Artifact
+    // 神器
     void HandleArtifactAddPower(WorldPackets::Artifact::ArtifactAddPower &artifactAddPower);
     void HandleArtifactSetAppearance(WorldPackets::Artifact::ArtifactSetAppearance &artifactSetAppearance);
     void HandleConfirmArtifactRespec(WorldPackets::Artifact::ConfirmArtifactRespec &confirmArtifactRespec);
 
     // Scenario
+    // 兴趣点
     void HandleQueryScenarioPOI(WorldPackets::Scenario::QueryScenarioPOI &queryScenarioPOI);
 
     // Azerite
+    // 艾泽利特相关的 新版本的特殊强化道具
     void HandleAzeriteEssenceUnlockMilestone(WorldPackets::Azerite::AzeriteEssenceUnlockMilestone &azeriteEssenceUnlockMilestone);
     void HandleAzeriteEssenceActivateEssence(WorldPackets::Azerite::AzeriteEssenceActivateEssence &azeriteEssenceActivateEssence);
     void HandleAzeriteEmpoweredItemViewed(WorldPackets::Azerite::AzeriteEmpoweredItemViewed &azeriteEmpoweredItemViewed);
