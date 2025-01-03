@@ -1268,7 +1268,8 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
         if (!sWorld->GetNewCharString().empty())
             chH.PSendSysMessage("%s", sWorld->GetNewCharString().c_str());
     }
-    // 把角色添加到地图中
+    // 玩家角色登入地图
+    // 没有地图信息则传送回旅馆
     if (!pCurrChar->GetMap()->AddPlayerToMap(pCurrChar))
     {
         AreaTriggerStruct const *at = sObjectMgr->GetGoBackTrigger(pCurrChar->GetMapId());

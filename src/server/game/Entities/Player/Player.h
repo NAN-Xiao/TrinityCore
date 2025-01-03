@@ -874,6 +874,7 @@ enum PlayedTimeIndex
 #define MAX_PLAYED_TIME_INDEX 2
 
 // used at player loading query list preparing, and later result selection
+// 用于player加载查询列表准备，以及之后的结果选择
 enum PlayerLoginQueryIndex
 {
     PLAYER_LOGIN_QUERY_LOAD_FROM,

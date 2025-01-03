@@ -22,7 +22,7 @@
 #include "PreparedStatement.h"
 #include "QueryResult.h"
 
-bool SQLQueryHolderBase::SetPreparedQueryImpl(size_t index, PreparedStatementBase* stmt)
+bool SQLQueryHolderBase::SetPreparedQueryImpl(size_t index, PreparedStatementBase *stmt)
 {
     if (m_queries.size() <= index)
     {
@@ -37,13 +37,14 @@ bool SQLQueryHolderBase::SetPreparedQueryImpl(size_t index, PreparedStatementBas
 PreparedQueryResult SQLQueryHolderBase::GetPreparedResult(size_t index) const
 {
     // Don't call to this function if the index is of a prepared statement
+    // 如果索引是一个准备好的语句，不要调用这个函数
     ASSERT(index < m_queries.size(), "Query holder result index out of range, tried to access index " SZFMTD " but there are only " SZFMTD " results",
-        index, m_queries.size());
+           index, m_queries.size());
 
     return m_queries[index].second;
 }
 
-void SQLQueryHolderBase::SetPreparedResult(size_t index, PreparedResultSet* result)
+void SQLQueryHolderBase::SetPreparedResult(size_t index, PreparedResultSet *result)
 {
     if (result && !result->GetRowCount())
     {
@@ -52,16 +53,19 @@ void SQLQueryHolderBase::SetPreparedResult(size_t index, PreparedResultSet* resu
     }
 
     /// store the result in the holder
+    /// 将结果存储在holder中
     if (index < m_queries.size())
         m_queries[index].second = PreparedQueryResult(result);
 }
 
 SQLQueryHolderBase::~SQLQueryHolderBase()
 {
-    for (std::pair<PreparedStatementBase*, PreparedQueryResult>& query : m_queries)
+    for (std::pair<PreparedStatementBase *, PreparedQueryResult> &query : m_queries)
     {
         /// if the result was never used, free the resources
         /// results used already (getresult called) are expected to be deleted
+        /// 如果结果从未被使用，释放资源
+        /// 已经使用的结果（调用getresult）将被删除
         delete query.first;
     }
 }
@@ -69,14 +73,15 @@ SQLQueryHolderBase::~SQLQueryHolderBase()
 void SQLQueryHolderBase::SetSize(size_t size)
 {
     /// to optimize push_back, reserve the number of queries about to be executed
+    /// 为了优化push_back，保留将要执行的查询数
     m_queries.resize(size);
 }
 
-bool SQLQueryHolderTask::Execute(MySQLConnection* conn, SQLQueryHolderBase* holder)
+bool SQLQueryHolderTask::Execute(MySQLConnection *conn, SQLQueryHolderBase *holder)
 {
     /// execute all queries in the holder and pass the results
     for (size_t i = 0; i < holder->m_queries.size(); ++i)
-        if (PreparedStatementBase* stmt = holder->m_queries[i].first)
+        if (PreparedStatementBase *stmt = holder->m_queries[i].first)
             holder->SetPreparedResult(i, conn->Query(stmt));
 
     return true;

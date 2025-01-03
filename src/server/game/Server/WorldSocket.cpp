@@ -698,11 +698,11 @@ void WorldSocket::HandleAuthSession(std::shared_ptr<WorldPackets::Auth::AuthSess
     _queryProcessor.AddCallback(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback([this, authSession = std::move(authSession), joinTicket = std::move(joinTicket)](PreparedQueryResult result) mutable
                                                                                     { HandleAuthSessionCallback(std::move(authSession), std::move(joinTicket), std::move(result)); }));
 }
-///////////////////////////////////////////////////////////
-/// 重要！！！                                          ///
-/// 这里通过AuthSession验证通过以后会创建worldsession    ///
-/// worldsession是worldsocket的成员                    ///
-/////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+///      重要！！！                                           ///
+///      这里通过AuthSession验证通过以后会创建worldsession     ///
+///      worldsession是worldsocket的成员                     ///
+////////////////////////////////////////////////////////////////
 void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession,
                                             std::shared_ptr<JSON::RealmList::RealmJoinTicket> joinTicket, PreparedQueryResult result)
 {

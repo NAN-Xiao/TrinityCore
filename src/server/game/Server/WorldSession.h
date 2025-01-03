@@ -1883,11 +1883,11 @@ public:                                                  // opcodes handlers
     void HandleQueryRealmName(WorldPackets::Query::QueryRealmName &queryRealmName);
 
     // Artifact
-    // 神器
+    // 神器-------------------------------------------------
     void HandleArtifactAddPower(WorldPackets::Artifact::ArtifactAddPower &artifactAddPower);
     void HandleArtifactSetAppearance(WorldPackets::Artifact::ArtifactSetAppearance &artifactSetAppearance);
     void HandleConfirmArtifactRespec(WorldPackets::Artifact::ConfirmArtifactRespec &confirmArtifactRespec);
-
+/*----------------------------------------------------------------------------------------------------*/
     // Scenario
     // 兴趣点
     void HandleQueryScenarioPOI(WorldPackets::Scenario::QueryScenarioPOI &queryScenarioPOI);

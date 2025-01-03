@@ -336,7 +336,8 @@ int main(int argc, char **argv)
     auto sRealmListHandle = Trinity::make_unique_ptr_with_deleter<&RealmList::Close>(sRealmList);
 
     ///- Get the realm Id from the configuration file
-    // 从配置文件中获取领域Id  uint32 realmId = sConfigMgr->GetIntDefault("RealmID", 0);
+    // 从配置文件中获取领域Id
+    uint32 realmId = sConfigMgr->GetIntDefault("RealmID", 0);
     if (!realmId)
     {
         TC_LOG_ERROR("server.worldserver", "Realm ID not defined in configuration file");
@@ -356,7 +357,7 @@ int main(int argc, char **argv)
         return 1;
 
     // Set server offline (not connectable)
-    // 設置服務器離綫
+    // 登录服务器先离线 不接受登录
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | {} WHERE id = '{}'", Trinity::Legacy::REALM_FLAG_OFFLINE, realmId);
     /*
     sMetric 大概率是一个全局或者在当前作用域内具有重要地位的指标管理对象，
@@ -387,6 +388,7 @@ int main(int argc, char **argv)
     auto sScriptMgrHandle = Trinity::make_unique_ptr_with_deleter<&ScriptMgr::Unload>(sScriptMgr);
 
     // Initialize the World
+    // 初始化world
     // 加密
     sSecretMgr->Initialize(SECRET_OWNER_WORLDSERVER);
 

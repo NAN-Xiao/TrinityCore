@@ -17893,6 +17893,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // check if the character's account in the db and the logged in account match.
     // player should be able to load/delete character only with correct account!
+    // 检查数据库中角色的账号和登录账号是否匹配。
+    // 玩家应该能够加载/删除角色只有正确的帐户！
     if (fields.account != GetSession()->GetAccountId())
     {
         TC_LOG_ERROR("entities.player.loading", "Player::LoadFromDB: Player ({}) loading from wrong account (is: {}, should be: {})", guid.ToString(), GetSession()->GetAccountId(), fields.account);
@@ -17937,6 +17939,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
     SetGender(fields.gender);
 
     // check if race/class combination is valid
+    // 检查种族/职业组合是否有效
     PlayerInfo const *info = sObjectMgr->GetPlayerInfo(GetRace(), GetClass());
     if (!info)
     {
@@ -18014,6 +18017,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &hol
 
     // Need to call it to initialize m_team (m_team can be calculated from race)
     // Other way is to saves m_team into characters table.
+    // 需要调用它来初始化m_team （m_team可以从race中计算）
+    // 另一种方法是保存m_team到characters table中。
     SetFactionForRace(GetRace());
 
     // load home bind and check in same time class/race pair, it used later for restore broken positions
@@ -20029,6 +20034,7 @@ bool Player::_LoadHomeBind(PreparedQueryResult result)
         MapEntry const *bindMapEntry = sMapStore.LookupEntry(m_homebind.GetMapId());
 
         // accept saved data only for valid position (and non instanceable), and accessable
+        // 只接受有效位置（不可实例化）和可访问的保存数据
         if (MapManager::IsValidMapCoord(m_homebind) &&
             !bindMapEntry->Instanceable() && GetSession()->GetExpansion() >= bindMapEntry->Expansion())
             ok = true;
@@ -20101,8 +20107,7 @@ void Player::SaveToDB(bool create /*=false*/)
     LoginDatabase.CommitTransaction(loginTransaction);
 }
 
-
-//保存到数据库
+// 保存到数据库
 void Player::SaveToDB(LoginDatabaseTransaction loginTransaction, CharacterDatabaseTransaction trans, bool create /* = false */)
 {
     // delay auto save at any saves (manual, in code, or autosave)

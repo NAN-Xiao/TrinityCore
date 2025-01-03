@@ -92,6 +92,8 @@ Map::~Map()
 {
     // Delete all waiting spawns, else there will be a memory leak
     // This doesn't delete from database.
+    // 删除所有等待的刷出，否则会有内存泄漏
+    // 不会从数据库中删除。
     UnloadAllRespawnInfos();
 
     while (!i_worldObjects.empty())
@@ -152,6 +154,7 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, Difficulty SpawnMode) : _c
     _zonePlayerCountMap.clear();
 
     // lets initialize visibility distance for map
+    // 初始化map的可见距离
     Map::InitVisibilityDistance();
 
     _weatherUpdateTimer.SetInterval(time_t(1 * IN_MILLISECONDS));
@@ -170,6 +173,7 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, Difficulty SpawnMode) : _c
 void Map::InitVisibilityDistance()
 {
     // init visibility for continents
+    // 初始化可见性的大洲
     m_VisibleDistance = World::GetMaxVisibleDistanceOnContinents();
     m_VisibilityNotifyPeriod = World::GetVisibilityNotifyPeriodOnContinents();
 }
@@ -622,6 +626,7 @@ bool Map::AddToMap(Transport *obj)
         obj->AddToWorld();
 
         // Broadcast creation to players
+        // 向玩家广播创建
         for (Map::PlayerList::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
         {
             if (itr->GetSource()->GetTransport() != obj && itr->GetSource()->InSamePhase(obj))
@@ -651,6 +656,7 @@ void Map::VisitNearbyCellsOf(WorldObject *obj, TypeContainerVisitor<Trinity::Obj
         return;
 
     // Update mobs/objects in ALL visible cells around object!
+    // 更新对象周围所有可见单元格中的生物/对象！
     CellArea area = Cell::CalculateCellArea(obj->GetPositionX(), obj->GetPositionY(), obj->GetGridActivationRange());
 
     for (uint32 x = area.low_bound.x_coord; x <= area.high_bound.x_coord; ++x)
@@ -687,7 +693,6 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
     }
     ++_zonePlayerCountMap[newZone];
 }
-
 
 /// 地图更新
 void Map::Update(uint32 t_diff)
@@ -1074,7 +1079,7 @@ template <typename T>
 
     return true;
 }
-
+/// 处理的角色 其他生物不在这
 void Map::PlayerRelocation(Player *player, float x, float y, float z, float orientation)
 {
     ASSERT(player);
@@ -1105,6 +1110,7 @@ void Map::PlayerRelocation(Player *player, float x, float y, float z, float orie
     player->UpdateObjectVisibility(false);
 }
 
+/// 处理的生物 玩家角色不在这
 void Map::CreatureRelocation(Creature *creature, float x, float y, float z, float ang, bool respawnRelocationOnFail)
 {
     ASSERT(CheckGridIntegrity(creature, false, "Creature"));
@@ -1744,7 +1750,7 @@ void Map::UnloadAll()
     _corpsesByPlayer.clear();
     _corpseBones.clear();
 }
-
+// 应该是获取vmap的实际能够移动到的坐标
 void Map::GetFullTerrainStatusForPosition(PhaseShift const &phaseShift, float x, float y, float z, PositionFullTerrainStatus &data,
                                           Optional<map_liquidHeaderTypeFlags> reqLiquidType, float collisionHeight)
 {
