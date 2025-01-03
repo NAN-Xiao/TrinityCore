@@ -139,7 +139,7 @@ struct ShutdownCLIThread
 };
 variables_map GetConsoleArguments(int argc, char **argv, fs::path &configFile, fs::path &configDir, std::string &winServiceAction);
 
-/// Launch the Trinity server//??server
+/// Launch the Trinity server
 // 啓動trinity服務器
 int main(int argc, char **argv)
 {
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
     Optional<UINT> newTimerResolution;
     boost::system::error_code dllError;
 
-    // 这是用wimm实现了一个定时器？？？貌似
+    // 这是用wimm实现了一个定时器
     auto winmm = Trinity::make_unique_ptr_with_deleter(new boost::dll::shared_library("winmm.dll", dllError, boost::dll::load_mode::search_system_folders), [&](boost::dll::shared_library *lib)
                                                        {
         try
@@ -318,11 +318,13 @@ int main(int argc, char **argv)
     // 根据配置设置设置进程优先级
     SetProcessPriority("server.worldserver", sConfigMgr->GetIntDefault(CONFIG_PROCESSOR_AFFINITY, 0), sConfigMgr->GetBoolDefault(CONFIG_HIGH_PRIORITY, false));
 
-    // Start the databases
-    // 啓動数据库
+    /////////////////////////////////////////////////////////////
+    ///       Start the databases                             ///
+    ///       啓動数据库                                       ///
+    ///       login \world\character等数据库的初始化和线程初始化///
+    /////////////////////////////////////////////////////////////
     if (!StartDB())
         return 1;
-
     auto dbHandle = Trinity::make_unique_ptr_with_deleter<[](void *)
                                                           { StopDB(); }>(&dummy);
 
@@ -330,9 +332,8 @@ int main(int argc, char **argv)
         return 0;
 
     Trinity::Net::ScanLocalNetworks();
-
+    // 领域->当前服务器
     sRealmList->Initialize(*ioContext, sConfigMgr->GetIntDefault("RealmsStateUpdateDelay", 10));
-
     auto sRealmListHandle = Trinity::make_unique_ptr_with_deleter<&RealmList::Close>(sRealmList);
 
     ///- Get the realm Id from the configuration file
@@ -343,7 +344,6 @@ int main(int argc, char **argv)
         TC_LOG_ERROR("server.worldserver", "Realm ID not defined in configuration file");
         return 1;
     }
-
     sRealmList->SetCurrentRealmId(realmId);
 
     TC_LOG_INFO("server.worldserver", "Realm running as realm ID {}", realmId);
@@ -369,14 +369,13 @@ int main(int argc, char **argv)
     sMetric->Initialize(realm->Name, *ioContext, []()
                         {
         TC_METRIC_VALUE("online_players",sWorld->GetPlayerCount());
-        TC_METRIC_VALUE("db_queue_login",uint64(LoginDatabase.QueueSize()));
         TC_METRIC_VALUE("db_queue_character",uint64(CharacterDatabase.QueueSize()));
+        TC_METRIC_VALUE("db_queue_login",uint64(LoginDatabase.QueueSize()));
         TC_METRIC_VALUE("db_queue_world",uint64(WorldDatabase.QueueSize())); });
 
     realm = nullptr;
 
     TC_METRIC_EVENT("events", "Worldserver started", "");
-
     auto sMetricHandle = Trinity::make_unique_ptr_with_deleter(sMetric, [](Metric *metric)
                                                                {
         TC_METRIC_EVENT("events","Worldserver shutdown","");
@@ -392,31 +391,35 @@ int main(int argc, char **argv)
     // 加密
     sSecretMgr->Initialize(SECRET_OWNER_WORLDSERVER);
 
+    //////////////////////////////////////////////////////
+    ///     重要！！！                                  ///
+    ///     world初始化做了很多工作 需要仔细梳理         ///
+    ///     比如：地图 副本模板 角色属性 等等            ///
+    /////////////////////////////////////////////////////
     if (!sWorld->SetInitialWorldSettings())
         return 1;
-
+    /*--释放的析构调用-*/
     auto instanceLockMgrHandle = Trinity::make_unique_ptr_with_deleter<&InstanceLockMgr::Unload>(&sInstanceLockMgr);
-
     auto terrainMgrHandle = Trinity::make_unique_ptr_with_deleter<&TerrainMgr::UnloadAll>(&sTerrainMgr);
-
     auto outdoorPvpMgrHandle = Trinity::make_unique_ptr_with_deleter<&OutdoorPvPMgr::Die>(sOutdoorPvPMgr);
-
     // unload all grids (including locked in memory)
     // 卸载所有网格（包括锁定在内存中的网格）
     auto mapManagementHandle = Trinity::make_unique_ptr_with_deleter<&MapManager::UnloadAll>(sMapMgr);
-
     // unload battleground templates before different singletons destroyed
     // 在不同的单例模式被破坏之前卸载战场模板
     auto battlegroundMgrHandle = Trinity::make_unique_ptr_with_deleter<&BattlegroundMgr::DeleteAllBattlegrounds>(sBattlegroundMgr);
+    /*-------------------------------------------------------------------------------------------------------------------------------------*/
 
     // Start the Remote Access port (acceptor) if enabled
-    // 如果启用，启动远程访问端口（接受者）
+    // 如果启用，启动远程访问端口（接受者）--ra:Remote Access远程访问
+    // raAcceptor使用iocontext绑定端口监听
     std::unique_ptr<AsyncAcceptor> raAcceptor;
     if (sConfigMgr->GetBoolDefault("Ra.Enable", false))
         raAcceptor.reset(StartRaSocketAcceptor(*ioContext));
 
     // Start soap serving thread if enabled
     // 启动soap服务线程（如果启用） （Simple Object Access Protocol，简单对象访问协议）
+    // trinitycore中的soap是http
     std::unique_ptr<std::thread, ShutdownTCSoapThread> soapThread;
     if (sConfigMgr->GetBoolDefault("SOAP.Enabled", false))
     {
@@ -425,10 +428,11 @@ int main(int argc, char **argv)
         else
             return -1;
     }
-
-    // Launch the worldserver listener socket
-    // 启动worldserver监听套接字
-    // 重要！！！
+    //////////////////////////////////////////////////////////
+    // 重要！！！                                          ///
+    // Launch the worldserver listener socket             ///
+    // 启动worldserver监听套接字                           ///
+    //////////////////////////////////////////////////////////
     uint16 worldPort = uint16(sWorld->getIntConfig(CONFIG_PORT_WORLD));
     uint16 instancePort = uint16(sWorld->getIntConfig(CONFIG_PORT_INSTANCE));
     std::string worldListener = sConfigMgr->GetStringDefault("BindIP", "0.0.0.0");

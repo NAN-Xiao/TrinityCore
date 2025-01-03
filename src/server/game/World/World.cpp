@@ -1773,11 +1773,11 @@ bool World::SetInitialWorldSettings()
     srand((unsigned int)GameTime::GetGameTime());
 
     ///- Initialize detour memory management
-    ///-初始化迂回内存管理
+    ///-初始化内存管理
     dtAllocSetCustom(dtCustomAlloc, dtCustomFree);
 
     ///- Initialize VMapManager function pointers (to untangle game/collision circular deps)
-
+    ///-初始化VMapManager函数指针（解开游戏/碰撞 循环依赖）
     VMAP::VMapManager2 *vmmgr2 = VMAP::VMapFactory::createOrGetVMapManager();
     vmmgr2->GetLiquidFlagsPtr = &DB2Manager::GetLiquidFlags;
     vmmgr2->IsVMAPDisabledForPtr = &DisableMgr::IsVMAPDisabledFor;
@@ -1787,11 +1787,11 @@ bool World::SetInitialWorldSettings()
     LoadConfigSettings();
 
     ///- Initialize Allowed Security Level
-    // 初始化数据库的安全设置
+    ///- 初始化读取数据库的安全级别
     LoadDBAllowedSecurityLevel();
 
     ///- Init highest guids before any table loading to prevent using not initialized guids in some code.
-    /// 初始化游戏的guid
+    ///-在任何表加载之前初始化最高guids，以防止在某些代码中使用未初始化的guids。
     sObjectMgr->SetHighestGuids();
 
     ///- Check the existence of the map files for all races' startup areas.
@@ -1818,12 +1818,12 @@ bool World::SetInitialWorldSettings()
 
     ///- Update the realm entry in the database with the realm type from the config file
     // No SQL injection as values are treated as integers
-
-    // not send custom type REALM_FFA_PVP to realm list
     ///-使用配置文件中的领域类型更新数据库中的领域条目
     // 没有SQL注入，因为值被视为整数
 
+    // not send custom type REALM_FFA_PVP to realm list
     // 不发送自定义类型REALM_FFA_PVP到服务器列表
+    // ffapvp指代的意思是自由对战 Free - For - All
     uint32 server_type = IsFFAPvPRealm() ? uint32(REALM_TYPE_PVP) : getIntConfig(CONFIG_GAME_TYPE);
     uint32 realm_zone = getIntConfig(CONFIG_REALM_ZONE);
 
@@ -1831,7 +1831,7 @@ bool World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Initialize data stores...");
     ///- Load DB2s
-    ///-加载DB2s
+    ///-db to stores
     m_availableDbcLocaleMask = sDB2Manager.LoadStores(m_dataPath, m_defaultDbcLocale);
     if (!(m_availableDbcLocaleMask & (1 << m_defaultDbcLocale)))
     {
@@ -1860,25 +1860,34 @@ bool World::SetInitialWorldSettings()
     通过加载这些摄像机数据，能够让游戏在合适的时候按照预定的方式切换视角、移动镜头，增强游戏的视觉表现力和沉浸感。
     */
     ///- Load M2 fly by cameras
+    ///- M2是魔兽中的3d模型文件的格式
     LoadM2Cameras(m_dataPath);
+
     ///- Load GameTables
+    /// 加载游戏数据的表
     LoadGameTables(m_dataPath);
 
     // Load weighted graph on taxi nodes path
-    // 初始化飞行的路径
+    // 初始化游戏里飞机的的路径 --飞机是指游戏内定点移动
     TaxiPathGraph::Initialize();
+
     // Load IP Location Database
     // ip位置的数据库
+    // 应该是根据ip获取玩家地理位置的数据
     sIPLocation->Load();
 
     // always use declined names in the russian client
+    // 在俄罗斯客户端总是使用那些谢绝的名字
+    // 这里是确定的意思不是拒绝 在俄语客户端
     if (Cfg_CategoriesEntry const *category = sCfgCategoriesStore.LookupEntry(m_int_configs[CONFIG_REALM_ZONE]))
         if (category->GetCreateCharsetMask().HasFlag(CfgCategoriesCharsets::Russian))
             m_bool_configs[CONFIG_DECLINED_NAMES_USED] = true;
 
+    // 一个ParentMapID对应多个mapID
     std::unordered_map<uint32, std::vector<uint32>> mapData;
     for (MapEntry const *mapEntry : sMapStore)
     {
+        // c++ emplace在mapdata的空间上直接new一个对象
         mapData.emplace(std::piecewise_construct, std::forward_as_tuple(mapEntry->ID), std::forward_as_tuple());
         if (mapEntry->ParentMapID != -1)
         {
@@ -1900,8 +1909,10 @@ bool World::SetInitialWorldSettings()
     mmmgr->InitializeThreadUnsafe(mapData);
 
     ///- Initialize static helper structures
+    ///- 初始化一些静态的数据结构
     AIRegistry::Initialize();
 
+    // 玩家数据转储 --可以把一些玩家数据写到文件里
     TC_LOG_INFO("server.loading", "Initializing PlayerDump tables...");
     PlayerDump::InitializeTables();
 
@@ -2512,6 +2523,11 @@ bool World::SetInitialWorldSettings()
     // mailtimer is increased when updating auctions
     // one second is 1000 -(tested on win system)
     /// @todo Get rid of magic numbers
+
+    // 设置邮件定时器，每天早上4点到5点之间回复邮件
+    // 更新拍卖时增加mailtimer
+    //  1秒是1000 -（在win系统上测试）
+    /// @todo删除幻数
     tm localTm;
     time_t gameTime = GameTime::GetGameTime();
     localtime_r(&gameTime, &localTm);

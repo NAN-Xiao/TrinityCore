@@ -923,6 +923,8 @@ enum TutorialsFlag : uint8
 
 // class to deal with packet processing
 // allows to determine if next packet is safe to be processed
+// 类处理包的处理
+// 允许确定下一个包是否可以安全处理
 class PacketFilter
 {
 public:
@@ -1887,7 +1889,7 @@ public:                                                  // opcodes handlers
     void HandleArtifactAddPower(WorldPackets::Artifact::ArtifactAddPower &artifactAddPower);
     void HandleArtifactSetAppearance(WorldPackets::Artifact::ArtifactSetAppearance &artifactSetAppearance);
     void HandleConfirmArtifactRespec(WorldPackets::Artifact::ConfirmArtifactRespec &confirmArtifactRespec);
-/*----------------------------------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------------------------------*/
     // Scenario
     // 兴趣点
     void HandleQueryScenarioPOI(WorldPackets::Scenario::QueryScenarioPOI &queryScenarioPOI);

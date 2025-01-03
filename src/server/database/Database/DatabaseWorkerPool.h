@@ -114,6 +114,8 @@ public:
 
     //! Directly executes an SQL query in string format that will block the calling thread until finished.
     //! Returns reference counted auto pointer, no need for manual memory management in upper level code.
+    // !直接以字符串格式执行SQL查询，该查询将阻塞调用线程，直到完成。
+    // !返回引用计数的自动指针，不需要在上层代码中手动内存管理。
     QueryResult Query(char const *sql, T *connection = nullptr);
 
     //! Directly executes an SQL query in string format -with variable args- that will block the calling thread until finished.

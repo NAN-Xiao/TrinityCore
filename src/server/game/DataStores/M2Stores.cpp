@@ -30,7 +30,7 @@ typedef std::vector<FlyByCamera> FlyByCameraCollection;
 std::unordered_map<uint32, FlyByCameraCollection> sFlyByCameraStore;
 
 // Convert the geomoetry from a spline value, to an actual WoW XYZ
-G3D::Vector3 translateLocation(G3D::Vector4 const* dbcLocation, G3D::Vector3 const* basePosition, G3D::Vector3 const* splineVector)
+G3D::Vector3 translateLocation(G3D::Vector4 const *dbcLocation, G3D::Vector3 const *basePosition, G3D::Vector3 const *splineVector)
 {
     G3D::Vector3 work;
     float x = basePosition->x + splineVector->x;
@@ -49,9 +49,10 @@ G3D::Vector3 translateLocation(G3D::Vector4 const* dbcLocation, G3D::Vector3 con
 }
 
 // Number of cameras not used. Multiple cameras never used in 7.1.5
-bool readCamera(M2Camera const* cam, uint32 buffSize, M2Header const* header, CinematicCameraEntry const* dbcentry)
+// 未使用的摄像机数量。7.1.5中从未使用过多个摄像头
+bool readCamera(M2Camera const *cam, uint32 buffSize, M2Header const *header, CinematicCameraEntry const *dbcentry)
 {
-    char const* buffer = reinterpret_cast<char const*>(header);
+    char const *buffer = reinterpret_cast<char const *>(header);
 
     FlyByCameraCollection cameras;
     FlyByCameraCollection targetcam;
@@ -63,20 +64,21 @@ bool readCamera(M2Camera const* cam, uint32 buffSize, M2Header const* header, Ci
     dbcData.w = dbcentry->OriginFacing;
 
     // Read target locations, only so that we can calculate orientation
+    // 读取目标位置，以便计算方向
     for (uint32 k = 0; k < cam->target_positions.timestamps.number; ++k)
     {
         // Extract Target positions
         if (cam->target_positions.timestamps.offset_elements + sizeof(M2Array) > buffSize)
             return false;
-        M2Array const* targTsArray = reinterpret_cast<M2Array const*>(buffer + cam->target_positions.timestamps.offset_elements);
+        M2Array const *targTsArray = reinterpret_cast<M2Array const *>(buffer + cam->target_positions.timestamps.offset_elements);
         if (targTsArray->offset_elements + sizeof(uint32) > buffSize || cam->target_positions.values.offset_elements + sizeof(M2Array) > buffSize)
             return false;
-        uint32 const* targTimestamps = reinterpret_cast<uint32 const*>(buffer + targTsArray->offset_elements);
-        M2Array const* targArray = reinterpret_cast<M2Array const*>(buffer + cam->target_positions.values.offset_elements);
+        uint32 const *targTimestamps = reinterpret_cast<uint32 const *>(buffer + targTsArray->offset_elements);
+        M2Array const *targArray = reinterpret_cast<M2Array const *>(buffer + cam->target_positions.values.offset_elements);
 
         if (targArray->offset_elements + sizeof(M2SplineKey<G3D::Vector3>) > buffSize)
             return false;
-        M2SplineKey<G3D::Vector3> const* targPositions = reinterpret_cast<M2SplineKey<G3D::Vector3> const*>(buffer + targArray->offset_elements);
+        M2SplineKey<G3D::Vector3> const *targPositions = reinterpret_cast<M2SplineKey<G3D::Vector3> const *>(buffer + targArray->offset_elements);
 
         // Read the data for this set
         uint32 currPos = targArray->offset_elements;
@@ -103,14 +105,14 @@ bool readCamera(M2Camera const* cam, uint32 buffSize, M2Header const* header, Ci
         // Extract Camera positions for this set
         if (cam->positions.timestamps.offset_elements + sizeof(M2Array) > buffSize)
             return false;
-        M2Array const* posTsArray = reinterpret_cast<M2Array const*>(buffer + cam->positions.timestamps.offset_elements);
+        M2Array const *posTsArray = reinterpret_cast<M2Array const *>(buffer + cam->positions.timestamps.offset_elements);
         if (posTsArray->offset_elements + sizeof(uint32) > buffSize || cam->positions.values.offset_elements + sizeof(M2Array) > buffSize)
             return false;
-        uint32 const* posTimestamps = reinterpret_cast<uint32 const*>(buffer + posTsArray->offset_elements);
-        M2Array const* posArray = reinterpret_cast<M2Array const*>(buffer + cam->positions.values.offset_elements);
+        uint32 const *posTimestamps = reinterpret_cast<uint32 const *>(buffer + posTsArray->offset_elements);
+        M2Array const *posArray = reinterpret_cast<M2Array const *>(buffer + cam->positions.values.offset_elements);
         if (posArray->offset_elements + sizeof(M2SplineKey<G3D::Vector3>) > buffSize)
             return false;
-        M2SplineKey<G3D::Vector3> const* positions = reinterpret_cast<M2SplineKey<G3D::Vector3> const*>(buffer + posArray->offset_elements);
+        M2SplineKey<G3D::Vector3> const *positions = reinterpret_cast<M2SplineKey<G3D::Vector3> const *>(buffer + posArray->offset_elements);
 
         // Read the data for this set
         uint32 currPos = posArray->offset_elements;
@@ -172,7 +174,7 @@ bool readCamera(M2Camera const* cam, uint32 buffSize, M2Header const* header, Ci
     return true;
 }
 
-TC_GAME_API void LoadM2Cameras(std::string const& dataPath)
+TC_GAME_API void LoadM2Cameras(std::string const &dataPath)
 {
     sFlyByCameraStore.clear();
     TC_LOG_INFO("server.loading", ">> Loading Cinematic Camera files");
@@ -180,7 +182,7 @@ TC_GAME_API void LoadM2Cameras(std::string const& dataPath)
     boost::filesystem::path camerasPath = boost::filesystem::path(dataPath) / "cameras";
 
     uint32 oldMSTime = getMSTime();
-    for (CinematicCameraEntry const* cameraEntry : sCinematicCameraStore)
+    for (CinematicCameraEntry const *cameraEntry : sCinematicCameraStore)
     {
         boost::filesystem::path filename = camerasPath / Trinity::StringFormat("FILE{:08X}.xxx", cameraEntry->FileDataID);
 
@@ -227,7 +229,7 @@ TC_GAME_API void LoadM2Cameras(std::string const& dataPath)
 
         bool fileValid = true;
         uint32 m2start = 0;
-        char const* ptr = buffer.data();
+        char const *ptr = buffer.data();
         while (m2start + 4 < buffer.size() && memcmp(ptr, "MD20", 4) != 0)
         {
             ++m2start;
@@ -246,7 +248,7 @@ TC_GAME_API void LoadM2Cameras(std::string const& dataPath)
         }
 
         // Read header
-        M2Header const* header = reinterpret_cast<M2Header const*>(buffer.data() + m2start);
+        M2Header const *header = reinterpret_cast<M2Header const *>(buffer.data() + m2start);
 
         if (m2start + header->ofsCameras + sizeof(M2Camera) > static_cast<uint32>(fileSize))
         {
@@ -255,7 +257,7 @@ TC_GAME_API void LoadM2Cameras(std::string const& dataPath)
         }
 
         // Get camera(s) - Main header, then dump them.
-        M2Camera const* cam = reinterpret_cast<M2Camera const*>(buffer.data() + m2start + header->ofsCameras);
+        M2Camera const *cam = reinterpret_cast<M2Camera const *>(buffer.data() + m2start + header->ofsCameras);
         if (!readCamera(cam, fileSize - m2start, header, cameraEntry))
             TC_LOG_ERROR("server.loading", "Camera file {} is damaged. Camera references position beyond file end", filename.string());
     }
@@ -263,7 +265,7 @@ TC_GAME_API void LoadM2Cameras(std::string const& dataPath)
     TC_LOG_INFO("server.loading", ">> Loaded {} cinematic waypoint sets in {} ms", sFlyByCameraStore.size(), GetMSTimeDiffToNow(oldMSTime));
 }
 
-std::vector<FlyByCamera> const* GetFlyByCameras(uint32 cinematicCameraId)
+std::vector<FlyByCamera> const *GetFlyByCameras(uint32 cinematicCameraId)
 {
     return Trinity::Containers::MapGetValuePtr(sFlyByCameraStore, cinematicCameraId);
 }

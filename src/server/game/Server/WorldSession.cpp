@@ -332,7 +332,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
     ///-在处理任何东西之前：
     /// 如果有必要，踢玩家，因为客户端没有发送任何东西太长时间
     /// （或者在字符选择中空闲）
-
     if (IsConnectionIdle() && !HasPermission(rbac::RBAC_PERM_IGNORE_IDLE_CONNECTION))
         m_Socket[CONNECTION_TYPE_REALM]->CloseSocket();
 
@@ -512,7 +511,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
 
     ProcessQueryCallbacks();
     ///////////////////////////////////////////////////////////////////////////////////
-    // check if we are safe to proceed with logout              
+    // check if we are safe to proceed with logout
     // logout procedure should happen only in World::UpdateSessions() method!!!
     // 检查退出是否安全
     // 注销过程应该只在World::UpdateSessions（）方法中发生！！
