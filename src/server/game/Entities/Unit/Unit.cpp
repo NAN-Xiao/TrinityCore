@@ -12685,6 +12685,7 @@ void Unit::SendTeleportPacket(TeleportLocation const &teleportLocation)
     }
 
     // Broadcast the packet to everyone except self.
+    // 将数据包广播给除了自己之外的所有人。
     broadcastSource->SendMessageToSet(moveUpdateTeleport.Write(), false);
 }
 // unit是player或者其他生物的父类

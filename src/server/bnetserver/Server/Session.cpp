@@ -797,7 +797,7 @@ bool Battlenet::Session::ReadHeaderHandler()
     _packetBuffer.Resize(header.size());
     return true;
 }
-
+// 这里处理已经接收到的完整消息
 bool Battlenet::Session::ReadDataHandler()
 {
     Header header;

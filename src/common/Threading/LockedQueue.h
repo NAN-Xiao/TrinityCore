@@ -21,7 +21,7 @@
 #include <deque>
 #include <mutex>
 
-template <class T, typename StorageType = std::deque<T> >
+template <class T, typename StorageType = std::deque<T>>
 class LockedQueue
 {
     //! Lock access to the queue.
@@ -34,7 +34,6 @@ class LockedQueue
     volatile bool _canceled;
 
 public:
-
     //! Create a LockedQueue.
     LockedQueue()
         : _canceled(false)
@@ -47,7 +46,7 @@ public:
     }
 
     //! Adds an item to the queue.
-    void add(const T& item)
+    void add(const T &item)
     {
         lock();
 
@@ -57,7 +56,8 @@ public:
     }
 
     //! Adds items back to front of the queue
-    template<class Iterator>
+    // !将项添加回队列的前面
+    template <class Iterator>
     void readd(Iterator begin, Iterator end)
     {
         std::lock_guard<std::mutex> lock(_lock);
@@ -65,7 +65,7 @@ public:
     }
 
     //! Gets the next result in the queue, if any.
-    bool next(T& result)
+    bool next(T &result)
     {
         std::lock_guard<std::mutex> lock(_lock);
 
@@ -78,8 +78,8 @@ public:
         return true;
     }
 
-    template<class Checker>
-    bool next(T& result, Checker& check)
+    template <class Checker>
+    bool next(T &result, Checker &check)
     {
         std::lock_guard<std::mutex> lock(_lock);
 
@@ -95,11 +95,11 @@ public:
     }
 
     //! Peeks at the top of the queue. Check if the queue is empty before calling! Remember to unlock after use if autoUnlock == false.
-    T& peek(bool autoUnlock = false)
+    T &peek(bool autoUnlock = false)
     {
         lock();
 
-        T& result = _queue.front();
+        T &result = _queue.front();
 
         if (autoUnlock)
             unlock();
@@ -108,6 +108,7 @@ public:
     }
 
     //! Cancels the queue.
+    // 取消队列。
     void cancel()
     {
         std::lock_guard<std::mutex> lock(_lock);

@@ -262,18 +262,23 @@ void WorldSocket::OnClose()
         _worldSession = nullptr;
     }
 }
-
+//////////////////////////////////////
+/// 重要！！！                      ///
+/// 应该是这里处理的字节数据包       ///
+//////////////////////////////////////
 void WorldSocket::ReadHandler()
 {
     if (!IsOpen())
         return;
 
     MessageBuffer &packet = GetReadBuffer();
+    // packet活跃中 --正在接受消息？？直到完整的消息到位
     while (packet.GetActiveSize() > 0)
     {
         if (_headerBuffer.GetRemainingSpace() > 0)
         {
             // need to receive the header
+            // 先接受一个完整的包头
             std::size_t readHeaderSize = std::min(packet.GetActiveSize(), _headerBuffer.GetRemainingSpace());
             _headerBuffer.Write(packet.GetReadPointer(), readHeaderSize);
             packet.ReadCompleted(readHeaderSize);
@@ -286,6 +291,7 @@ void WorldSocket::ReadHandler()
             }
 
             // We just received nice new header
+            // 接受了一个不错的新包头
             if (!ReadHeaderHandler())
             {
                 CloseSocket();
@@ -294,9 +300,11 @@ void WorldSocket::ReadHandler()
         }
 
         // We have full read header, now check the data payload
+        // 我们有完整的读头，现在检查有效数据的部分
         if (_packetBuffer.GetRemainingSpace() > 0)
         {
             // need more data in the payload
+            // 负载需要更多的数据
             std::size_t readDataSize = std::min(packet.GetActiveSize(), _packetBuffer.GetRemainingSpace());
             _packetBuffer.Write(packet.GetReadPointer(), readDataSize);
             packet.ReadCompleted(readDataSize);
@@ -304,19 +312,22 @@ void WorldSocket::ReadHandler()
             if (_packetBuffer.GetRemainingSpace() > 0)
             {
                 // Couldn't receive the whole data this time.
+                // 这次没能接收到全部的数据
                 ASSERT(packet.GetActiveSize() == 0);
                 break;
             }
         }
 
         // just received fresh new payload
+        // 接收到了完整的消息体
         ReadDataHandlerResult result = ReadDataHandler();
         _headerBuffer.Reset();
+
+        // result不是ok也不是等待哪就是error！！ 就关闭socket
         if (result != ReadDataHandlerResult::Ok)
         {
             if (result != ReadDataHandlerResult::WaitingForQuery)
                 CloseSocket();
-
             return;
         }
     }
@@ -356,19 +367,22 @@ bool WorldSocket::ReadHeaderHandler()
     return true;
 }
 
+// 这里处理已经接收到的完整消息
 WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
 {
     PacketHeader *header = reinterpret_cast<PacketHeader *>(_headerBuffer.GetReadPointer());
-
+    // 解密报文失败 返回error
     if (!_authCrypt.DecryptRecv(_packetBuffer.GetReadPointer(), header->Size, header->Tag))
     {
         TC_LOG_ERROR("network", "WorldSocket::ReadHeaderHandler(): client {} failed to decrypt packet (size: {})",
                      GetRemoteIpAddress().to_string(), header->Size);
         return ReadDataHandlerResult::Error;
     }
-
+    // 这里没有使用new 表示packet是在栈上创建的对象 成员变量也会被创建在栈上
+    // 优势是当函数调用结束的时候所有的对象都会被自动释放
     WorldPacket packet(std::move(_packetBuffer), GetConnectionType());
     OpcodeClient opcode = packet.read<OpcodeClient>();
+    // 错误的opcode
     if (!opcodeTable.IsValid(opcode))
     {
         TC_LOG_ERROR("network", "WorldSocket::ReadHeaderHandler(): client {} sent wrong opcode (opcode: {})",
@@ -377,7 +391,7 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
     }
 
     packet.SetOpcode(opcode);
-
+    // 如果可以输出packet的log
     if (sPacketLog->CanLogPacket())
         sPacketLog->LogPacket(packet, CLIENT_TO_SERVER, GetRemoteIpAddress(), GetRemotePort(), GetConnectionType());
 
@@ -425,6 +439,7 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
         if (_authed)
         {
             // locking just to safely log offending user is probably overkill but we are disconnecting him anyway
+            // 锁定只是为了安全登录违规用户可能是过度的，但我们还是要断开他的连接
             if (sessionGuard.try_lock())
                 TC_LOG_ERROR("network", "WorldSocket::ProcessIncoming: received duplicate CMSG_AUTH_CONTINUED_SESSION from {}", _worldSession->GetPlayerInfo());
             return ReadDataHandlerResult::Error;
@@ -505,7 +520,7 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
         _worldSession->ResetTimeOutTime(false);
 
         // Copy the packet to the heap before enqueuing
-        // 在排队前将数据包复制到堆中
+        // 在排队前将数据包复制到_receiveQue中
         _worldSession->QueuePacket(new WorldPacket(std::move(packet)));
         break;
     }

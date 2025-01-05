@@ -88,6 +88,7 @@ class PetAura;
 class PlayerAI;
 class PlayerAchievementMgr;
 class PlayerMenu;
+// 社交
 class PlayerSocial;
 class QuestObjectiveCriteriaMgr;
 class ReputationMgr;
@@ -1194,38 +1195,47 @@ public:
     bool TeleportTo(WorldLocation const &loc, TeleportToOptions options = TELE_TO_NONE, Optional<uint32> instanceId = {}, uint32 teleportSpellId = 0);
     bool TeleportTo(TeleportLocation const &teleportLocation, TeleportToOptions options = TELE_TO_NONE, uint32 teleportSpellId = 0);
     bool TeleportToBGEntryPoint();
-
+    // HasSummonPending 有正在等待的召唤？
     bool HasSummonPending() const;
+    // 发送召唤请求
     void SendSummonRequestFrom(Unit *summoner);
+    // 若有可能则进行召唤
     void SummonIfPossible(bool agree);
 
     bool Create(ObjectGuid::LowType guidlow, WorldPackets::Character::CharacterCreateInfo const *createInfo);
 
     void Update(uint32 time) override;
-
+    // 心跳
     void Heartbeat() override;
-
+    // 免疫魔法？
     bool IsImmunedToSpellEffect(SpellInfo const *spellInfo, SpellEffectInfo const &spellEffectInfo, WorldObject const *caster, bool requireImmunityPurgesEffectAttribute = false) const override;
-
+    // 在区域当中？
     bool IsInAreaTrigger(AreaTriggerEntry const *areaTrigger) const;
 
     void SendInitialPacketsBeforeAddToMap();
     void SendInitialPacketsAfterAddToMap();
     void SendSupercededSpell(uint32 oldSpell, uint32 newSpell) const;
+    // 发送传输已取消的通知
     void SendTransferAborted(uint32 mapid, TransferAbortReason reason, uint8 arg = 0, int32 mapDifficultyXConditionID = 0) const;
-
+    // 能够与任务发布者进行交互吗
     bool CanInteractWithQuestGiver(Object *questGiver) const;
+    // “如果可以与之交互则获取 NPC
     Creature *GetNPCIfCanInteractWith(ObjectGuid const &guid, NPCFlags npcFlags, NPCFlags2 npcFlags2) const;
+    // 如果可以与之交互则获取游戏对象
     GameObject *GetGameObjectIfCanInteractWith(ObjectGuid const &guid) const;
     GameObject *GetGameObjectIfCanInteractWith(ObjectGuid const &guid, GameobjectTypes type) const;
-
+    // 切换到暂离状态
     void ToggleAFK();
+    // 切换到免打扰状态
     void ToggleDND();
+    // 离开状态
     bool isAFK() const { return HasPlayerFlag(PLAYER_FLAGS_AFK); }
+    // 免打扰状态
     bool isDND() const { return HasPlayerFlag(PLAYER_FLAGS_DND); }
+    // 聊天flag
     uint16 GetChatFlags() const;
     std::string autoReplyMsg;
-
+    // 理发店
     int64 GetBarberShopCost(Trinity::IteratorPair<UF::ChrCustomizationChoice const *> newCustomizations) const;
 
     PlayerSocial *GetSocial() const { return m_social; }
@@ -1242,7 +1252,7 @@ public:
     void ContinueTaxiFlight();
     void StartTaxiMovement(uint32 mountDisplayId, uint32 path, uint32 pathNode, Optional<float> speed,
                            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult);
-
+    // 是不是开发人员
     bool IsDeveloper() const { return HasPlayerFlag(PLAYER_FLAGS_DEVELOPER); }
     void SetDeveloper(bool on)
     {
@@ -1251,7 +1261,9 @@ public:
         else
             RemovePlayerFlag(PLAYER_FLAGS_DEVELOPER);
     }
+    // 是否接受私聊
     bool isAcceptWhispers() const { return (m_ExtraFlags & PLAYER_EXTRA_ACCEPT_WHISPERS) != 0; }
+    // 设置可否私聊
     void SetAcceptWhispers(bool on)
     {
         if (on)
@@ -1259,9 +1271,13 @@ public:
         else
             m_ExtraFlags &= ~PLAYER_EXTRA_ACCEPT_WHISPERS;
     }
+    // 是gm？
     bool IsGameMaster() const { return (m_ExtraFlags & PLAYER_EXTRA_GM_ON) != 0; }
+    // gm否接受私聊
     bool IsGameMasterAcceptingWhispers() const { return IsGameMaster() && isAcceptWhispers(); }
+    // 能否成为gm
     bool CanBeGameMaster() const;
+    // 设置gm
     void SetGameMaster(bool on);
     bool isGMChat() const { return (m_ExtraFlags & PLAYER_EXTRA_GM_CHAT) != 0; }
     void SetGMChat(bool on)
@@ -1279,6 +1295,7 @@ public:
         else
             m_ExtraFlags &= ~PLAYER_EXTRA_TAXICHEAT;
     }
+    // gm在游戏中是否可见的状态
     bool isGMVisible() const { return !(m_ExtraFlags & PLAYER_EXTRA_GM_INVISIBLE); }
     void SetGMVisible(bool on);
     void SetPvPDeath(bool on)
@@ -1288,37 +1305,44 @@ public:
         else
             m_ExtraFlags &= ~PLAYER_EXTRA_PVP_DEATH;
     }
+    // 种族变了
     bool HasRaceChanged() const { return (m_ExtraFlags & PLAYER_EXTRA_HAS_RACE_CHANGED) != 0; }
     void SetHasRaceChanged() { m_ExtraFlags |= PLAYER_EXTRA_HAS_RACE_CHANGED; }
+    // 招募好友的奖励已经获得
     bool HasBeenGrantedLevelsFromRaF() const { return (m_ExtraFlags & PLAYER_EXTRA_GRANTED_LEVELS_FROM_RAF) != 0; }
     void SetBeenGrantedLevelsFromRaF() { m_ExtraFlags |= PLAYER_EXTRA_GRANTED_LEVELS_FROM_RAF; }
+    // 快速升级
     bool HasLevelBoosted() const { return (m_ExtraFlags & PLAYER_EXTRA_LEVEL_BOOSTED) != 0; }
     void SetHasLevelBoosted() { m_ExtraFlags |= PLAYER_EXTRA_LEVEL_BOOSTED; }
-
+    // 获取当前经验
     uint32 GetXP() const { return m_activePlayerData->XP; }
+    // 获取下一级经验
     uint32 GetXPForNextLevel() const { return m_activePlayerData->NextLevelXP; }
+    // 设置经验 给等级 判断是不是最高等级
     void SetXP(uint32 xp);
     void GiveXP(uint32 xp, Unit *victim, float group_rate = 1.0f);
     void GiveLevel(uint8 level);
     bool IsMaxLevel() const;
-
+    // 根据等级初始化各项属性
     void InitStatsForLevel(bool reapplyMods = false);
 
     // .cheat command related
+    // 作弊相关
     bool GetCommandStatus(uint32 command) const { return (_activeCheats & command) != 0; }
     void SetCommandStatusOn(uint32 command) { _activeCheats |= command; }
     void SetCommandStatusOff(uint32 command) { _activeCheats &= ~command; }
 
     // Played Time Stuff
+    // 游戏游玩时长相关内容
     time_t m_logintime;
     time_t m_Last_tick;
     std::array<uint32, MAX_PLAYED_TIME_INDEX> m_Played_time;
     uint32 GetTotalPlayedTime() const { return m_Played_time[PLAYED_TIME_TOTAL]; }
     uint32 GetLevelPlayedTime() const { return m_Played_time[PLAYED_TIME_LEVEL]; }
-
+    // 获取性别
     Gender GetNativeGender() const override { return Gender(*m_playerData->NativeSex); }
     void SetNativeGender(Gender gender) override { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::NativeSex), gender); }
-
+    //
     void setDeathState(DeathState s) override; // overwrite Unit::setDeathState
 
     PetStable *GetPetStable() { return m_petStable.get(); }
@@ -1326,6 +1350,7 @@ public:
     PetStable const *GetPetStable() const { return m_petStable.get(); }
     void AddPetToUpdateFields(PetStable::PetInfo const &pet, PetSaveMode slot, PetStableFlags flags);
     void SetPetSlot(uint32 petNumber, PetSaveMode dstPetSlot);
+    // 马厩管理
     ObjectGuid GetStableMaster() const;
     void SetStableMaster(ObjectGuid stableMaster);
 
@@ -1344,6 +1369,8 @@ public:
     void SetBattlePetData(BattlePets::BattlePet const *pet = nullptr);
 
     /// Handles said message in regular chat based on declared language and in config pre-defined Range.
+    // 基于声明的语言以及配置中预先定义的范围，在常规聊天中处理上述消息
+    // 应该都是预制的一些表情等文字描述
     void Say(std::string_view text, Language language, WorldObject const * = nullptr) override;
     void Say(uint32 textId, WorldObject const *target = nullptr) override;
     /// Handles yelled message in regular chat based on declared language and in config pre-defined Range.
@@ -1357,10 +1384,11 @@ public:
     void Whisper(uint32 textId, Player *target, bool isBossWhisper = false) override;
     void WhisperAddon(std::string const &text, std::string const &prefix, bool isLogged, Player *receiver);
 
+    // 不同阵营或种族不能听懂对方的语言
     bool CanUnderstandLanguage(Language language) const;
 
     /*********************************************************/
-    /***                    STORAGE SYSTEM                 ***/
+    /***             STORAGE SYSTEM    背包相关             ***/
     /*********************************************************/
 
     /**
@@ -1444,11 +1472,14 @@ public:
 public:
     void UpdateAverageItemLevelTotal();
     void UpdateAverageItemLevelEquipped();
-
+    // 装备槽位
     uint8 FindEquipSlot(Item const *item, uint32 slot, bool swap) const;
+    // 空余背包slot
     uint32 GetFreeInventorySlotCount(EnumFlag<ItemSearchLocation> location = ItemSearchLocation::Inventory) const;
+    // 道具堆叠数量
     uint32 GetItemCount(uint32 item, bool inBankAlso = false, Item *skipItem = nullptr) const;
     uint32 GetItemCountWithLimitCategory(uint32 limitCategory, Item *skipItem = nullptr) const;
+    // 获取item
     Item *GetItemByGuid(ObjectGuid guid) const;
     Item *GetItemByEntry(uint32 entry, ItemSearchLocation where = ItemSearchLocation::Default) const;
     std::vector<Item *> GetItemListByEntry(uint32 entry, bool inBankAlso = false) const;
@@ -1651,7 +1682,7 @@ public:
     uint32 GetGossipMenuForSource(WorldObject const *source) const;
 
     /*********************************************************/
-    /***                    QUEST SYSTEM                   ***/
+    /***             QUEST SYSTEM    任务系统               ***/
     /*********************************************************/
 
     int32 GetQuestMinLevel(Quest const *quest) const;
@@ -1822,7 +1853,7 @@ public:
     bool HasPvPForcingQuest() const;
 
     /*********************************************************/
-    /***                   LOAD SYSTEM                     ***/
+    /***            LOAD SYSTEM     加载系统                ***/
     /*********************************************************/
 
     bool LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const &holder);
@@ -1896,7 +1927,7 @@ public:
     void SendItemRetrievalMail(uint32 itemEntry, uint32 count, ItemContext context); // Item retrieval mails sent by The Postmaster (34337), used in multiple places.
 
     /*********************************************************/
-    /*** MAILED ITEMS SYSTEM ***/
+    /*** MAILED ITEMS SYSTEM   邮件                        ***/
     /*********************************************************/
 
     uint8 unReadMails;
@@ -1954,6 +1985,7 @@ public:
     std::string GetGuildName() const;
 
     // Loot Spec
+    // 专精
     void SetLootSpecId(uint32 id) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LootSpecID), id); }
     uint32 GetLootSpecId() const { return m_activePlayerData->LootSpecID; }
 
@@ -1961,6 +1993,7 @@ public:
     void SetOverrideZonePVPType(ZonePVPTypeOverride type) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::OverrideZonePVPType), uint32(type)); }
 
     // Talents
+    // 天赋
     uint32 GetTalentResetCost() const { return _specializationInfo.ResetTalentsCost; }
     void SetTalentResetCost(uint32 cost) { _specializationInfo.ResetTalentsCost = cost; }
     time_t GetTalentResetTime() const { return _specializationInfo.ResetTalentsTime; }
@@ -1994,7 +2027,7 @@ public:
     bool IsInAreaThatActivatesPvpTalents() const;
     bool IsAreaThatActivatesPvpTalents(uint32 areaID) const;
 
-    // Dual Spec
+    // Dual Spec 双天赋系统
     void ActivateTalentGroup(ChrSpecializationEntry const *spec);
 
     PlayerTalentMap const *GetTalentMap(uint8 spec) const { return &_specializationInfo.Talents[spec]; }
@@ -2008,6 +2041,7 @@ public:
     void LoadActions(PreparedQueryResult result);
 
     // Traits
+    // 特性
     void CreateTraitConfig(WorldPackets::Traits::TraitConfig &traitConfig);
     void AddTraitConfig(WorldPackets::Traits::TraitConfig const &traitConfig);
     UF::TraitConfig const *GetTraitConfig(int32 configId) const;
@@ -2099,13 +2133,15 @@ public:
     void ResetContestedPvP();
 
     /// @todo: maybe move UpdateDuelFlag+DuelComplete to independent DuelHandler
+    /// 将 “UpdateDuelFlag”（更新决斗标志）以及 “DuelComplete”（决斗完成相关操作）这两个功能或函数
+    /// 移动到一个独立的 “DuelHandler”（决斗处理器、决斗处理模块）中。
     std::unique_ptr<DuelInfo> duel;
     void UpdateDuelFlag(time_t currTime);
     void CheckDuelDistance(time_t currTime);
     void DuelComplete(DuelCompleteType type);
     void SetDuelArbiter(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::DuelArbiter), guid); }
     void SetDuelTeam(uint32 duelTeam) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::DuelTeam), duelTeam); }
-
+    // 组队
     bool IsGroupVisibleFor(Player const *p) const;
     bool IsInSameGroupWith(Player const *p) const;
     bool IsInSameRaidWith(Player const *p) const;
@@ -2113,7 +2149,7 @@ public:
     static void RemoveFromGroup(Group *group, ObjectGuid guid, RemoveMethod method = GROUP_REMOVEMETHOD_DEFAULT, ObjectGuid kicker = ObjectGuid::Empty, char const *reason = nullptr);
     void RemoveFromGroup(RemoveMethod method = GROUP_REMOVEMETHOD_DEFAULT) { RemoveFromGroup(GetGroup(), GetGUID(), method); }
     void SendUpdateToOutOfRangeGroupMembers();
-
+    // 工会
     void SetInGuild(ObjectGuid::LowType guildId);
     void SetGuildRank(uint8 rankId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::GuildRankID), rankId); }
     uint8 GetGuildRank() const { return uint8(m_playerData->GuildRankID); }
@@ -2128,6 +2164,7 @@ public:
     void SetPersonalTabard(uint32 style, uint32 color, uint32 borderStyle, uint32 borderColor, uint32 backgroundColor);
 
     // Arena Team
+    // 竞技场队伍
     void SetInArenaTeam(uint32 ArenaTeamId, uint8 slot, uint8 type);
     void SetArenaTeamInfoField(uint8 slot, ArenaTeamInfoType type, uint32 value);
     static void LeaveAllArenaTeams(ObjectGuid guid);
@@ -2137,7 +2174,7 @@ public:
     uint32 GetArenaTeamIdInvited() const { return m_ArenaTeamIdInvited; }
     uint32 GetRBGPersonalRating() const { return GetArenaPersonalRating(3); }
     UF::PVPInfo const *GetPvpInfoForBracket(int8 bracket) const;
-
+    // 地下城
     Difficulty GetDifficultyID(MapEntry const *mapEntry) const;
     Difficulty GetDungeonDifficultyID() const { return m_dungeonDifficulty; }
     Difficulty GetRaidDifficultyID() const { return m_raidDifficulty; }
@@ -2160,12 +2197,17 @@ public:
 
     bool UpdateStats(Stats stat) override;
     bool UpdateAllStats() override;
+    // 法术穿透
     void ApplySpellPenetrationBonus(int32 amount, bool apply);
+    // 调整目标抗性
     void ApplyModTargetResistance(int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModTargetResistance), mod, apply); }
     void ApplyModTargetPhysicalResistance(int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModTargetPhysicalResistance), mod, apply); }
     void UpdateResistances(uint32 school) override;
+    // 更新护甲
     void UpdateArmor() override;
+    // 更新最大生命
     void UpdateMaxHealth() override;
+    // 最大能量
     void UpdateMaxPower(Powers power) override;
     uint32 GetPowerIndex(Powers power) const override;
     void UpdateAttackPowerAndDamage(bool ranged = false) override;
@@ -2181,8 +2223,9 @@ public:
     void UpdateMastery();
     void UpdateVersatilityDamageDone();
     void UpdateHealingDonePercentMod();
+    // 能否使用专精
     bool CanUseMastery() const;
-
+    // 计算最小和最大伤害
     void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bool addTotalPct, float &minDamage, float &maxDamage) const override;
 
     void RecalculateRating(CombatRating cr) { ApplyRatingMod(cr, 0, true); }
@@ -2192,6 +2235,7 @@ public:
     float ApplyRatingDiminishing(CombatRating cr, float bonusValue) const;
 
     /// Returns base spellpower bonus from spellpower stat on items, without spellpower from intellect stat
+    /// 从物品的法力属性返回基础法力加成，不从智力属性返回法力加成
     uint32 GetBaseSpellPowerBonus() const { return m_baseSpellPower; }
     int32 GetSpellPenetrationItemMod() const { return m_spellPenetrationItemMod; }
 
@@ -2200,6 +2244,7 @@ public:
     float GetExpertiseDodgeOrParryReduction(WeaponAttackType attType) const;
     void UpdateBlockPercentage();
     void UpdateCritPercentage(WeaponAttackType attType);
+    // 更新所有暴击几率
     void UpdateAllCritPercentages();
     void UpdateParryPercentage();
     void UpdateDodgePercentage();
@@ -2214,10 +2259,11 @@ public:
     void ApplyManaRegenBonus(int32 amount, bool apply);
     void ApplyHealthRegenBonus(int32 amount, bool apply);
     void UpdateManaRegen();
+    // 更新所有符文能量回复
     void UpdateAllRunesRegen();
 
     void SetPetSpellPower(uint32 spellPower) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::PetSpellPower), spellPower); }
-
+    // roll战利品
     ObjectGuid const &GetLootGUID() const { return m_playerData->LootTargetGUID; }
     void SetLootGUID(ObjectGuid const &guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::LootTargetGUID), guid); }
     Loot *GetLootByWorldObjectGUID(ObjectGuid const &lootWorldObjectGuid) const;
@@ -2361,6 +2407,7 @@ public:
     bool HasExploredZone(uint32 areaId) const;
 
     // These methods are used to periodically update certain area and aura based mechanics used in Heartbeat and Movement
+    // 这些方法用于定期更新心跳和运动中使用的某些区域和光环机制
     void UpdateZoneAndAreaId();
     void UpdateIndoorsOutdoorsAuras();
     void UpdateTavernRestingState();
@@ -2582,14 +2629,14 @@ public:
     bool IsOutdoorPvPActive() const;
 
     /*********************************************************/
-    /***              ENVIROMENTAL SYSTEM                  ***/
+    /***       ENVIROMENTAL SYSTEM     环境系统             ***/
     /*********************************************************/
 
     bool IsImmuneToEnvironmentalDamage() const;
     uint32 EnvironmentalDamage(EnviromentalDamage type, uint32 damage);
 
     /*********************************************************/
-    /***               FLOOD FILTER SYSTEM                 ***/
+    /***    聊天刷屏过滤    FLOOD FILTER SYSTEM             ***/
     /*********************************************************/
 
     struct ChatFloodThrottle
@@ -2608,14 +2655,15 @@ public:
     void UpdateSpeakTime(ChatFloodThrottle::Index index);
 
     /*********************************************************/
-    /***                 VARIOUS SYSTEMS                   ***/
+    /***              杂项   VARIOUS SYSTEMS               ***/
     /*********************************************************/
     void UpdateFallInformationIfNeed(MovementInfo const &minfo, uint32 opcode);
     // only changed for direct client control (possess, vehicle etc.), not stuff you control using pet commands
+    // 只改变了直接客户端控制（占有，车辆等），而不是你用宠物命令控制的东西
     WorldObject *m_seer;
     void SetFallInformation(uint32 time, float z);
     void HandleFall(MovementInfo const &movementInfo);
-
+    // 客户端的control
     void SetClientControl(Unit *target, bool allowMove);
 
     void SetSeer(WorldObject *target) { m_seer = target; }
@@ -2626,25 +2674,27 @@ public:
 
     uint32 GetSaveTimer() const { return m_nextSave; }
     void SetSaveTimer(uint32 timer) { m_nextSave = timer; }
-
+    // 召回位置 ？比如死亡后回到副本入口
     void SaveRecallPosition()
     {
         m_recall_location.Location.WorldRelocate(*this);
         m_recall_location.InstanceId = GetInstanceId();
     }
     void Recall() { TeleportTo(m_recall_location, TELE_TO_NONE); }
-
+    // 绑定家的坐标和位置
     void SetHomebind(WorldLocation const &loc, uint32 areaId);
     void SendBindPointUpdate() const;
     void SendPlayerBound(ObjectGuid const &binderGuid, uint32 areaId) const;
 
     // Homebind coordinates
+
     WorldLocation m_homebind;
     uint16 m_homebindAreaId;
 
     uint8 GetStartLevel(uint8 race, uint8 playerClass, Optional<int32> characterTemplateId) const;
 
     // currently visible objects at player client
+    // 玩家客户端当前可见的对象
     GuidUnorderedSet m_clientGUIDs;
     GuidUnorderedSet m_visibleTransports;
 
@@ -2679,6 +2729,7 @@ public:
     DFQuestsDoneList m_DFQuests;
 
     // Temporarily removed pet cache
+    // 暂时移除宠物缓存
     uint32 GetTemporaryUnsummonedPetNumber() const { return m_temporaryUnsummonedPetNumber; }
     void SetTemporaryUnsummonedPetNumber(uint32 petnumber) { m_temporaryUnsummonedPetNumber = petnumber; }
     Optional<ReactStates> GetTemporaryPetReactState() const { return m_temporaryPetReactState; }
@@ -2709,6 +2760,7 @@ public:
     uint32 m_HomebindTimer;
     bool m_InstanceValid;
     // permanent binds and solo binds by difficulty
+    // 永久绑定和solo绑定的难度
     uint32 GetRecentInstanceId(uint32 mapId) const
     {
         auto itr = m_recentInstances.find(mapId);
@@ -2732,6 +2784,7 @@ public:
     WorldSafeLocsEntry const *GetInstanceEntrance(uint32 targetMapId);
 
     // last used pet number (for BG's)
+    // 最后使用的宠物号码（用于BG）
     uint32 GetLastPetNumber() const { return m_lastpetnumber; }
     void SetLastPetNumber(uint32 petnumber) { m_lastpetnumber = petnumber; }
 
@@ -2740,6 +2793,7 @@ public:
     /*********************************************************/
 
     bool IsInGroup(ObjectGuid groupGuid) const;
+    // 获取组队要求
     Group *GetGroupInvite() const { return m_groupInvite; }
     void SetGroupInvite(Group *group) { m_groupInvite = group; }
     Group *GetGroup(Optional<uint8> partyIndex) { return const_cast<Group *>(const_cast<Player const *>(this)->GetGroup(partyIndex)); }
@@ -2759,6 +2813,7 @@ public:
     PartyResult CanUninviteFromGroup(ObjectGuid guidMember, Optional<uint8> partyIndex) const;
 
     // Battleground / Battlefield Group System
+    // 战场队伍
     void SetBattlegroundOrBattlefieldRaid(Group *group, int8 subgroup = -1);
     void RemoveFromBattlegroundOrBattlefieldRaid();
     Group *GetOriginalGroup() const { return m_originalGroup.getTarget(); }
@@ -2772,11 +2827,12 @@ public:
     MapReference &GetMapRef() { return m_mapRef; }
 
     // Set map to player and add reference
+    // 设置player的地图添加引用
     void SetMap(Map *map) override;
     void ResetMap() override;
-
+    // 是否被允许拾取（战利品等）
     bool isAllowedToLoot(Creature const *creature) const;
-
+    // 炉石？
     UF::DeclinedNames const *GetDeclinedNames() const { return m_playerData->DeclinedNames.has_value() ? &*m_playerData->DeclinedNames : nullptr; }
     uint8 GetRunesState() const;
     uint32 GetRuneCooldown(uint8 index) const { return m_runes->Cooldown[index]; }
@@ -2785,27 +2841,33 @@ public:
     void ResyncRunes() const;
     void InitRunes();
 
+    // 查看他人成就？
     void SendRespondInspectAchievements(Player *player) const;
+    // 获取成就点
     uint32 GetAchievementPoints() const;
     std::vector<uint32> GetCompletedAchievementIds() const;
     bool HasAchieved(uint32 achievementId) const;
     void ResetAchievements();
+    // 失败条件
     void FailCriteria(CriteriaFailEvent condition, int32 failAsset);
     void UpdateCriteria(CriteriaType type, uint64 miscValue1 = 0, uint64 miscValue2 = 0, uint64 miscValue3 = 0, WorldObject *ref = nullptr);
     void StartCriteria(CriteriaStartEvent startEvent, uint32 entry, Milliseconds timeLost = Milliseconds::zero());
     void CompletedAchievement(AchievementEntry const *entry);
     bool ModifierTreeSatisfied(uint32 modifierTreeId) const;
-
+    /// 称号
     bool HasTitle(uint32 bitIndex) const;
     bool HasTitle(CharTitlesEntry const *title) const;
     void SetTitle(CharTitlesEntry const *title, bool lost = false);
+    // 自定义称号
     void SetChosenTitle(int32 title) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerTitle), title); }
+    // 已知的称号
     void SetKnownTitles(uint32 index, uint64 mask) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::KnownTitles, index), mask); }
 
     // bool isActiveObject() const { return true; }
     bool CanSeeGossipOn(Creature const *creature) const;
+    // 可否看到技能释放 比如暴风雪释放前有个跟随鼠标的法阵跟随鼠标。
     bool CanSeeSpellClickOn(Creature const *creature) const;
-
+    // 阵营
     uint32 GetChampioningFaction() const { return m_ChampioningFaction; }
     void SetChampioningFaction(uint32 faction) { m_ChampioningFaction = faction; }
     Spell *m_spellModTakingSpell;
@@ -2819,16 +2881,18 @@ public:
     void RemoveFromWhisperWhiteList(ObjectGuid guid) { WhisperList.remove(guid); }
     // 用来校验客户端的移动信息是否违法
     void ValidateMovementInfo(MovementInfo *mi);
-
+    // 发送移动高度碰撞
     void SendMovementSetCollisionHeight(float height, WorldPackets::Movement::UpdateCollisionHeightReason reason);
-
+    // 能否飞行
     bool CanFly() const override { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_CAN_FLY); }
+    // 是否在水利
     bool CanEnterWater() const override { return true; }
-
+    // 获取区域的字符
     std::string GetMapAreaAndZoneString() const;
     std::string GetCoordsMapAreaAndZoneString() const;
 
     // Void Storage
+    // 虚空仓库 ？不知道
     bool IsVoidStorageUnlocked() const { return HasPlayerFlag(PLAYER_FLAGS_VOID_UNLOCKED); }
     void UnlockVoidStorage() { SetPlayerFlag(PLAYER_FLAGS_VOID_UNLOCKED); }
     void LockVoidStorage() { RemovePlayerFlag(PLAYER_FLAGS_VOID_UNLOCKED); }
@@ -2973,7 +3037,6 @@ public:
     void SetVersatilityBonus(float value) { SetUpdateFieldStatValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::VersatilityBonus), value); }
     // 技能百分比加成
     void ApplyModOverrideSpellPowerByAPPercent(float mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::OverrideSpellPowerByAPPercent), mod, apply); }
-
     void ApplyModOverrideAPBySpellPowerPercent(float mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::OverrideAPBySpellPowerPercent), mod, apply); }
     // player本地标志
     bool HasPlayerLocalFlag(PlayerLocalFlags flags) const { return (*m_activePlayerData->LocalFlags & flags) != 0; }
@@ -2990,10 +3053,10 @@ public:
     void RemoveAuraVision(PlayerFieldByte2Flags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), flags); }
 
     void SetTransportServerTime(int32 transportServerTime) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TransportServerTime), transportServerTime); }
-
+    // 坐骑的能力
     void SetRequiredMountCapabilityFlag(uint8 flag) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RequiredMountCapabilityFlags), flag); }
     void ReplaceAllRequiredMountCapabilityFlags(uint8 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RequiredMountCapabilityFlags), flags); }
-
+    // 是否在友好区域
     bool IsInFriendlyArea() const;
     bool IsFriendlyArea(AreaTableEntry const *inArea) const;
 
@@ -3018,6 +3081,7 @@ public:
 
 protected:
     // Gamemaster whisper whitelist
+    // gm的私聊白名单
     GuidList WhisperList;
     TimePoint m_regenInterruptTimestamp;
     uint32 m_regenTimerCount;
@@ -3030,6 +3094,7 @@ protected:
 
     /*
     this is an array of BG queues (BgTypeIDs) in which is player
+    这是BG队列（bgtypeid）的数组，其中是player
     */
     struct BgBattlegroundQueueID_Rec
     {
@@ -3051,6 +3116,7 @@ protected:
     void PushQuests();
 
     // We allow only one timed quest active at the same time. Below can then be simple value instead of set.
+    // 我们只允许一个定时任务同时进行。下面可以是简单的value而不是set
     typedef std::set<uint32> QuestSet;
     typedef std::unordered_map<uint32, time_t> SeasonalQuestMapByQuest;
     typedef std::unordered_map<uint32, SeasonalQuestMapByQuest> SeasonalQuestMapByEvent;
@@ -3105,7 +3171,7 @@ protected:
     void _LoadCUFProfiles(PreparedQueryResult result);
 
     /*********************************************************/
-    /***                   SAVE SYSTEM                     ***/
+    /***               保存   SAVE SYSTEM                  ***/
     /*********************************************************/
 
     void _SaveCustomizations(CharacterDatabaseTransaction trans);
@@ -3133,7 +3199,7 @@ protected:
     void _SaveCUFProfiles(CharacterDatabaseTransaction trans);
 
     /*********************************************************/
-    /***              ENVIRONMENTAL SYSTEM                 ***/
+    /***            环境系统  ENVIRONMENTAL SYSTEM          ***/
     /*********************************************************/
     void HandleSobering();
     void SendMirrorTimer(MirrorTimerType Type, uint32 MaxValue, uint32 CurrentValue, int32 Regen);
@@ -3142,7 +3208,7 @@ protected:
     int32 getMaxTimer(MirrorTimerType timer) const;
 
     /*********************************************************/
-    /***                  HONOR SYSTEM                     ***/
+    /***                 荣誉 HONOR SYSTEM                  ***/
     /*********************************************************/
     time_t m_lastHonorUpdateTime;
 
@@ -3183,6 +3249,7 @@ protected:
     uint32 m_ArenaTeamIdInvited;
 
     PlayerMails m_mail;
+    // 法术
     PlayerSpellMap m_spells;
     std::unordered_map<uint32 /*overridenSpellId*/, std::unordered_set<uint32> /*newSpellId*/> m_overrideSpells;
     uint32 m_lastPotionId; // last used health/mana potion in combat, that block next potion use
@@ -3213,7 +3280,7 @@ protected:
     std::unique_ptr<ResurrectionData> _resurrectionData;
 
     WorldSession *m_session;
-
+    // 已加入的频道列表
     JoinedChannelsList m_channels;
 
     time_t m_createTime;
@@ -3222,12 +3289,12 @@ protected:
 
     uint32 m_movie;
 
-    TradeData *m_trade;
+    TradeData *m_trade; // 交易
 
-    bool m_DailyQuestChanged;
-    bool m_WeeklyQuestChanged;
-    bool m_MonthlyQuestChanged;
-    bool m_SeasonalQuestChanged;
+    bool m_DailyQuestChanged;    // 日
+    bool m_WeeklyQuestChanged;   // 周
+    bool m_MonthlyQuestChanged;  // 月
+    bool m_SeasonalQuestChanged; // 季
     time_t m_lastDailyQuestTime;
 
     uint32 m_hostileReferenceCheckTimer;
@@ -3252,6 +3319,7 @@ protected:
     PlayerSocial *m_social;
 
     // Groups
+    // 组队
     GroupReference m_group;
     GroupReference m_originalGroup;
     Group *m_groupInvite;
@@ -3263,10 +3331,12 @@ protected:
     uint32 m_lastpetnumber;
 
     // Player summoning
+    // 召唤
     time_t m_summon_expire;
     TeleportLocation m_summon_location;
 
     // Recall position
+    // 召回位置
     TeleportLocation m_recall_location;
 
     std::unique_ptr<Runes> m_runes;
@@ -3282,7 +3352,8 @@ protected:
     std::array<std::unique_ptr<CUFProfile>, MAX_CUF_PROFILES> _CUFProfiles;
 
 private:
-    // internal common parts for CanStore/StoreItem functions
+    // 道具存储相关
+    //  internal common parts for CanStore/StoreItem functions
     InventoryResult CanStoreItem_InSpecificSlot(uint8 bag, uint8 slot, ItemPosCountVec &dest, ItemTemplate const *pProto, uint32 &count, bool swap, Item *pSrcItem) const;
     InventoryResult CanStoreItem_InBag(uint8 bag, ItemPosCountVec &dest, ItemTemplate const *pProto, uint32 &count, bool merge, bool non_specialized, Item *pSrcItem, uint8 skip_bag, uint8 skip_slot) const;
     InventoryResult CanStoreItem_InInventorySlots(uint8 slot_begin, uint8 slot_end, ItemPosCountVec &dest, ItemTemplate const *pProto, uint32 &count, bool merge, Item *pSrcItem, uint8 skip_bag, uint8 skip_slot) const;
@@ -3294,14 +3365,17 @@ private:
     GuidSet m_refundableItems;
     void SendRefundInfo(Item *item);
     void RefundItem(Item *item);
+    // 发送物品退款结果
     void SendItemRefundResult(Item *item, ItemExtendedCostEntry const *iece, uint8 error) const;
-
+    // 调整任务目标进度
     void AdjustQuestObjectiveProgress(Quest const *quest);
 
     bool IsCanDelayTeleport() const { return m_bCanDelayTeleport; }
     void SetCanDelayTeleport(bool setting) { m_bCanDelayTeleport = setting; }
     bool IsHasDelayedTeleport() const { return m_bHasDelayedTeleport; }
+    // 设置 延时 传送 标志
     void SetDelayedTeleportFlag(bool setting) { m_bHasDelayedTeleport = setting; }
+    // 延时操作
     void ScheduleDelayedOperation(uint32 operation)
     {
         if (operation < DELAYED_END)
@@ -3366,8 +3440,9 @@ private:
     SceneMgr m_sceneMgr;
 
     std::unordered_map<ObjectGuid /*LootObject*/, Loot *> m_AELootView;
+    // roll完的装备等待回应
     std::vector<LootRoll *> m_lootRolls; // loot rolls waiting for answer
-
+    // 从数据库初始化荣誉
     void _InitHonorLevelOnLoadFromDB(uint32 honor, uint32 honorLevel);
     std::unique_ptr<RestMgr> _restMgr;
 
@@ -3377,14 +3452,20 @@ private:
     // Spell cast request handling
 public:
     // Queues up a spell cast request that has been received via packet and processes it whenever possible.
+    // 将通过数据包接收到的施法请求排队，并尽可能地处理它。
     void RequestSpellCast(std::unique_ptr<SpellCastRequest> castRequest);
+    // 取消待处理的施法请求
     void CancelPendingCastRequest();
+    // 请求施法
     bool CanRequestSpellCast(SpellInfo const *spell, Unit const *castingUnit) const;
 
 private:
     std::unique_ptr<SpellCastRequest> _pendingSpellCastRequest;
+    // 执行待处理的法术释放请求
     void ExecutePendingSpellCastRequest();
+    // 处理物品使用（施法）
     bool ProcessItemCast(SpellCastRequest &castRequest, SpellCastTargets const &targets);
+    // 是否能够执行待处理的法术释放请求
     bool CanExecutePendingSpellCastRequest();
 };
 

@@ -109,7 +109,7 @@ public:
     {
         return _remotePort;
     }
-
+    // async_read_some
     void AsyncRead()
     {
         if (!IsOpen())
@@ -117,13 +117,15 @@ public:
 
         _readBuffer.Normalize();
         _readBuffer.EnsureFreeSpace();
+        // self = this->shared_from_this()返回当前对象 --这里的self就是socket这个对象
+        // transferredBytes表示的是：“已经传输的字节数量”
         _socket.async_read_some(boost::asio::buffer(_readBuffer.GetWritePointer(), _readBuffer.GetRemainingSpace()),
                                 [self = this->shared_from_this()](boost::system::error_code const &error, size_t transferredBytes)
                                 {
                                     self->ReadHandlerInternal(error, transferredBytes);
                                 });
     }
-
+    // async_read_some 有回调
     void AsyncReadWithCallback(void (T::*callback)(boost::system::error_code const &, std::size_t))
     {
         if (!IsOpen())
@@ -177,7 +179,7 @@ public:
 
 protected:
     virtual void OnClose() {}
-
+    // 这里有两个实现 1个是战网的 另外一个是游戏的、
     virtual void ReadHandler() = 0;
 
     bool AsyncProcessQueue()
@@ -220,6 +222,8 @@ protected:
     }
 
 private:
+    //_socket.async_read_some的回调函数
+    // 用于处理异步读取的字节后续的处理
     void ReadHandlerInternal(boost::system::error_code const &error, size_t transferredBytes)
     {
         if (error)
@@ -229,6 +233,7 @@ private:
         }
 
         _readBuffer.WriteCompleted(transferredBytes);
+
         ReadHandler();
     }
 

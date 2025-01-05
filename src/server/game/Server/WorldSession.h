@@ -1935,6 +1935,7 @@ private:
     friend class World;
 
 protected:
+    // 网络防御措施
     class DosProtection
     {
         friend class World;
@@ -1959,6 +1960,7 @@ protected:
         Policy _policy;
         typedef std::unordered_map<uint32, PacketCounter> PacketThrottlingMap;
         // mark this member as "mutable" so it can be modified even in const functions
+        // 将此成员标记为“可变的”，这样即使在const函数中也可以修改它
         mutable PacketThrottlingMap _PacketThrottlingMap;
 
         DosProtection(DosProtection const &right) = delete;

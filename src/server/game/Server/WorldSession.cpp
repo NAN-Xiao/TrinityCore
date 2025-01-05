@@ -348,9 +348,12 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
     time_t currentTime = GameTime::GetGameTime();
 
     constexpr uint32 MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE = 100;
-
+    // 从队列中取出所有的packet 用对应的操作码处理
     while (m_Socket[CONNECTION_TYPE_REALM] && _recvQueue.next(packet, updater))
     {
+        /////////////////////////////////////////////////////////////
+        /// opcode 从 客户端取出 并根据定义的map找到对应操作函数处理 ///
+        ////////////////////////////////////////////////////////////
         OpcodeClient opcode = static_cast<OpcodeClient>(packet->GetOpcode());
         ClientOpcodeHandler const *opHandle = opcodeTable[opcode];
         TC_METRIC_DETAILED_TIMER("worldsession_update_opcode_time", TC_METRIC_TAG("opcode", opHandle->Name));
@@ -377,8 +380,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
                                      GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode())));
                     }
                 }
-                else if (_player->IsInWorld())
+                else if (_player->IsInWorld()) // player已经在世界里了
                 {
+                    // 评估packet的安全性 通过后根据操作码进行逻辑处理
                     if (AntiDOS.EvaluateOpcode(*packet, currentTime))
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
@@ -402,7 +406,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater)
                     opHandle->Call(this, *packet);
                 }
                 else
-                    processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE; // break out of packet processing loop
+                    // 中断包处理循环
+                    //  break out of packet processing loop
+                    processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;
                 break;
             case STATUS_TRANSFER:
                 if (!_player)

@@ -163,6 +163,7 @@ void WaypointMovementGenerator<Creature>::DoReset(Creature *owner)
         _nextMoveTime.Reset(1); // Needed so that Update does not behave as if node was reached
 }
 
+//
 bool WaypointMovementGenerator<Creature>::DoUpdate(Creature *owner, uint32 diff)
 {
     if (!owner || !owner->IsAlive())
@@ -207,7 +208,18 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature *owner, uint32 diff)
          *  - doesnt have a timer? -> is movement valid?
          *
          *  TODO: ((_nextMoveTime.Passed() && VALID_MOVEMENT) || (!_nextMoveTime.Passed() && !HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED)))
-         */
+
+
+            *重新启动只有如果
+            * -有计时器吗？>在没有等待也就是移动的时候被打断了吗？两者都需要检查：
+            * ->有一个定时器-这是因为它在等待启动下一个节点吗？
+            * ->有一个定时器-这是因为一些东西设置它，而移动（如定时暂停）？
+            ＊
+            * -没有计时器？->移动有效吗？
+            ＊
+            * TODO: ((_nextMoveTime.Passed() && VALID_MOVEMENT) || （!_nextMoveTime.Passed() && !HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED))）
+            * /
+        */
         if (HasFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED) && (_nextMoveTime.Passed() || !HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED)))
         {
             StartMove(owner, true);
@@ -227,6 +239,7 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature *owner, uint32 diff)
             owner->SetHomePosition(owner->GetPosition());
 
         // handle switching points in continuous segments
+        // 处理连续段中的开关点
         if (IsExactSplinePath())
         {
             if (_waypointTransitionSplinePointsIndex < _waypointTransitionSplinePoints.size() && owner->movespline->currentPathIdx() >= _waypointTransitionSplinePoints[_waypointTransitionSplinePointsIndex])
@@ -240,19 +253,20 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature *owner, uint32 diff)
         }
 
         // relaunch movement if its speed has changed
+        // 如果运动速度改变，重新启动运动
         if (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING))
             StartMove(owner, true);
     }
-    else if (!_nextMoveTime.Passed()) // it's not moving, is there a timer?
+    else if (!_nextMoveTime.Passed()) // it's not moving, is there a timer?//它不移动，是否有计时器？
     {
         if (UpdateWaitTimer(diff))
         {
-            if (!HasFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED)) // initial movement call
+            if (!HasFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED)) // initial movement call//初始移动调用
             {
                 StartMove(owner);
                 return true;
             }
-            else if (!HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED)) // timer set before node was reached, resume now
+            else if (!HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED)) // timer set before node was reached, resume now//在到达节点之前设置定时器，现在恢复
             {
                 StartMove(owner, true);
                 return true;
@@ -443,6 +457,7 @@ namespace
 void WaypointMovementGenerator<Creature>::StartMove(Creature *owner, bool relaunch /* = false*/)
 {
     // sanity checks
+    // 检查
     if (!owner || !owner->IsAlive() || HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED) || (relaunch && (HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED) || !HasFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED))))
         return;
 
@@ -452,7 +467,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature *owner, bool relaun
 
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting() || (owner->IsFormationLeader() && !owner->IsFormationLeaderMoveAllowed())) // if cannot move OR cannot move because of formation
     {
-        _nextMoveTime.Reset(1000); // delay 1s
+        _nextMoveTime.Reset(1000); // delay 1s//延迟1秒
         return;
     }
 
@@ -506,6 +521,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature *owner, bool relaun
         AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
 
         // inform AI
+        // 通知AI
         if (CreatureAI *AI = owner->AI())
             AI->WaypointStarted(path->Nodes[_currentNode].Id, path->Id);
     }
@@ -537,6 +553,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature *owner, bool relaun
                 --point;
 
             // cyclic paths are using identical duration to first cycle with EnterCycle
+            // 循环路径使用与第一个EnterCycle相同的持续时间
             _moveTimer.Reset(Milliseconds(owner->movespline->Duration()));
             return;
         }
@@ -545,6 +562,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature *owner, bool relaun
     Movement::MoveSplineInit init(owner);
 
     //! If creature is on transport, we assume waypoints set in DB are already transport offsets
+    // !如果生物在传输中，我们假设在DB中设置的路点已经是传输偏移量
     if (transportPath)
         init.DisableTransportPathTransformations();
 
@@ -573,7 +591,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature *owner, bool relaun
         break;
     }
 
-    switch (_speedSelectionMode) // overrides move type from each waypoint if set
+    switch (_speedSelectionMode) // overrides move type from each waypoint if set//覆盖每个路径点的移动类型
     {
     case MovementWalkRunSpeedSelectionMode::Default:
         break;
@@ -603,12 +621,14 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature *owner, bool relaun
 
     if (!IsExactSplinePath() && duration > 2 * SEND_NEXT_POINT_EARLY_DELTA && !lastWaypointForSegment->Delay && path->Nodes.size() > 2
         // don't cut movement short at ends of path if its not a looping path or if it can be traversed backwards
+        // 如果路径不是循环路径或者可以反向遍历，不要在路径的末端缩短移动
         && ((_currentNode != 0 && _currentNode != path->Nodes.size() - 1) || (!IsFollowingPathBackwardsFromEndToStart() && _repeating)))
         duration -= SEND_NEXT_POINT_EARLY_DELTA;
 
     _moveTimer.Reset(duration);
 
     // inform formation
+    // 通知信息
     owner->SignalFormationMovement();
 }
 

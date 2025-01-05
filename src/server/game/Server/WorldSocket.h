@@ -120,6 +120,7 @@ public:
 
 protected:
     void OnClose() override;
+
     void ReadHandler() override;
     bool ReadHeaderHandler();
 
@@ -129,7 +130,8 @@ protected:
         Error = 1,
         WaitingForQuery = 2
     };
-
+    
+    //处理读取的数据：比如根据包头处理包体 
     ReadDataHandlerResult ReadDataHandler();
 
 private:

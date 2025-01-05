@@ -1132,11 +1132,11 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const &holder)
 
     //////////////////////////////////////////////////////////////////////////////////////
     /// 重要！！！                                                                     ///
-    /// 他么的                                                                         ///
-    /// 如果这个LoadFromDB返回true                                                      ///
-    /// loadfromdb函数里会对session中的，也就是当前这个类中的_Player成员变量进行赋值，      ///
-    /// 也就是吧这个pCurrChar赋值给了this._player                                        ///
-    ///  这个函数最后会使用_player, 如果忽略了会不知道_player是在哪赋值的                    ///
+    /// 他么的                                                                        ///
+    /// 如果这个LoadFromDB返回true                                                     ///
+    /// loadfromdb函数里会对session中的，也就是当前这个类中的_Player成员变量进行赋值，     ///
+    /// 也就是吧这个pCurrChar赋值给了this._player                                       ///
+    ///  这个函数最后会使用_player, 如果忽略了会不知道_player是在哪赋值的                 ///
     /////////////////////////////////////////////////////////////////////////////////////
     if (!pCurrChar->LoadFromDB(playerGuid, holder))
     {
