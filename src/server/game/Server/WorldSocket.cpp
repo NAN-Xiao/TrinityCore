@@ -203,11 +203,12 @@ void WorldSocket::InitializeHandler(boost::system::error_code const &error, std:
 
     AsyncReadWithCallback(&WorldSocket::InitializeHandler);
 }
-
+// 只是从_bufferQueue中的package写入到发送队列里
+// 真实的消息发送是父类的handlewrite
 bool WorldSocket::Update()
 {
-    EncryptablePacket *queued;
-    MessageBuffer buffer(_sendBufferSize);
+    EncryptablePacket *queued;             // 加密的数据
+    MessageBuffer buffer(_sendBufferSize); // 消息
     while (_bufferQueue.Dequeue(queued))
     {
         uint32 packetSize = queued->size() + 2 /*opcode*/;

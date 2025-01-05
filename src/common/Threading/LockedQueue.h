@@ -46,6 +46,7 @@ public:
     }
 
     //! Adds an item to the queue.
+    // ！add的时候先上锁
     void add(const T &item)
     {
         lock();

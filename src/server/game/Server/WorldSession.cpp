@@ -298,7 +298,8 @@ void WorldSession::SendPacket(WorldPacket const *packet, bool forced /*= false*/
 }
 
 /// Add an incoming packet to the queue
-/// 向队列中添加一个传入数据包
+/// 向_recvQueue添加一个传入数据包
+/// add是有线程锁的
 void WorldSession::QueuePacket(WorldPacket *new_packet)
 {
     _recvQueue.add(new_packet);

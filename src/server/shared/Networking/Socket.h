@@ -181,7 +181,7 @@ protected:
     virtual void OnClose() {}
     // 这里有两个实现 1个是战网的 另外一个是游戏的、
     virtual void ReadHandler() = 0;
-
+    // 真正的写消息 发送消息 --async_write_some
     bool AsyncProcessQueue()
     {
         if (_isWritingAsync)
