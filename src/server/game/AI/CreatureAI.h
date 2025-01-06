@@ -100,6 +100,8 @@ class TC_GAME_API CreatureAI : public UnitAI
         virtual void JustEngagedWith(Unit* /*who*/) { }
 
         // Called when the creature reaches 0 health (or 1 if unkillable).
+        //即当游戏中的生物（creature，在游戏开发语境下，通常指怪物、NPC 等非玩家角色）的生命值降为 0 时，
+        //或者对于那些设定为无法被杀死（unkillable）的生物，当其生命值降到 1 时，这个函数就会被调用。
         virtual void OnHealthDepleted(Unit* /*attacker*/, bool /*isKill*/) { }
 
         // Called when the creature is killed

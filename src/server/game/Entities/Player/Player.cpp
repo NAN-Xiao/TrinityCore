@@ -1870,7 +1870,7 @@ void Player::InterruptPowerRegen(Powers power)
     m_powerFraction[powerIndex] = 0.0f;
     SendDirectMessage(WorldPackets::Combat::InterruptPowerRegen(power).Write());
 }
-
+// 恢复生命
 void Player::RegenerateHealth()
 {
     uint32 curValue = GetHealth();
@@ -1883,6 +1883,7 @@ void Player::RegenerateHealth()
     float addValue = 0.0f;
 
     // polymorphed case
+    // 变形的情况
     if (IsPolymorphed())
         addValue = float(GetMaxHealth()) / 3.0f;
     // normal regen case (maybe partly in combat case)
@@ -4400,8 +4401,10 @@ void Player::DeleteOldCharacters(uint32 keepDays)
 
 /* Preconditions:
   - a resurrectable corpse must not be loaded for the player (only bones)
+  对于特定的玩家而言，此时游戏中不应呈现可供复活的完整尸体（resurrectable corpse），而只能显示为骨头（bones）这种相对简单的形态
   - the player must be in world
 */
+// 复活机制
 void Player::BuildPlayerRepop()
 {
     WorldPackets::Misc::PreRessurect packet;
@@ -4459,7 +4462,7 @@ void Player::BuildPlayerRepop()
     // OnPlayerRepop hook
     sScriptMgr->OnPlayerRepop(this);
 }
-
+// 复活玩家
 void Player::ResurrectPlayer(float restore_percent, bool applySickness)
 {
     SetAreaSpiritHealer(nullptr);
@@ -6192,7 +6195,7 @@ int16 Player::GetSkillTempBonusValue(uint32 skill) const
 
     return m_activePlayerData->Skill->SkillTempBonus[itr->second.pos];
 }
-
+// 发送 “动作按钮” 相关信息的函数
 void Player::SendActionButtons(uint32 state) const
 {
     WorldPackets::Spells::UpdateActionButtons packet;
@@ -7150,7 +7153,7 @@ void Player::_SaveCurrency(CharacterDatabaseTransaction trans)
         itr->second.state = PLAYERCURRENCY_UNCHANGED;
     }
 }
-
+// 发送货币信息
 void Player::SendCurrencies() const
 {
     WorldPackets::Misc::SetupCurrency packet;
@@ -13271,7 +13274,7 @@ void Player::SendEquipError(InventoryResult msg, Item const *item1 /*= nullptr*/
 
     SendDirectMessage(failure.Write());
 }
-
+// 发送购买失败/错误消息
 void Player::SendBuyError(BuyResult msg, Creature *creature, uint32 item, uint32 /*param*/) const
 {
     WorldPackets::Item::BuyFailed packet;
@@ -17348,7 +17351,7 @@ void Player::SendQuestTimerFailed(uint32 questId) const
         SendDirectMessage(questUpdateFailedTimer.Write());
     }
 }
-
+// 发送 “能否接受任务” 相关回应信息
 void Player::SendCanTakeQuestResponse(QuestFailedReason reason, bool sendErrorMessage /*= true*/, std::string reasonText /*= ""*/) const
 {
     WorldPackets::Quest::QuestGiverInvalidQuest questGiverInvalidQuest;
@@ -17359,7 +17362,7 @@ void Player::SendCanTakeQuestResponse(QuestFailedReason reason, bool sendErrorMe
 
     SendDirectMessage(questGiverInvalidQuest.Write());
 }
-
+// 发送 “任务确认接受” 相关信息
 void Player::SendQuestConfirmAccept(Quest const *quest, Player *receiver) const
 {
     if (!receiver)
@@ -17686,7 +17689,7 @@ void Player::SetHomebind(WorldLocation const &loc, uint32 areaId)
     stmt->setUInt64(6, GetGUID().GetCounter());
     CharacterDatabase.Execute(stmt);
 }
-
+// 发送绑定点 home的信息
 void Player::SendBindPointUpdate() const
 {
     WorldPackets::Misc::BindPointUpdate packet;
@@ -21465,26 +21468,26 @@ void Player::SetAttackSwingError(Optional<AttackSwingErr> err)
 
     m_swingErrorMsg = err;
 }
-
+// 取消自动重复操作的指令或消息
 void Player::SendAutoRepeatCancel(Unit *target)
 {
     WorldPackets::Combat::CancelAutoRepeat cancelAutoRepeat;
     cancelAutoRepeat.Guid = target->GetGUID(); // may be it's target guid
     SendMessageToSet(cancelAutoRepeat.Write(), true);
 }
-
+// 发送探索游戏世界获得的经验值
 void Player::SendExplorationExperience(uint32 Area, uint32 Experience) const
 {
     SendDirectMessage(WorldPackets::Misc::ExplorationExperience(Experience, Area).Write());
 }
-
+// 发送地下城难度（信息）
 void Player::SendDungeonDifficulty(int32 forcedDifficulty /*= -1*/) const
 {
     WorldPackets::Misc::DungeonDifficultySet dungeonDifficultySet;
     dungeonDifficultySet.DifficultyID = forcedDifficulty == -1 ? GetDungeonDifficultyID() : forcedDifficulty;
     SendDirectMessage(dungeonDifficultySet.Write());
 }
-
+// 发送副本难度的相关信息
 void Player::SendRaidDifficulty(bool legacy, int32 forcedDifficulty /*= -1*/) const
 {
     WorldPackets::Misc::RaidDifficultySet raidDifficultySet;
@@ -21492,14 +21495,14 @@ void Player::SendRaidDifficulty(bool legacy, int32 forcedDifficulty /*= -1*/) co
     raidDifficultySet.Legacy = legacy;
     SendDirectMessage(raidDifficultySet.Write());
 }
-
+// 发送重置失败通知
 void Player::SendResetFailedNotify(uint32 /*mapid*/) const
 {
     WorldPackets::Instance::ResetFailedNotify data;
     SendDirectMessage(data.Write());
 }
-
-/// Reset all solo instances and optionally send a message on success for each
+/// 重置所有独立实例，并在每个实例成功时发送消息
+///  Reset all solo instances and optionally send a message on success for each
 void Player::ResetInstances(InstanceResetMethod method)
 {
     for (auto itr = m_recentInstances.begin(); itr != m_recentInstances.end();)
@@ -21543,15 +21546,19 @@ void Player::SendResetInstanceSuccess(uint32 MapId) const
     data.MapID = MapId;
     SendDirectMessage(data.Write());
 }
-
+// 发送重置实例失败
 void Player::SendResetInstanceFailed(ResetFailedReason reason, uint32 mapID) const
 {
     /*reasons for instance reset failure:
     // 0: There are players inside the instance.
     // 1: There are players offline in your party.
     // 2>: There are players in your party attempting to zone into an instance.
-    */
 
+    实例复位失败的原因：
+    // 0：在实例中有玩家。
+    // 1：你的队伍中有离线的玩家。
+    // 2>：你的团队中有玩家试图进入一个实例。
+    */
     WorldPackets::Instance::InstanceResetFailed data;
     data.MapID = mapID;
     data.ResetFailedReason = reason;
@@ -25056,7 +25063,7 @@ int32 Player::FindEmptyProfessionSlotFor(uint32 skillId) const
     auto freeSlot = std::find(professionsBegin, professionsEnd, 0);
     return freeSlot != professionsEnd ? std::distance(professionsBegin, freeSlot) : -1;
 }
-
+// 发送目标身上 “光环（Auras）” 相关信息
 void Player::SendAurasForTarget(Unit *target) const
 {
     if (!target || target->GetVisibleAuras().empty()) // speedup things
@@ -25984,7 +25991,7 @@ void Player::ResurrectUsingRequestData()
 
     ResurrectUsingRequestDataImpl();
 }
-
+// 基于请求数据实现复活
 void Player::ResurrectUsingRequestDataImpl()
 {
     // save health and mana before resurrecting, _resurrectionData can be erased
@@ -27045,14 +27052,16 @@ void Player::FailCriteria(CriteriaFailEvent condition, int32 failAsset)
     m_achievementMgr->FailCriteria(condition, failAsset);
     m_questObjectiveCriteriaMgr->FailCriteria(condition, failAsset);
 }
-
+// 更新标准
 void Player::UpdateCriteria(CriteriaType type, uint64 miscValue1 /*= 0*/, uint64 miscValue2 /*= 0*/, uint64 miscValue3 /*= 0*/, WorldObject *ref /*= nullptr*/)
 {
     m_achievementMgr->UpdateCriteria(type, miscValue1, miscValue2, miscValue3, ref, this);
     m_questObjectiveCriteriaMgr->UpdateCriteria(type, miscValue1, miscValue2, miscValue3, ref, this);
 
-    // Update only individual achievement criteria here, otherwise we may get multiple updates
-    // from a single boss kill
+    // 应当只在这个特定的位置更新那些与单个成就标准（achievement criteria）相关的内容。
+    // 不然的话，很可能会出现因为一次单一的 BOSS 击杀这样一个事件，而导致多次更新的情况发生。
+    //  只更新单独的成就标准，否则我们可能会得到多个更新
+    //  从一个boss击杀
     if (CriteriaMgr::IsGroupCriteriaType(type))
         return;
 
@@ -30233,7 +30242,7 @@ uint32 Player::DoRandomRoll(uint32 minimum, uint32 maximum)
 
     return roll;
 }
-
+// 根据区域设置
 void Player::UpdateItemLevelAreaBasedScaling()
 {
     // @todo Activate pvp item levels during world pvp
@@ -30559,7 +30568,8 @@ void Player::SetAreaSpiritHealer(Creature *creature)
     _areaSpiritHealerGUID = creature->GetGUID();
     CastSpell(nullptr, SPELL_WAITING_FOR_RESURRECT);
 }
-
+// 发送 “区域灵魂医者（Area Spirit Healer）时间
+// 比如战场墓地的天使复活倒计时
 void Player::SendAreaSpiritHealerTime(Unit *spiritHealer) const
 {
     int32 timeLeft = 0;
@@ -30576,7 +30586,7 @@ void Player::SendAreaSpiritHealerTime(ObjectGuid const &spiritHealerGUID, int32 
     areaSpiritHealerTime.TimeLeft = timeLeft;
     SendDirectMessage(areaSpiritHealerTime.Write());
 }
-
+// 发送 “显示提示信息（Toast）
 void Player::SendDisplayToast(uint32 entry, DisplayToastType type, bool isBonusRoll, uint32 quantity, DisplayToastMethod method, uint32 questId, Item *item /*= nullptr*/) const
 {
     WorldPackets::Misc::DisplayToast displayToast;

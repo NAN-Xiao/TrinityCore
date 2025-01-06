@@ -526,6 +526,7 @@ private:
 
 // Struct for use in Unit::CalculateMeleeDamage
 // Need create structure like in SMSG_ATTACKERSTATEUPDATE opcode
+// 计算伤害信息
 struct CalcDamageInfo
 {
     Unit *Attacker;
@@ -628,8 +629,8 @@ struct PositionUpdateInfo
 // 延迟下一次攻击时间以防止客户端攻击动画问题
 #define ATTACK_DISPLAY_DELAY 200
 // max distance for detection targets by player
-//玩家检测目标的最大距离
-#define MAX_PLAYER_STEALTH_DETECT_RANGE 30.0f 
+// 玩家检测目标的最大距离
+#define MAX_PLAYER_STEALTH_DETECT_RANGE 30.0f
 
 class TC_GAME_API Unit : public WorldObject
 {
@@ -807,7 +808,7 @@ public:
     int64 ModifyHealth(int64 val);
     int64 GetHealthGain(int64 dVal);
     void TriggerOnHealthChangeAuras(uint64 oldVal, uint64 newVal);
-
+    // 实际生命值？
     virtual float GetHealthMultiplierForTarget(WorldObject const * /*target*/) const { return 1.0f; }
     virtual float GetDamageMultiplierForTarget(WorldObject const * /*target*/) const { return 1.0f; }
     virtual float GetArmorMultiplierForTarget(WorldObject const * /*target*/) const { return 1.0f; }

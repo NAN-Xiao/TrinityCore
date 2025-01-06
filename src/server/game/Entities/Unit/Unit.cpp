@@ -797,8 +797,8 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
 
 /*static*/ uint32 Unit::DealDamage(Unit *attacker, Unit *victim, uint32 damage, CleanDamage const *cleanDamage, DamageEffectType damagetype, SpellSchoolMask damageSchoolMask, SpellInfo const *spellProto, bool durabilityLoss)
 {
-    uint32 damageDone = damage;
-    uint32 damageTaken = damage;
+    uint32 damageDone = damage;  // 已经造成的伤害
+    uint32 damageTaken = damage; // 受到的伤害
     if (attacker)
         damageTaken = damage / victim->GetHealthMultiplierForTarget(attacker);
 
@@ -818,8 +818,8 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
 
         // Hook for OnDamage Event
         sScriptMgr->OnDamage(attacker, victim, tmpDamage);
-
-        // if any script modified damage, we need to also apply the same modification to unscaled damage value
+        // 如果任何脚本修改了伤害，我们也需要对未缩放的伤害值应用相同的修改
+        //  if any script modified damage, we need to also apply the same modification to unscaled damage value
         if (tmpDamage != damageTaken)
         {
             if (attacker)
@@ -830,8 +830,8 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
             damageTaken = tmpDamage;
         }
     }
-
-    // Signal to pets that their owner was attacked - except when DOT.
+    // 向宠物发出他们的主人被攻击的信号——除非DOT。
+    //  Signal to pets that their owner was attacked - except when DOT.
     if (attacker != victim && damagetype != DOT)
     {
         for (Unit *controlled : victim->m_Controlled)
@@ -839,14 +839,15 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
                 if (CreatureAI *controlledAI = cControlled->AI())
                     controlledAI->OwnerAttackedBy(attacker);
     }
-
+    // 作弊？
     if (Player *player = victim->ToPlayer())
         if (player->GetCommandStatus(CHEAT_GOD))
             return 0;
-
+    // 收到了伤害
     if (damagetype != NODAMAGE)
     {
-        // interrupting auras with SpellAuraInterruptFlags::Damage before checking !damage (absorbed damage breaks that type of auras)
+        // 在检查伤害之前使用SpellAuraInterruptFlags::Damage来打断光环（吸收的伤害会破坏那种类型的光环）
+        //  interrupting auras with SpellAuraInterruptFlags::Damage before checking !damage (absorbed damage breaks that type of auras)
         if (spellProto)
         {
             if (!spellProto->HasAttribute(SPELL_ATTR4_REACTIVE_DAMAGE_PROC))
@@ -854,23 +855,27 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
         }
         else
             victim->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Damage);
-
+        // dot：持续伤害
         if (!damageTaken && damagetype != DOT && cleanDamage && cleanDamage->absorbed_damage)
             if (victim != attacker && victim->GetTypeId() == TYPEID_PLAYER)
                 if (Spell *spell = victim->m_currentSpells[CURRENT_GENERIC_SPELL])
                     if (spell->getState() == SPELL_STATE_PREPARING && spell->m_spellInfo->InterruptFlags.HasFlag(SpellInterruptFlags::DamageAbsorb))
                         victim->InterruptNonMeleeSpells(false);
-
+        // 我们将调用函数，这些函数可以在迭代列表的元素时修改列表的内容
+        // 复制列表以防止迭代器失效
         // We're going to call functions which can modify content of the list during iteration over it's elements
         // Let's copy the list so we can prevent iterator invalidation
         AuraEffectVector vCopyDamageCopy = CopyAuraEffectList(victim->GetAuraEffectsByType(SPELL_AURA_SHARE_DAMAGE_PCT));
-        // copy damage to casters of this aura
+        // 复制伤害给施法者
+        //  copy damage to casters of this aura
         for (auto i = vCopyDamageCopy.begin(); i != vCopyDamageCopy.end(); ++i)
         {
-            // Check if aura was removed during iteration - we don't need to work on such auras
+            // 检查光环是否在迭代过程中被移除-我们不需要处理这样的光环
+            //  Check if aura was removed during iteration - we don't need to work on such auras
             if (!((*i)->GetBase()->IsAppliedOnTarget(victim->GetGUID())))
                 continue;
-            // check damage school mask
+            // 检查伤害学派的掩码
+            //  check damage school mask
             if (((*i)->GetMiscValue() & damageSchoolMask) == 0)
                 continue;
 
@@ -882,6 +887,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
             uint32 share = CalculatePct(damageDone, (*i)->GetAmount());
 
             /// @todo check packets if damage is done by victim, or by attacker of victim
+            // 检查数据包是否由受害者或受害者的攻击者造成损害
             Unit::DealDamageMods(attacker, shareDamageTarget, share, nullptr);
             Unit::DealDamage(attacker, shareDamageTarget, share, nullptr, NODAMAGE, spell->GetSchoolMask(), spell, false);
         }
@@ -893,6 +899,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
     uint32 health = victim->GetHealth();
 
     // duel ends when player has 1 or less hp
+    ////决斗结束时，玩家有1或更少的HP
     bool duel_hasEnded = false;
     bool duel_wasMounted = false;
     if (victim->GetTypeId() == TYPEID_PLAYER && victim->ToPlayer()->duel && damageTaken >= (health - 1))
@@ -943,6 +950,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
         if (Player *killer = attacker->ToPlayer())
         {
             // in bg, count dmg if victim is also a player
+            // 战场里做特殊处理
             if (victim->GetTypeId() == TYPEID_PLAYER && !(spellProto && spellProto->HasAttribute(SPELL_ATTR7_DO_NOT_COUNT_FOR_PVP_SCOREBOARD)))
                 if (Battleground *bg = killer->GetBattleground())
                     bg->UpdatePlayerScore(killer, SCORE_DAMAGE_DONE, damageDone);
@@ -965,7 +973,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
 
     bool killed = false;
     bool skipSettingDeathState = false;
-
+    // 生命值小于伤害 就挂了
     if (health <= damageTaken)
     {
         killed = true;
@@ -989,22 +997,28 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
                     continue;
 
                 // cannot absorb over limit
+                // 不能超过限制
                 if (damageTaken >= victim->CountPctFromMaxHealth(100 + absorbAurEff->GetMiscValueB()))
                     continue;
 
                 // absorb all damage by default
+                // 默认吸收所有伤害
                 uint32 currentAbsorb = damageInfo.GetDamage();
 
                 // This aura type is used both by Spirit of Redemption (death not really prevented, must grant all credit immediately) and Cheat Death (death prevented)
                 // repurpose PreventDefaultAction for this
+                // 这个光环类型被救赎之魂（不能真正阻止死亡，必须立即给予所有积分）和欺骗死亡（阻止死亡）使用。
+                // 重新使用PreventDefaultAction
                 bool deathFullyPrevented = false;
 
                 absorbAurEff->GetBase()->CallScriptEffectAbsorbHandlers(absorbAurEff, aurApp, damageInfo, currentAbsorb, deathFullyPrevented);
 
                 // absorb must be smaller than the damage itself
+                // 吸收必须小于伤害本身
                 currentAbsorb = std::min(currentAbsorb, damageInfo.GetDamage());
 
                 // if nothing is absorbed (for example because of a scripted cooldown) then skip this aura and proceed with dying
+                // 如果没有任何东西被吸收（例如因为脚本设定的冷却时间），那么跳过这个光环，继续死亡
                 if (!currentAbsorb)
                     continue;
 
@@ -1033,17 +1047,21 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
             damageTaken = damageInfo.GetDamage();
         }
     }
-
+    // 损失耐久
     if (spellProto && spellProto->HasAttribute(SPELL_ATTR3_NO_DURABILITY_LOSS))
         durabilityLoss = false;
-
     if (killed)
         Unit::Kill(attacker, victim, durabilityLoss, skipSettingDeathState);
+    ////////////
+    // 没死成 //
+    ////////////
     else
     {
         if (victim->GetTypeId() == TYPEID_PLAYER)
             victim->ToPlayer()->UpdateCriteria(CriteriaType::TotalDamageTaken, damageTaken);
-
+        /////////////////
+        /// 修改生命值 ///
+        /////////////////
         victim->ModifyHealth(-(int32)damageTaken);
 
         if (damagetype == DIRECT_DAMAGE || damagetype == SPELL_DIRECT_DAMAGE)
@@ -1061,6 +1079,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
         else // victim is a player
         {
             // random durability for items (HIT TAKEN)
+            ////物品的随机耐久性（HIT TAKEN）
             if (durabilityLoss && roll_chance_f(sWorld->getRate(RATE_DURABILITY_LOSS_DAMAGE)))
             {
                 EquipmentSlots slot = EquipmentSlots(urand(0, EQUIPMENT_SLOT_END - 1));
@@ -1129,6 +1148,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
         }
 
         // last damage from duel opponent
+        ////从决斗对手的最后伤害
         if (duel_hasEnded)
         {
             Player *he = duel_wasMounted ? victim->GetCharmer()->ToPlayer() : victim->ToPlayer();
@@ -1149,6 +1169,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
     }
 
     // make player victims stand up automatically
+    ////让玩家受害者自动站起来
     if (victim->GetStandState() && victim->IsPlayer())
         victim->SetStandState(UNIT_STAND_STATE_STAND);
 
@@ -3168,7 +3189,7 @@ bool Unit::IsNonMeleeSpellCast(bool withDelayed, bool skipChanneled, bool skipAu
 
     return false;
 }
-
+/// 中断非近战法术
 void Unit::InterruptNonMeleeSpells(bool withDelayed, uint32 spell_id, bool withInstant)
 {
     // generic spells are interrupted if they are not finished or delayed
@@ -8309,7 +8330,7 @@ bool Unit::IsThreatened() const
 {
     return !m_threatManager.IsThreatListEmpty();
 }
-
+// 是否是被攻击的对象
 bool Unit::isTargetableForAttack(bool checkFakeDeath) const
 {
     if (!IsAlive())
@@ -8323,7 +8344,7 @@ bool Unit::isTargetableForAttack(bool checkFakeDeath) const
 
     return !HasUnitState(UNIT_STATE_UNATTACKABLE) && (!checkFakeDeath || !HasUnitState(UNIT_STATE_DIED));
 }
-
+// 修改生命值
 int64 Unit::ModifyHealth(int64 dVal)
 {
     int64 gain = 0;
@@ -8390,7 +8411,7 @@ int64 Unit::GetHealthGain(int64 dVal)
 
     return gain;
 }
-
+// 触发由生命变化引发的光环效果
 void Unit::TriggerOnHealthChangeAuras(uint64 oldVal, uint64 newVal)
 {
     if (!HasAuraType(SPELL_AURA_TRIGGER_SPELL_ON_HEALTH_PCT))
@@ -9693,10 +9714,10 @@ void Unit::SetLevel(uint8 lvl, bool sendUpdate /* = true*/)
         sCharacterCache->UpdateCharacterLevel(GetGUID(), lvl);
     }
 }
-
+// set 生命值
 void Unit::SetHealth(uint64 val)
 {
-    if (getDeathState() == JUST_DIED || getDeathState() == CORPSE)
+    if (getDeathState() == JUST_DIED || getDeathState() == CORPSE) // 刚刚死亡和尸体状态
         val = 0;
     else if (GetTypeId() == TYPEID_PLAYER && getDeathState() == DEAD)
         val = 1;
@@ -9706,13 +9727,13 @@ void Unit::SetHealth(uint64 val)
         if (maxHealth < val)
             val = maxHealth;
     }
-
     uint64 oldVal = GetHealth();
+    // 更新字段的值
     SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Health), val);
-
+    // 触发健康值变化
     TriggerOnHealthChangeAuras(oldVal, val);
-
     // group update
+    // 通知组队的变化
     if (Player *player = ToPlayer())
     {
         if (player->GetGroup())

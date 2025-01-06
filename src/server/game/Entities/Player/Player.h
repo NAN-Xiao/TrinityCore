@@ -3279,7 +3279,7 @@ protected:
 
     std::unique_ptr<ResurrectionData> _resurrectionData;
 
-    WorldSession *m_session;
+    WorldSes'w'saswsassion *m_session;
     // 已加入的频道列表
     JoinedChannelsList m_channels;
 
