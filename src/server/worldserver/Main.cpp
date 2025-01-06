@@ -708,6 +708,8 @@ void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, bo
     }
 }
 
+// 这是一个用于远程访问和管理服务器的功能，允许管理员通过一个安全的连接执行命令来监控和控制服务器的行为。
+// “Remote Administration Session”
 AsyncAcceptor *StartRaSocketAcceptor(Trinity::Asio::IoContext &ioContext)
 {
     uint16 raPort = uint16(sConfigMgr->GetIntDefault("Ra.Port", 3443));

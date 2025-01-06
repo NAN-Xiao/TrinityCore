@@ -46,7 +46,9 @@ public:
     template <AcceptCallback acceptCallback>
     void AsyncAcceptWithCallback()
     {
+        //_socketFactory=socketmgr::GetSocketForAccept
         auto [tmpSocket, tmpThreadIndex] = _socketFactory();
+        // TODO：删除临时变量（clang 15不能像lambda捕获那样处理结构化绑定中的变量）
         // TODO: get rid of temporary variables (clang 15 cannot handle variables from structured bindings as lambda captures)
         boost::asio::ip::tcp::socket *socket = tmpSocket;
         uint32 threadIndex = tmpThreadIndex;
@@ -143,15 +145,17 @@ void AsyncAcceptor::AsyncAccept()
         {
             try
             {
+                //在这里需要this->来修复GCC 4.7.2中的分段错误-原因是在模板类中lambdas
                 // this-> is required here to fix an segmentation fault in gcc 4.7.2 - reason is lambdas in a templated class
                 std::make_shared<T>(std::move(this->_socket))->Start();
             }
             catch (boost::system::system_error const& err)
             {
+                //检索远程客户端地址失败
                 TC_LOG_INFO("network", "Failed to retrieve client's remote address {}", err.what());
             }
         }
-
+        //让我们在这个上面打更多的this->，这样我们就可以在GCC 4.7.2中修复这个bug
         // lets slap some more this-> on this so we can fix this bug with gcc 4.7.2 throwing internals in yo face
         if (!_closed)
             this->AsyncAccept<T>(); });

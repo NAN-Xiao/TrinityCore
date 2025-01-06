@@ -80,8 +80,9 @@ WorldSocket::~WorldSocket()
         delete _compressionStream;
     }
 }
-
-// 这个start启动了真政的异步调用
+// 1.由worldsocketmgr：：OnSocketOpen调用
+// 2.由AsyncAcceptor：：AsyncAccept（）调用
+// 这个start启动了真正的异步调用
 // 接受数据创建socket和worldsocket还有session还有player等一系列的处理都是在这里的回调执行的
 void WorldSocket::Start()
 {

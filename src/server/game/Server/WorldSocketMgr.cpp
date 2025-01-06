@@ -22,6 +22,8 @@
 #include "WorldSocket.h"
 #include <boost/system/error_code.hpp>
 
+// 由WorldSocketMgr::StartWorldNetwork 调用
+
 static void OnSocketAccept(boost::asio::ip::tcp::socket &&sock, uint32 threadIndex)
 {
     sWorldSocketMgr.OnSocketOpen(std::forward<boost::asio::ip::tcp::socket>(sock), threadIndex);
@@ -56,6 +58,7 @@ WorldSocketMgr &WorldSocketMgr::Instance()
     static WorldSocketMgr instance;
     return instance;
 }
+/// 由于main函数调用
 /// 启动world的网络
 /// 创建了一个instanceAcceptor的工厂方法
 /// 当监听到连接请求的时候new一个新的socket
