@@ -1161,7 +1161,9 @@ void Unit::CastStop(uint32 except_spellid)
         if (m_currentSpells[i] && m_currentSpells[i]->m_spellInfo->Id != except_spellid)
             InterruptSpell(CurrentSpellTypes(i), false);
 }
-
+////////////////////////////
+///    远程攻击伤害计算   ///
+///////////////////////////
 void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage *damageInfo, int32 damage, SpellInfo const *spellInfo, WeaponAttackType attackType, bool crit /*= false*/, bool blocked /*= false*/, Spell *spell /*= nullptr*/)
 {
     if (damage < 0)
@@ -1172,25 +1174,28 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage *damageInfo, int32 dama
         return;
 
     SpellSchoolMask damageSchoolMask = SpellSchoolMask(damageInfo->schoolMask);
-
-    // Spells with SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS ignore resilience because their damage is based off another spell's damage.
+    // 带有SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS的法术忽略韧性，因为它们的伤害是基于另一个法术的伤害。
+    //  Spells with SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS ignore resilience because their damage is based off another spell's damage.
     if (!spellInfo->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
     {
         if (Unit::IsDamageReducedByArmor(damageSchoolMask, spellInfo))
             damage = Unit::CalcArmorReducedDamage(damageInfo->attacker, victim, damage, spellInfo, attackType);
 
         // Per-school calc
+        // 法术学派的计算
         switch (spellInfo->DmgClass)
         {
         // Melee and Ranged Spells
+        ////近战和远程法术
         case SPELL_DAMAGE_CLASS_RANGED:
         case SPELL_DAMAGE_CLASS_MELEE:
         {
-            if (crit)
+            if (crit) // 暴击
             {
                 damageInfo->HitInfo |= SPELL_HIT_TYPE_CRIT;
 
                 // Calculate crit bonus
+                // 计算暴击加成
                 uint32 crit_bonus = damage;
                 // Apply crit_damage bonus for melee spells
                 if (Player *modOwner = GetSpellModOwner())
@@ -1205,9 +1210,11 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage *damageInfo, int32 dama
             }
 
             // Spell weapon based damage CAN BE crit & blocked at same time
+            // 基于法术武器的伤害可以同时被暴击和格挡
             if (blocked)
             {
                 // double blocked amount if block is critical
+                // 格挡:关键格挡-格挡两倍伤害
                 uint32 value = victim->GetBlockPercent(GetLevel());
                 if (victim->IsBlockCritical())
                 {
@@ -1228,11 +1235,13 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage *damageInfo, int32 dama
                 Unit::ApplyResilience(victim, &damage);
             break;
         }
-        // Magical Attacks
+        // 魔法攻击
+        //  Magical Attacks
         case SPELL_DAMAGE_CLASS_NONE:
         case SPELL_DAMAGE_CLASS_MAGIC:
         {
             // If crit add critical bonus
+            // 如果暴击则增加暴击量
             if (crit)
             {
                 damageInfo->HitInfo |= SPELL_HIT_TYPE_CRIT;
@@ -1252,6 +1261,7 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage *damageInfo, int32 dama
     sScriptMgr->ModifySpellDamageTaken(damageInfo->target, damageInfo->attacker, damage, spellInfo);
 
     // Calculate absorb resist
+    // 计算吸收抗性
     if (damage < 0)
         damage = 0;
 
@@ -1270,7 +1280,9 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage *damageInfo, int32 dama
 
     damageInfo->damage = dmgInfo.GetDamage();
 }
-
+////////////////////////////
+///    远程攻击伤害应用   ///
+///////////////////////////
 void Unit::DealSpellDamage(SpellNonMeleeDamage const *damageInfo, bool durabilityLoss)
 {
     if (!damageInfo)
@@ -1294,6 +1306,9 @@ void Unit::DealSpellDamage(SpellNonMeleeDamage const *damageInfo, bool durabilit
     Unit::DealDamage(this, victim, damageInfo->damage, &cleanDamage, SPELL_DIRECT_DAMAGE, SpellSchoolMask(damageInfo->schoolMask), damageInfo->Spell, durabilityLoss);
 }
 
+////////////////////////////
+///    近战攻击伤害计算   ///
+///////////////////////////
 /// @todo for melee need create structure as in
 void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, WeaponAttackType attackType /*= BASE_ATTACK*/)
 {
@@ -1322,8 +1337,8 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
 
     if (!IsAlive() || !victim->IsAlive())
         return;
-
-    // Select HitInfo/procAttacker/procVictim flag based on attack type
+    // 根据攻击类型选择HitInfo/ procattack /procVictim标志
+    //  Select HitInfo/procAttacker/procVictim flag based on attack type
     switch (attackType)
     {
     case BASE_ATTACK:
@@ -1338,8 +1353,8 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
     default:
         return;
     }
-
-    // Physical Immune check
+    // 物理免疫检查
+    //  Physical Immune check
     if (damageInfo->Target->IsImmunedToDamage(SpellSchoolMask(damageInfo->DamageSchoolMask)))
     {
         damageInfo->HitInfo |= HITINFO_NORMALSWING;
@@ -1352,14 +1367,16 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
 
     uint32 damage = 0;
     damage += CalculateDamage(damageInfo->AttackType, false, true);
-    // Add melee damage bonus
+    // 增加近战伤害加成
+    //  Add melee damage bonus
     damage = MeleeDamageBonusDone(damageInfo->Target, damage, damageInfo->AttackType, DIRECT_DAMAGE, nullptr, nullptr, MECHANIC_NONE, SpellSchoolMask(damageInfo->DamageSchoolMask));
     damage = damageInfo->Target->MeleeDamageBonusTaken(this, damage, damageInfo->AttackType, DIRECT_DAMAGE, nullptr, SpellSchoolMask(damageInfo->DamageSchoolMask));
-
+    // 脚本钩子为 CalculateMeleeDamage — —职业特定的伤害减免计算之前修改伤害
     // Script Hook For CalculateMeleeDamage -- Allow scripts to change the Damage pre class mitigation calculations
     sScriptMgr->ModifyMeleeDamage(damageInfo->Target, damageInfo->Attacker, damage);
 
     // Calculate armor reduction
+    // 计算护甲减少
     if (Unit::IsDamageReducedByArmor(SpellSchoolMask(damageInfo->DamageSchoolMask)))
     {
         damageInfo->Damage = Unit::CalcArmorReducedDamage(damageInfo->Attacker, damageInfo->Target, damage, nullptr, damageInfo->AttackType);
@@ -1398,9 +1415,11 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
         damageInfo->TargetState = VICTIMSTATE_HIT;
 
         // Crit bonus calc
+        // 暴击加成
         damageInfo->Damage *= 2;
 
         // Increase crit damage from SPELL_AURA_MOD_CRIT_DAMAGE_BONUS
+        // 从SPELL_AURA_MOD_CRIT_DAMAGE_BONUS中增加暴击伤害
         float mod = (GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_CRIT_DAMAGE_BONUS, damageInfo->DamageSchoolMask) - 1.0f) * 100;
 
         if (mod != 0)
@@ -1427,6 +1446,7 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
         damageInfo->TargetState = VICTIMSTATE_HIT;
         damageInfo->HitInfo |= HITINFO_BLOCK;
         // 30% damage blocked, double blocked amount if block is critical
+        // 格挡30%伤害，如果格挡是致命的，则格挡双倍
         damageInfo->Blocked = CalculatePct(damageInfo->Damage, damageInfo->Target->GetBlockPercent(GetLevel()));
         if (damageInfo->Target->IsBlockCritical())
         {
@@ -1456,6 +1476,7 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
         damageInfo->HitInfo |= HITINFO_CRUSHING;
         damageInfo->TargetState = VICTIMSTATE_HIT;
         // 150% normal damage
+        // 150%普通伤害
         damageInfo->Damage += (damageInfo->Damage / 2);
         damageInfo->OriginalDamage = damageInfo->Damage;
         break;
@@ -1464,6 +1485,7 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
     }
 
     // Always apply HITINFO_AFFECTS_VICTIM in case its not a miss
+    // 总是应用HITINFO_AFFECTS_VICTIM，以防它没有错过
     if (!(damageInfo->HitInfo & HITINFO_MISS))
         damageInfo->HitInfo |= HITINFO_AFFECTS_VICTIM;
 
@@ -1476,10 +1498,12 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
     damageInfo->OriginalDamage -= resilienceReduction;
 
     // Calculate absorb resist
+    // 计算吸收阻力
     if (int32(damageInfo->Damage) > 0)
     {
         damageInfo->ProcVictim |= PROC_FLAG_TAKE_ANY_DAMAGE;
         // Calculate absorb & resists
+        // 计算伤害的吸收和抗性
         DamageInfo dmgInfo(*damageInfo);
         Unit::CalcAbsorbResist(dmgInfo);
         damageInfo->Absorb = dmgInfo.GetAbsorb();
@@ -1493,24 +1517,28 @@ void Unit::CalculateMeleeDamage(Unit *victim, CalcDamageInfo *damageInfo, Weapon
 
         damageInfo->Damage = dmgInfo.GetDamage();
     }
-    else // Impossible get negative result but....
+    else // Impossible get negative result but....//不可能得到否定的结果，但是....
         damageInfo->Damage = 0;
 }
-
+//////////////////////////////////////////////
+/// 近战攻击伤害的应用、逻辑反馈处理和状态同步 ///
+//////////////////////////////////////////////
 void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
 {
     Unit *victim = damageInfo->Target;
 
     if (!victim->IsAlive() || victim->HasUnitState(UNIT_STATE_IN_FLIGHT) || (victim->GetTypeId() == TYPEID_UNIT && victim->ToCreature()->IsEvadingAttacks()))
         return;
-
+    // 攻击是否被对方招架，对方是不是生物类型、有没有招架后减少下一次攻击延迟的flag
     if (damageInfo->TargetState == VICTIMSTATE_PARRY &&
         (victim->GetTypeId() != TYPEID_UNIT || (victim->ToCreature()->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_NO_PARRY_HASTEN) == 0))
     {
         // Get attack timers
+        // 攻击的计时器
         float offtime = float(victim->getAttackTimer(OFF_ATTACK));
         float basetime = float(victim->getAttackTimer(BASE_ATTACK));
         // Reduce attack time
+        // 减少攻击时间
         if (victim->haveOffhandWeapon() && offtime < basetime)
         {
             float percent20 = victim->GetBaseAttackTime(OFF_ATTACK) * 0.20f;
@@ -1538,17 +1566,21 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
     }
 
     // Call default DealDamage
+    // 调用默认DealDamage
     CleanDamage cleanDamage(damageInfo->CleanDamage, damageInfo->Absorb, damageInfo->AttackType, damageInfo->HitOutCome);
     Unit::DealDamage(this, victim, damageInfo->Damage, &cleanDamage, DIRECT_DAMAGE, SpellSchoolMask(damageInfo->DamageSchoolMask), nullptr, durabilityLoss);
 
-    // If this is a creature and it attacks from behind it has a probability to daze it's victim
+    // 如果这是一个生物，并且它从背后攻击，它有可能晕眩它的受害者
+    //  If this is a creature and it attacks from behind it has a probability to daze it's victim
     if ((damageInfo->HitOutCome == MELEE_HIT_CRIT || damageInfo->HitOutCome == MELEE_HIT_CRUSHING || damageInfo->HitOutCome == MELEE_HIT_NORMAL || damageInfo->HitOutCome == MELEE_HIT_GLANCING) &&
         GetTypeId() != TYPEID_PLAYER && !ToCreature()->IsControlledByPlayer() && !victim->HasInArc(float(M_PI), this) && (victim->GetTypeId() == TYPEID_PLAYER || !victim->ToCreature()->isWorldBoss()) && !victim->IsVehicle())
     {
         // 20% base chance
+        // 20%的基础几率
         float chance = 20.0f;
 
         // there is a newbie protection, at level 10 just 7% base chance; assuming linear function
+        // 有一个新手保护，在10级只有7%的基础几率；假设线性函数
         if (victim->GetLevel() < 30)
             chance = 0.65f * victim->GetLevelForTarget(this) + 0.5f;
 
@@ -1558,6 +1590,7 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
         chance *= attackerMeleeSkill / float(victimDefense) * 0.16f;
 
         // -probability is between 0% and 40%
+        // -概率在0%到40%之间
         RoundToInterval(chance, 0.0f, 40.0f);
         if (roll_chance_f(chance))
             CastSpell(victim, SPELL_DAZED, true);
@@ -1570,16 +1603,19 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
     }
 
     // Do effect if any damage done to target
+    // 如果对目标造成伤害，则产生效果
     if (damageInfo->Damage)
     {
-        // We're going to call functions which can modify content of the list during iteration over it's elements
-        // Let's copy the list so we can prevent iterator invalidation
+        // 我们将调用函数，这些函数可以在迭代列表的元素时修改列表的内容
+        // 复制列表以防止迭代器失效
+        //  We're going to call functions which can modify content of the list during iteration over it's elements
+        //  Let's copy the list so we can prevent iterator invalidation
         AuraEffectVector vDamageShieldsCopy = CopyAuraEffectList(victim->GetAuraEffectsByType(SPELL_AURA_DAMAGE_SHIELD));
         for (AuraEffect const *aurEff : vDamageShieldsCopy)
         {
             SpellInfo const *spellInfo = aurEff->GetSpellInfo();
-
-            // Damage shield can be resisted...
+            // 伤害盾可以抵抗…
+            //  Damage shield can be resisted...
             SpellMissInfo missInfo = victim->SpellHitResult(this, spellInfo, false);
             if (missInfo != SPELL_MISS_NONE)
             {
@@ -1588,6 +1624,7 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
             }
 
             // ...or immuned
+            // 免疫？
             if (IsImmunedToDamage(this, spellInfo))
             {
                 victim->SendSpellDamageImmune(this, spellInfo->Id, false);
@@ -2208,7 +2245,7 @@ static uint32 CalcMeleeAttackRageGain(Unit const *attacker, WeaponAttackType att
 
     return rage;
 }
-
+///  更新攻击状态
 void Unit::AttackerStateUpdate(Unit *victim, WeaponAttackType attType, bool extra)
 {
     if (HasUnitFlag(UNIT_FLAG_PACIFIED))
@@ -5711,7 +5748,10 @@ Unit *Unit::getAttackerForHelper() const // If someone wants to help, who to giv
         return owner->GetCombatManager().GetPvECombatRefs().begin()->second->GetOther(owner);
     return nullptr;
 }
-
+/// @brief
+/// @param victim 攻击的目标
+/// @param meleeAttack  是否近战攻击
+/// @return
 bool Unit::Attack(Unit *victim, bool meleeAttack)
 {
     if (!victim || victim == this)
@@ -5722,15 +5762,18 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
         return false;
 
     // player cannot attack in mount state
+    // 死亡单位既不能攻击也不能被攻击
     if (GetTypeId() == TYPEID_PLAYER && IsMounted())
         return false;
 
     Creature *creature = ToCreature();
     // creatures cannot attack while evading
+    // 生物在躲避时不能攻击
     if (creature && creature->IsInEvadeMode())
         return false;
 
     // nobody can attack GM in GM-mode
+    // 在GM模式下没有人可以攻击GM
     if (victim->GetTypeId() == TYPEID_PLAYER)
     {
         if (victim->ToPlayer()->IsGameMaster())
@@ -5743,6 +5786,7 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
     }
 
     // remove SPELL_AURA_MOD_UNATTACKABLE at attack (in case non-interruptible spells stun aura applied also that not let attack)
+    // 移除攻击时的SPELL_AURA_MOD_UNATTACKABLE（在不间断法术的情况下，晕眩光环也不会让攻击发生）
     if (HasAuraType(SPELL_AURA_MOD_UNATTACKABLE))
         RemoveAurasByType(SPELL_AURA_MOD_UNATTACKABLE);
 
@@ -5751,6 +5795,7 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
         if (m_attacking == victim)
         {
             // switch to melee attack from ranged/magic
+            // 从远程/魔法切换到近战攻击
             if (meleeAttack)
             {
                 if (!HasUnitState(UNIT_STATE_MELEE_ATTACKING))
@@ -5770,6 +5815,7 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
         }
 
         // switch target
+        // 切换目标
         InterruptSpell(CURRENT_MELEE_SPELL);
         if (!meleeAttack)
             ClearUnitState(UNIT_STATE_MELEE_ATTACKING);
@@ -5790,28 +5836,32 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
     // set position before any AI calls/assistance
     // if (GetTypeId() == TYPEID_UNIT)
     //    ToCreature()->SetCombatStartPosition(GetPositionX(), GetPositionY(), GetPositionZ());
-
+    // 设置AI呼叫/协助前的位置
+    // 如果（GetTypeId() == TYPEID_UNIT）
+    //  ToCreature()->SetCombatStartPosition(GetPositionX(), GetPositionY(), GetPositionZ())；
     if (creature && !IsControlledByPlayer())
     {
-        EngageWithTarget(victim); // ensure that anything we're attacking has threat
+        EngageWithTarget(victim); // 确保我们攻击的任何东西都有威胁// ensure that anything we're attacking has threat
 
         creature->SendAIReaction(AI_REACTION_HOSTILE);
         creature->CallAssistance();
 
+        // 移除表情和站立状态-将在生物重置时恢复
         // Remove emote and stand state - will be restored on creature reset
         SetEmoteState(EMOTE_ONESHOT_NONE);
         SetStandState(UNIT_STAND_STATE_STAND);
     }
-
-    // delay offhand weapon attack by 50% of the base attack time
+    // 将副手武器攻击延迟50%的基础攻击时间
+    //  delay offhand weapon attack by 50% of the base attack time
     if (haveOffhandWeapon() && GetTypeId() != TYPEID_PLAYER)
         setAttackTimer(OFF_ATTACK, std::max(getAttackTimer(OFF_ATTACK), getAttackTimer(BASE_ATTACK) + uint32(CalculatePct(GetBaseAttackTime(BASE_ATTACK), 50))));
 
     if (meleeAttack)
         SendMeleeAttackStart(victim);
-
-    // Let the pet know we've started attacking someting. Handles melee attacks only
-    // Spells such as auto-shot and others handled in WorldSession::HandleCastSpellOpcode
+    // 让宠物知道我们开始攻击什么东西了。只处理近战攻击
+    // 在WorldSession::HandleCastSpellOpcode中处理自动射击等法术
+    //  Let the pet know we've started attacking someting. Handles melee attacks only
+    //  Spells such as auto-shot and others handled in WorldSession::HandleCastSpellOpcode
     if (GetTypeId() == TYPEID_PLAYER)
     {
         for (Unit *controlled : m_Controlled)
@@ -6377,7 +6427,7 @@ void Unit::SetCharm(Unit *charm, bool apply)
     }
     UpdatePetCombatState();
 }
-
+// 治疗？
 /*static*/ void Unit::DealHeal(HealInfo &healInfo)
 {
     int32 gain = 0;
@@ -10632,7 +10682,7 @@ void ApplyPercentModFloatVar(float &var, float val, bool apply)
 {
     var *= (apply ? (100.0f + val) / 100.0f : 100.0f / (100.0f + val));
 }
-
+// 攻击速度
 void Unit::ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply)
 {
     float remainingTimePct = float(m_attackTimer[att]) / (m_baseAttackSpeed[att] * m_modAttackSpeedPct[att]);
@@ -10886,7 +10936,7 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
     data.AnimKitID = animKitId;
     SendMessageToSet(data.Write(), true);
 }
-
+// 杀死
 /*static*/ void Unit::Kill(Unit *attacker, Unit *victim, bool durabilityLoss /*= true*/, bool skipSettingDeathState /*= false*/)
 {
     // Prevent killing unit twice (and giving reward from kill twice)
@@ -10917,13 +10967,14 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
         if (!creature->CanHaveLoot())
             isRewardAllowed = false;
     }
-
-    // Exploit fix
+    // 漏洞修复
+    //  Exploit fix
     if (creature && creature->IsPet() && creature->GetOwnerGUID().IsPlayer())
         isRewardAllowed = false;
-
-    // Reward player, his pets, and group/raid members
-    // call kill spell proc event (before real die and combat stop to triggering auras removed at death/combat stop)
+    // 奖励玩家，他的宠物，团队/团队成员
+    // 调用杀戮法术进程事件（在真正死亡和战斗停止之前触发光环在死亡/战斗停止时移除）
+    //  Reward player, his pets, and group/raid members
+    //  call kill spell proc event (before real die and combat stop to triggering auras removed at death/combat stop)
     if (isRewardAllowed)
     {
         std::unordered_set<Group *> groups;
@@ -10952,8 +11003,8 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
                 tapper->SendDirectMessage(partyKillLog.Write());
             }
         }
-
-        // Generate loot before updating looter
+        // 在更新掠夺者之前生成战利品
+        //  Generate loot before updating looter
         if (creature)
         {
             DungeonEncounterEntry const *dungeonEncounter = nullptr;
@@ -11026,7 +11077,7 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
 
         KillRewarder(Trinity::IteratorPair(tappers.data(), tappers.data() + tappers.size()), victim, false).Reward();
     }
-
+    // Do KILL和KILLED进程。KILL过程只会被击杀的单位（以及它的主人——对于宠物和图腾）调用，而不管谁击杀了受害者
     // Do KILL and KILLED procs. KILL proc is called only for the unit who landed the killing blow (and its owner - for pets and totems) regardless of who tapped the victim
     if (attacker && (attacker->IsPet() || attacker->IsTotem()))
     {
@@ -11045,10 +11096,12 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
     }
 
     // Proc auras on death - must be before aura/combat remove
+    // 死亡时触发光环-必须在光环/战斗移除之前
     Unit::ProcSkillsAndAuras(victim, victim, PROC_FLAG_NONE, PROC_FLAG_DEATH, PROC_SPELL_TYPE_MASK_ALL, PROC_SPELL_PHASE_NONE, PROC_HIT_NONE, nullptr, nullptr, nullptr);
-
-    // update get killing blow achievements, must be done before setDeathState to be able to require auras on target
-    // and before Spirit of Redemption as it also removes auras
+    // 更新获得杀戮打击成就，必须在setDeathState之前完成，以便能够在目标上要求光环
+    // 和之前的精神救赎，因为它也去除光环
+    //  update get killing blow achievements, must be done before setDeathState to be able to require auras on target
+    //  and before Spirit of Redemption as it also removes auras
     if (attacker)
         if (Player *killerPlayer = attacker->GetCharmerOrOwnerPlayerOrPlayerItself())
             killerPlayer->UpdateCriteria(CriteriaType::DeliveredKillingBlow, 1, 0, 0, victim);
@@ -11058,10 +11111,12 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
         TC_LOG_DEBUG("entities.unit", "SET JUST_DIED");
         victim->setDeathState(JUST_DIED);
     }
-
-    // Inform pets (if any) when player kills target)
-    // MUST come after victim->setDeathState(JUST_DIED); or pet next target
-    // selection will get stuck on same target and break pet react state
+    // 当玩家杀死目标时通知宠物（如果有的话）
+    // 必须在受害者->setDeathState(JUST_DIED)；或者宠物下一个目标
+    // 选择将被卡在同一个目标上，并打破宠物的反应状态
+    //  Inform pets (if any) when player kills target)
+    //  MUST come after victim->setDeathState(JUST_DIED); or pet next target
+    //  selection will get stuck on same target and break pet react state
     for (Player *tapper : tappers)
     {
         Pet *pet = tapper->GetPet();
@@ -11075,6 +11130,7 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
     }
 
     // 10% durability loss on death
+    // 死亡会损失10%的耐久性
     if (Player *plrVictim = victim->ToPlayer())
     {
         // remember victim PvP death for corpse type and corpse reclaim delay
@@ -11097,6 +11153,7 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
             attacker->ToCreature()->AI()->KilledUnit(victim);
 
         // last damage from non duel opponent or opponent controlled creature
+        // 非决斗对手或对手控制生物的最后伤害
         if (plrVictim->duel)
         {
             plrVictim->duel->Opponent->CombatStopWithPets(true);
@@ -11104,7 +11161,8 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
             plrVictim->DuelComplete(DUEL_INTERRUPTED);
         }
     }
-    else // creature died
+    // creature died 生物死亡
+    else
     {
         TC_LOG_DEBUG("entities.unit", "DealDamageNotPlayer");
         ASSERT_NODEBUGINFO(creature);
@@ -11112,6 +11170,7 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
         if (!creature->IsPet())
         {
             // must be after setDeathState which resets dynamic flags
+            // 必须在重置动态标志的setDeathState之后
             if (!creature->IsFullyLooted())
                 creature->SetDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
             else
@@ -12092,6 +12151,8 @@ int32 Unit::CalculateAOEAvoidance(int32 damage, uint32 schoolMask, bool npcCaste
 
 // Melee based spells can be miss, parry or dodge on this step
 // Crit or block - determined on damage calculation phase! (and can be both in some time)
+// 近战法术可以是错过，招惹或闪避在这一步
+// 暴击或格挡-取决于伤害计算阶段！（有时两者都可以）
 float Unit::MeleeSpellMissChance(Unit const *victim, WeaponAttackType attType, SpellInfo const *spellInfo) const
 {
     if (spellInfo && spellInfo->HasAttribute(SPELL_ATTR7_NO_ATTACK_MISS))

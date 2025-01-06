@@ -23,12 +23,12 @@
 #include "Player.h"
 #include "ObjectAccessor.h"
 
-#define SPELL_DUEL  7266
-#define SPELL_MOUNTED_DUEL  62875
-
-void WorldSession::HandleCanDuel(WorldPackets::Duel::CanDuel& packet)
+#define SPELL_DUEL 7266
+#define SPELL_MOUNTED_DUEL 62875
+/*决斗*/
+void WorldSession::HandleCanDuel(WorldPackets::Duel::CanDuel &packet)
 {
-    Player* player = ObjectAccessor::FindPlayer(packet.TargetGUID);
+    Player *player = ObjectAccessor::FindPlayer(packet.TargetGUID);
 
     if (!player)
         return;
@@ -47,7 +47,7 @@ void WorldSession::HandleCanDuel(WorldPackets::Duel::CanDuel& packet)
     }
 }
 
-void WorldSession::HandleDuelResponseOpcode(WorldPackets::Duel::DuelResponse& duelResponse)
+void WorldSession::HandleDuelResponseOpcode(WorldPackets::Duel::DuelResponse &duelResponse)
 {
     if (duelResponse.Accepted && !duelResponse.Forfeited)
         HandleDuelAccepted(duelResponse.ArbiterGUID);
@@ -57,11 +57,11 @@ void WorldSession::HandleDuelResponseOpcode(WorldPackets::Duel::DuelResponse& du
 
 void WorldSession::HandleDuelAccepted(ObjectGuid arbiterGuid)
 {
-    Player* player = GetPlayer();
+    Player *player = GetPlayer();
     if (!player->duel || player == player->duel->Initiator || player->duel->State != DUEL_STATE_CHALLENGED)
         return;
 
-    Player* target = player->duel->Opponent;
+    Player *target = player->duel->Opponent;
     if (*target->m_playerData->DuelArbiter != arbiterGuid)
         return;
 
@@ -76,7 +76,7 @@ void WorldSession::HandleDuelAccepted(ObjectGuid arbiterGuid)
     target->duel->State = DUEL_STATE_COUNTDOWN;
 
     WorldPackets::Duel::DuelCountdown packet(3000); // milliseconds
-    WorldPacket const* worldPacket = packet.Write();
+    WorldPacket const *worldPacket = packet.Write();
     player->GetSession()->SendPacket(worldPacket);
     target->GetSession()->SendPacket(worldPacket);
     player->EnablePvpRules();
@@ -85,7 +85,7 @@ void WorldSession::HandleDuelAccepted(ObjectGuid arbiterGuid)
 
 void WorldSession::HandleDuelCancelled()
 {
-    Player* player = GetPlayer();
+    Player *player = GetPlayer();
 
     // no duel requested
     if (!player->duel || player->duel->State == DUEL_STATE_COMPLETED)
@@ -97,7 +97,7 @@ void WorldSession::HandleDuelCancelled()
         GetPlayer()->CombatStopWithPets(true);
         GetPlayer()->duel->Opponent->CombatStopWithPets(true);
 
-        GetPlayer()->CastSpell(GetPlayer(), 7267, true);    // beg
+        GetPlayer()->CastSpell(GetPlayer(), 7267, true); // beg
         GetPlayer()->DuelComplete(DUEL_WON);
         return;
     }

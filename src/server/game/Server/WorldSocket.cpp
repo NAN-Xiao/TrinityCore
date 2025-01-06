@@ -944,6 +944,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
                                      account.Game.Recruiter, account.Game.IsRectuiter);
 
     // Initialize Warden system only if it is enabled by config
+    // 初始化 安全系统
     if (wardenActive)
         _worldSession->InitWarden(_sessionKey);
 

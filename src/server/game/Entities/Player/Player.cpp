@@ -949,6 +949,7 @@ void Player::SetDrunkValue(uint8 newDrunkValue, uint32 itemId /*= 0*/)
 }
 
 // 玩家更新
+// 攻击也在此 比如DoMeleeAttackIfReady
 void Player::Update(uint32 p_time)
 {
     if (!IsInWorld())

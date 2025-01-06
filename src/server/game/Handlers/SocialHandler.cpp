@@ -28,6 +28,7 @@
 #include "RealmList.h"
 #include "SocialMgr.h"
 #include "SocialPackets.h"
+/*社交*/
 
 void WorldSession::HandleContactListOpcode(WorldPackets::Social::SendContactList& packet)
 {

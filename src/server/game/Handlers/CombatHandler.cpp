@@ -24,18 +24,20 @@
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "Vehicle.h"
+/*战斗相关*/
 
-void WorldSession::HandleAttackSwingOpcode(WorldPackets::Combat::AttackSwing& packet)
+void WorldSession::HandleAttackSwingOpcode(WorldPackets::Combat::AttackSwing &packet)
 {
-    Unit* enemy = ObjectAccessor::GetUnit(*_player, packet.Victim);
-
+    // 获取攻击目标？
+    Unit *enemy = ObjectAccessor::GetUnit(*_player, packet.Victim);
+    // 目标为空
     if (!enemy)
     {
         // stop attack state at client
         SendAttackStop(nullptr);
         return;
     }
-
+    // 目标无效
     if (!_player->IsValidAttackTarget(enemy))
     {
         // stop attack state at client
@@ -46,9 +48,12 @@ void WorldSession::HandleAttackSwingOpcode(WorldPackets::Combat::AttackSwing& pa
     //! Client explicitly checks the following before sending CMSG_ATTACK_SWING packet,
     //! so we'll place the same check here. Note that it might be possible to reuse this snippet
     //! in other places as well.
-    if (Vehicle* vehicle = _player->GetVehicle())
+    // !客户端在发送CMSG_ATTACK_SWING包之前显式检查以下内容：
+    // !所以我们把同样的支票放在这里。注意，可以重用这个代码片段
+    // !在其他地方也是如此。
+    if (Vehicle *vehicle = _player->GetVehicle())
     {
-        VehicleSeatEntry const* seat = vehicle->GetSeatForPassenger(_player);
+        VehicleSeatEntry const *seat = vehicle->GetSeatForPassenger(_player);
         ASSERT(seat);
         if (!(seat->Flags & VEHICLE_SEAT_FLAG_CAN_ATTACK))
         {
@@ -60,12 +65,13 @@ void WorldSession::HandleAttackSwingOpcode(WorldPackets::Combat::AttackSwing& pa
     _player->Attack(enemy, true);
 }
 
-void WorldSession::HandleAttackStopOpcode(WorldPackets::Combat::AttackStop& /*packet*/)
+void WorldSession::HandleAttackStopOpcode(WorldPackets::Combat::AttackStop & /*packet*/)
 {
     GetPlayer()->AttackStop();
 }
-
-void WorldSession::HandleSetSheathedOpcode(WorldPackets::Combat::SetSheathed& packet)
+/// @brief 切换武器
+/// @param packet
+void WorldSession::HandleSetSheathedOpcode(WorldPackets::Combat::SetSheathed &packet)
 {
     if (packet.CurrentSheathState >= MAX_SHEATH_STATE)
     {
@@ -76,7 +82,7 @@ void WorldSession::HandleSetSheathedOpcode(WorldPackets::Combat::SetSheathed& pa
     GetPlayer()->SetSheath(SheathState(packet.CurrentSheathState));
 }
 
-void WorldSession::SendAttackStop(Unit const* enemy)
+void WorldSession::SendAttackStop(Unit const *enemy)
 {
     SendPacket(WorldPackets::Combat::SAttackStop(GetPlayer(), enemy).Write());
 }
