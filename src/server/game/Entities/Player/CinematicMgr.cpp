@@ -24,7 +24,7 @@
 #include "Player.h"
 #include "TemporarySummon.h"
 
-CinematicMgr::CinematicMgr(Player* playerref)
+CinematicMgr::CinematicMgr(Player *playerref)
 {
     player = playerref;
     m_cinematicDiff = 0;
@@ -53,7 +53,7 @@ void CinematicMgr::NextCinematicCamera()
     if (!cinematicCameraId)
         return;
 
-    if (std::vector<FlyByCamera> const* flyByCameras = GetFlyByCameras(cinematicCameraId))
+    if (std::vector<FlyByCamera> const *flyByCameras = GetFlyByCameras(cinematicCameraId))
     {
         // Initialize diff, and set camera
         m_cinematicDiff = 0;
@@ -61,8 +61,8 @@ void CinematicMgr::NextCinematicCamera()
 
         if (!m_cinematicCamera->empty())
         {
-            FlyByCamera const& firstCamera = m_cinematicCamera->front();
-            Position const& pos = firstCamera.locations;
+            FlyByCamera const &firstCamera = m_cinematicCamera->front();
+            Position const &pos = firstCamera.locations;
             if (!pos.IsPositionValid())
                 return;
 
@@ -91,7 +91,7 @@ void CinematicMgr::EndCinematic()
     m_activeCinematicCameraIndex = -1;
     if (m_CinematicObject)
     {
-        if (WorldObject* vpObject = player->GetViewpoint())
+        if (WorldObject *vpObject = player->GetViewpoint())
             if (vpObject == m_CinematicObject)
                 player->SetViewpoint(m_CinematicObject, false);
 
@@ -110,7 +110,7 @@ void CinematicMgr::UpdateCinematicLocation(uint32 /*diff*/)
     uint32 nextTimestamp = 0;
 
     // Obtain direction of travel
-    for (FlyByCamera const& cam : *m_cinematicCamera)
+    for (FlyByCamera const &cam : *m_cinematicCamera)
     {
         if (cam.timeStamp > m_cinematicDiff)
         {
@@ -142,7 +142,7 @@ void CinematicMgr::UpdateCinematicLocation(uint32 /*diff*/)
         workDiff = m_cinematicDiff;
 
     // Obtain the previous and next waypoint based on timestamp
-    for (FlyByCamera const& cam : *m_cinematicCamera)
+    for (FlyByCamera const &cam : *m_cinematicCamera)
     {
         if (static_cast<int32>(cam.timeStamp) >= workDiff)
         {
@@ -164,8 +164,7 @@ void CinematicMgr::UpdateCinematicLocation(uint32 /*diff*/)
     float xDiff = nextPosition.m_positionX - lastPosition.m_positionX;
     float yDiff = nextPosition.m_positionY - lastPosition.m_positionY;
     float zDiff = nextPosition.m_positionZ - lastPosition.m_positionZ;
-    Position interPosition(lastPosition.m_positionX + (xDiff * (float(interDiff) / float(timeDiff))), lastPosition.m_positionY +
-        (yDiff * (float(interDiff) / float(timeDiff))), lastPosition.m_positionZ + (zDiff * (float(interDiff) / float(timeDiff))));
+    Position interPosition(lastPosition.m_positionX + (xDiff * (float(interDiff) / float(timeDiff))), lastPosition.m_positionY + (yDiff * (float(interDiff) / float(timeDiff))), lastPosition.m_positionZ + (zDiff * (float(interDiff) / float(timeDiff))));
 
     // Advance (at speed) to this position. The remote sight object is used
     // to send update information to player in cinematic

@@ -417,7 +417,7 @@ Unit::~Unit()
     ASSERT(!m_unitMovedByMe || (m_unitMovedByMe == this));
     ASSERT(!m_playerMovingMe || (m_playerMovingMe == this));
 }
-
+// 更新战斗、splinemove和移动、以及技能状态等
 void Unit::Update(uint32 p_time)
 {
     // WARNING! Order of execution here is important, do not change.
@@ -438,7 +438,7 @@ void Unit::Update(uint32 p_time)
     // 如果在更新期间设置SetCantProc（false）调用在代码的某个地方丢失
     // 这样做会阻止咒语被执行，所以让我们崩溃
     ASSERT(!m_procDeep);
-
+    // 战斗管理器
     m_combatManager.Update(p_time);
 
     _lastDamagedTargetGuid = ObjectGuid::Empty;
@@ -485,8 +485,9 @@ void Unit::Update(uint32 p_time)
         ModifyAuraState(AURA_STATE_WOUND_HEALTH_35_80, HealthBelowPct(35) || HealthAbovePct(80));
         ModifyAuraState(AURA_STATE_WOUNDED_50_PERCENT, HealthBelowPct(50));
     }
-
+    // 更新曲线移动
     UpdateSplineMovement(p_time);
+    // 更新移动
     i_motionMaster->Update(p_time);
 
     // Wait with the aura interrupts until we have updated our movement generators and position

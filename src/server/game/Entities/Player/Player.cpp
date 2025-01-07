@@ -1004,20 +1004,22 @@ void Player::Update(uint32 p_time)
         if (Aura *aura = GetAura(SPELL_PVP_RULES_ENABLED))
             if (!aura->IsPermanent())
                 aura->SetDuration(aura->GetSpellInfo()->GetMaxDuration());
-
+    // 更新ai执行
     Unit::AIUpdateTick(p_time);
     // Update items that have just a limited lifetime
     // 更新生命周期有限的项目
+    // 更新道具的持续时间
     if (now > m_Last_tick)
         UpdateItemDuration(uint32(now - m_Last_tick));
 
     // check every second
     // 每一秒检查一次
+    // 灵魂绑定的物品
     if (now > m_Last_tick + 1)
         UpdateSoulboundTradeItems();
 
     // If mute expired, remove it from the DB
-    // ///如果mute过期，从DB中删除 mute？禁言
+    // ///如果mute过期，从DB中删除。 mute？禁言
     if (GetSession()->m_muteTime && GetSession()->m_muteTime < now)
     {
         GetSession()->m_muteTime = 0;
@@ -1038,7 +1040,7 @@ void Player::Update(uint32 p_time)
             if (q_status.Timer <= p_time)
             {
                 uint32 quest_id = *iter;
-                ++iter; // current iter will be removed in FailQuest 当前iter将在FailQuest中被删除
+                ++iter; // 当前iter将在FailQuest中被删除 current iter will be removed in FailQuest
                 FailQuest(quest_id);
             }
             else
@@ -13378,6 +13380,7 @@ void Player::TradeCancel(bool sendback)
 void Player::UpdateSoulboundTradeItems()
 {
     // also checks for garbage data
+    ////也检查垃圾数据
     for (GuidUnorderedSet::iterator itr = m_itemSoulboundTradeable.begin(); itr != m_itemSoulboundTradeable.end();)
     {
         Item *item = GetItemByGuid(*itr);
