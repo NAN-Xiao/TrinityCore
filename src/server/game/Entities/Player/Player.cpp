@@ -3000,6 +3000,7 @@ bool Player::AddSpell(uint32 spellId, bool active, bool learning, bool dependent
             newspell.TraitDefinitionId = *traitDefinitionId;
 
         // replace spells in action bars and spellbook to bigger rank if only one spell rank must be accessible
+        // 如果只有一个法术等级必须可访问，则将动作条和法术书中的法术替换为更高的等级
         if (newspell.active && !newspell.disabled && spellInfo->IsRanked())
         {
             for (PlayerSpellMap::iterator itr2 = m_spells.begin(); itr2 != m_spells.end(); ++itr2)

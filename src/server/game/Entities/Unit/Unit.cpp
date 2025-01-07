@@ -765,7 +765,7 @@ bool Unit::HasBreakableByDamageAuraType(AuraType type, uint32 excludeAura) const
             return true;
     return false;
 }
-
+// 判断一个游戏单位（Unit）是否拥有一种可以被伤害打破的群体控制光环
 bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) const
 {
     uint32 excludeAura = 0;
@@ -1689,7 +1689,7 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
         }
     }
 }
-
+// 处理表情动作
 void Unit::HandleEmoteCommand(Emote emoteId, Player *target /*=nullptr*/, Trinity::IteratorPair<int32 const *> spellVisualKitIds /*= {}*/, int32 sequenceVariation /*= 0*/)
 {
     WorldPackets::Chat::Emote packet;
@@ -9977,7 +9977,8 @@ UnitAI *Unit::GetScheduledChangeAI()
     else
         return nullptr;
 }
-
+/// @brief 111
+/// @return
 bool Unit::HasScheduledAIChange() const
 {
     if (UnitAI *ai = GetAI())
@@ -9993,7 +9994,7 @@ void Unit::AddToWorld()
 
     RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::EnterWorld);
 }
-
+// 从世界移除
 void Unit::RemoveFromWorld()
 {
     // cleanup
@@ -10421,7 +10422,7 @@ void Unit::SendPetAIReaction(ObjectGuid guid)
 }
 
 ///----------End of Pet responses methods----------
-
+// 速度变化
 void Unit::PropagateSpeedChange()
 {
     GetMotionMaster()->PropagateSpeedChange();
@@ -10431,7 +10432,7 @@ MovementGeneratorType Unit::GetDefaultMovementType() const
 {
     return IDLE_MOTION_TYPE;
 }
-
+// 停止移动
 void Unit::StopMoving()
 {
     ClearUnitState(UNIT_STATE_MOVING);
@@ -10446,7 +10447,7 @@ void Unit::StopMoving()
     Movement::MoveSplineInit init(this);
     init.Stop();
 }
-
+// 暂停移动
 void Unit::PauseMovement(uint32 timer /* = 0*/, uint8 slot /* = 0*/, bool forced /* = true*/)
 {
     if (IsInvalidMovementSlot(slot))
@@ -10458,7 +10459,7 @@ void Unit::PauseMovement(uint32 timer /* = 0*/, uint8 slot /* = 0*/, bool forced
     if (forced && GetMotionMaster()->GetCurrentSlot() == MovementSlot(slot))
         StopMoving();
 }
-
+// 恢复移动
 void Unit::ResumeMovement(uint32 timer /* = 0*/, uint8 slot /* = 0*/)
 {
     if (IsInvalidMovementSlot(slot))
@@ -10467,7 +10468,7 @@ void Unit::ResumeMovement(uint32 timer /* = 0*/, uint8 slot /* = 0*/)
     if (MovementGenerator *movementGenerator = GetMotionMaster()->GetCurrentMovementGenerator(MovementSlot(slot)))
         movementGenerator->Resume(timer);
 }
-
+// 是否坐下
 bool Unit::IsSitState() const
 {
     UnitStandStateType s = GetStandState();
@@ -10475,13 +10476,13 @@ bool Unit::IsSitState() const
            s == UNIT_STAND_STATE_SIT_MEDIUM_CHAIR || s == UNIT_STAND_STATE_SIT_HIGH_CHAIR ||
            s == UNIT_STAND_STATE_SIT;
 }
-
+// 是否站立
 bool Unit::IsStandState() const
 {
     UnitStandStateType s = GetStandState();
     return !IsSitState() && s != UNIT_STAND_STATE_SLEEP && s != UNIT_STAND_STATE_KNEEL;
 }
-
+// 设置站立的状态
 void Unit::SetStandState(UnitStandStateType state, uint32 animKitID /* = 0*/)
 {
     SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::StandState), state);
@@ -10495,7 +10496,7 @@ void Unit::SetStandState(UnitStandStateType state, uint32 animKitID /* = 0*/)
         ToPlayer()->SendDirectMessage(packet.Write());
     }
 }
-
+// 设置动画层
 void Unit::SetAnimTier(AnimTier animTier, bool notifyClient /*= true*/)
 {
     SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AnimTier), AsUnderlyingType(animTier));
@@ -10508,7 +10509,7 @@ void Unit::SetAnimTier(AnimTier animTier, bool notifyClient /*= true*/)
         SendMessageToSet(setAnimTier.Write(), true);
     }
 }
-
+// 变形术
 bool Unit::IsPolymorphed() const
 {
     uint32 transformId = GetTransformSpell();
@@ -10521,7 +10522,7 @@ bool Unit::IsPolymorphed() const
 
     return spellInfo->GetSpellSpecific() == SPELL_SPECIFIC_MAGE_POLYMORPH;
 }
-
+// 物体缩放
 void Unit::RecalculateObjectScale()
 {
     int32 scaleAuras = GetTotalAuraModifier(SPELL_AURA_MOD_SCALE) + GetTotalAuraModifier(SPELL_AURA_MOD_SCALE_2);
@@ -10529,7 +10530,7 @@ void Unit::RecalculateObjectScale()
     float scaleMin = GetTypeId() == TYPEID_PLAYER ? 0.1 : 0.01;
     SetObjectScale(std::max(scale, scaleMin));
 }
-
+// 设置显示的id
 void Unit::SetDisplayId(uint32 displayId, bool setNative /*= false*/)
 {
     float displayScale = DEFAULT_PLAYER_DISPLAY_SCALE;
@@ -10553,7 +10554,7 @@ void Unit::SetDisplayId(uint32 displayId, bool setNative /*= false*/)
 
     CalculateHoverHeight();
 }
-
+// 恢复显示id
 void Unit::RestoreDisplayId(bool ignorePositiveAurasPreventingMounting /*= false*/)
 {
     AuraEffect *handledAura = nullptr;
@@ -10608,7 +10609,7 @@ void Unit::RestoreDisplayId(bool ignorePositiveAurasPreventingMounting /*= false
     // no auras found - set modelid to default
     SetDisplayId(GetNativeDisplayId());
 }
-
+// 清除所有具有触发技能
 void Unit::ClearAllReactives()
 {
     for (uint8 i = 0; i < MAX_REACTIVE; ++i)
@@ -10619,7 +10620,7 @@ void Unit::ClearAllReactives()
     if (HasAuraState(AURA_STATE_DEFENSIVE_2))
         ModifyAuraState(AURA_STATE_DEFENSIVE_2, false);
 }
-
+// 更新触发技能
 void Unit::UpdateReactives(uint32 p_time)
 {
     for (uint8 i = 0; i < MAX_REACTIVE; ++i)
@@ -10653,7 +10654,7 @@ void Unit::UpdateReactives(uint32 p_time)
         }
     }
 }
-
+// 选择附近的目标
 Unit *Unit::SelectNearbyTarget(Unit *exclude, float dist) const
 {
     std::list<Unit *> targets;
@@ -10684,18 +10685,18 @@ Unit *Unit::SelectNearbyTarget(Unit *exclude, float dist) const
     // select random
     return Trinity::Containers::SelectRandomContainerElement(targets);
 }
-
+// 得到基础攻击时间
 uint32 Unit::GetBaseAttackTime(WeaponAttackType att) const
 {
     return m_baseAttackSpeed[att];
 }
-
+// 设置基础攻击时间
 void Unit::SetBaseAttackTime(WeaponAttackType att, uint32 val)
 {
     m_baseAttackSpeed[att] = val;
     UpdateAttackTimeField(att);
 }
-
+// 更新攻击时间字段
 void Unit::UpdateAttackTimeField(WeaponAttackType att)
 {
     switch (att)
@@ -10712,12 +10713,12 @@ void Unit::UpdateAttackTimeField(WeaponAttackType att)
         ;
     }
 }
-
+// 使用百分比修正
 void ApplyPercentModFloatVar(float &var, float val, bool apply)
 {
     var *= (apply ? (100.0f + val) / 100.0f : 100.0f / (100.0f + val));
 }
-// 攻击速度
+// 攻击速度百分比修正
 void Unit::ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply)
 {
     float remainingTimePct = float(m_attackTimer[att]) / (m_baseAttackSpeed[att] * m_modAttackSpeedPct[att]);
@@ -10743,7 +10744,7 @@ void Unit::ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply
     UpdateAttackTimeField(att);
     m_attackTimer[att] = uint32(m_baseAttackSpeed[att] * m_modAttackSpeedPct[att] * remainingTimePct);
 }
-
+// 施法时间百分比修正
 void Unit::ApplyCastTimePercentMod(float val, bool apply)
 {
     if (val > 0.f)
@@ -10759,7 +10760,7 @@ void Unit::ApplyCastTimePercentMod(float val, bool apply)
         ApplyPercentModUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ModHasteRegen), -val, apply);
     }
 }
-
+// 光环作用队伍
 void Unit::UpdateAuraForGroup()
 {
     if (Player *player = ToPlayer())
@@ -10823,7 +10824,7 @@ float Unit::GetAPMultiplier(WeaponAttackType attType, bool normalized) const
         return weapon->GetTemplate()->GetDelay() / 1000.0f;
     }
 }
-
+// 创建驯服的宠物
 Pet *Unit::CreateTamedPetFrom(Creature *creatureTarget, uint32 spell_id)
 {
     if (GetTypeId() != TYPEID_PLAYER)
@@ -10867,7 +10868,7 @@ Pet *Unit::CreateTamedPetFrom(uint32 creatureEntry, uint32 spell_id)
 
     return pet;
 }
-
+// 初始化巡抚宠物
 bool Unit::InitTamedPet(Pet *pet, uint8 level, uint32 spell_id)
 {
     Player *player = ToPlayer();
@@ -10902,14 +10903,14 @@ bool Unit::InitTamedPet(Pet *pet, uint8 level, uint32 spell_id)
     player->AddPetToUpdateFields(**freeActiveSlotItr, PetSaveMode(*petStable.GetCurrentActivePetIndex()), PET_STABLE_ACTIVE);
     return true;
 }
-
+// 发送耐久损失
 void Unit::SendDurabilityLoss(Player *receiver, uint32 percent)
 {
     WorldPackets::Misc::DurabilityDamageDeath packet;
     packet.Percent = percent;
     receiver->GetSession()->SendPacket(packet.Write());
 }
-
+// 播放一次动画
 void Unit::PlayOneShotAnimKitId(uint16 animKitId)
 {
     if (!sAnimKitStore.LookupEntry(animKitId))
@@ -10923,7 +10924,7 @@ void Unit::PlayOneShotAnimKitId(uint16 animKitId)
     data.AnimKitID = animKitId;
     SendMessageToSet(data.Write(), true);
 }
-
+// 设置ai动画
 void Unit::SetAIAnimKitId(uint16 animKitId)
 {
     if (_aiAnimKitId == animKitId)
@@ -10939,7 +10940,7 @@ void Unit::SetAIAnimKitId(uint16 animKitId)
     data.AnimKitID = animKitId;
     SendMessageToSet(data.Write(), true);
 }
-
+// 设置移动的动画id
 void Unit::SetMovementAnimKitId(uint16 animKitId)
 {
     if (_movementAnimKitId == animKitId)
@@ -10955,7 +10956,7 @@ void Unit::SetMovementAnimKitId(uint16 animKitId)
     data.AnimKitID = animKitId;
     SendMessageToSet(data.Write(), true);
 }
-
+// 设置近战动画id
 void Unit::SetMeleeAnimKitId(uint16 animKitId)
 {
     if (_meleeAnimKitId == animKitId)
@@ -11300,7 +11301,7 @@ void Unit::SetMeleeAnimKitId(uint16 animKitId)
         }
     }
 }
-
+// 设定控制状态
 void Unit::SetControlled(bool apply, UnitState state)
 {
     if (apply)
@@ -11397,7 +11398,7 @@ void Unit::ApplyControlStatesIfNeeded()
     if (HasUnitState(UNIT_STATE_FLEEING) || HasAuraType(SPELL_AURA_MOD_FEAR))
         SetFeared(true);
 }
-
+// 设置为眩晕状态
 void Unit::SetStunned(bool apply)
 {
     if (apply)
@@ -11428,7 +11429,7 @@ void Unit::SetStunned(bool apply)
             SetRooted(false);
     }
 }
-
+// 设置为被定身状态
 void Unit::SetRooted(bool apply, bool packetOnly /*= false*/)
 {
     if (!packetOnly)
@@ -11469,7 +11470,7 @@ void Unit::SetRooted(bool apply, bool packetOnly /*= false*/)
         SendMessageToSet(packet.Write(), true);
     }
 }
-
+// 设置为恐惧状态
 void Unit::SetFeared(bool apply)
 {
     if (apply)
@@ -11505,7 +11506,7 @@ void Unit::SetFeared(bool apply)
             m_playerMovingMe->SetClientControl(this, !apply);
     }
 }
-
+// 设置为混乱状态
 void Unit::SetConfused(bool apply)
 {
     if (apply)
@@ -11530,7 +11531,7 @@ void Unit::SetConfused(bool apply)
             m_playerMovingMe->SetClientControl(this, !apply);
     }
 }
-
+// 设置被xx魅惑
 bool Unit::SetCharmedBy(Unit *charmer, CharmType type, AuraApplication const *aurApp)
 {
     if (!charmer)
@@ -11703,7 +11704,7 @@ bool Unit::SetCharmedBy(Unit *charmer, CharmType type, AuraApplication const *au
     }
     return true;
 }
-
+// 移除被xx魅惑
 void Unit::RemoveCharmedBy(Unit *charmer)
 {
     if (!IsCharmed())
@@ -11915,7 +11916,7 @@ TransportBase *Unit::GetDirectTransport() const
         return veh;
     return GetTransport();
 }
-
+// 是否和xx人在同一队伍
 bool Unit::IsInPartyWith(Unit const *unit) const
 {
     if (this == unit)
@@ -11953,7 +11954,7 @@ bool Unit::IsInRaidWith(Unit const *unit) const
 
     return u1->GetTypeId() == TYPEID_UNIT && u2->GetTypeId() == TYPEID_UNIT && u1->GetFaction() == u2->GetFaction();
 }
-
+// 获取队伍成员
 void Unit::GetPartyMembers(std::list<Unit *> &TagUnitMap)
 {
     Unit *owner = GetCharmerOrOwnerOrSelf();
@@ -11990,7 +11991,7 @@ void Unit::GetPartyMembers(std::list<Unit *> &TagUnitMap)
                 TagUnitMap.push_back(pet);
     }
 }
-
+// 守卫被争夺？
 bool Unit::IsContestedGuard() const
 {
     if (FactionTemplateEntry const *entry = GetFactionTemplateEntry())
@@ -11998,7 +11999,7 @@ bool Unit::IsContestedGuard() const
 
     return false;
 }
-
+// 设置pvp
 void Unit::SetPvP(bool state)
 {
     if (state)
@@ -12006,7 +12007,7 @@ void Unit::SetPvP(bool state)
     else
         RemovePvpFlag(UNIT_BYTE2_FLAG_PVP);
 }
-
+// 添加光环
 Aura *Unit::AddAura(uint32 spellId, Unit *target)
 {
     if (!target)
@@ -12018,7 +12019,7 @@ Aura *Unit::AddAura(uint32 spellId, Unit *target)
 
     return AddAura(spellInfo, MAX_EFFECT_MASK, target);
 }
-
+// 添加光环
 Aura *Unit::AddAura(SpellInfo const *spellInfo, uint32 effMask, Unit *target)
 {
     if (!spellInfo)
@@ -12053,7 +12054,7 @@ Aura *Unit::AddAura(SpellInfo const *spellInfo, uint32 effMask, Unit *target)
     }
     return nullptr;
 }
-
+// 设置光环堆叠层数
 void Unit::SetAuraStack(uint32 spellId, Unit *target, uint32 stack)
 {
     Aura *aura = target->GetAura(spellId, GetGUID());
@@ -12062,7 +12063,7 @@ void Unit::SetAuraStack(uint32 spellId, Unit *target, uint32 stack)
     if (aura && stack)
         aura->SetStackAmount(stack);
 }
-
+// 发送并播放法术视觉效果
 void Unit::SendPlaySpellVisual(Unit *target, uint32 spellVisualId, uint16 missReason, uint16 reflectStatus, float travelSpeed, bool speedAsTime /*= false*/, float launchDelay /*= 0.0f*/)
 {
     WorldPackets::Spells::PlaySpellVisual playSpellVisual;
@@ -12077,7 +12078,7 @@ void Unit::SendPlaySpellVisual(Unit *target, uint32 spellVisualId, uint16 missRe
     playSpellVisual.LaunchDelay = launchDelay;
     SendMessageToSet(playSpellVisual.Write(), true);
 }
-
+// 发送并播放法术视觉效果
 void Unit::SendPlaySpellVisual(Position const &targetPosition, uint32 spellVisualId, uint16 missReason, uint16 reflectStatus, float travelSpeed, bool speedAsTime /*= false*/, float launchDelay /*= 0.0f*/)
 {
     WorldPackets::Spells::PlaySpellVisual playSpellVisual;

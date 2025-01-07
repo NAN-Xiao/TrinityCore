@@ -244,6 +244,7 @@ namespace UF
 
         OptionalUpdateFieldBase<T> &_field;
     };
+    
     // 可变 字段 引用
     template <typename T, bool PublicSet>
     struct MutableFieldReference
@@ -684,15 +685,16 @@ namespace UF
     template <typename T>
     class UpdateFieldBase : public IsUpdateFieldHolderTag
     {
+        // 可修改的引用
         template <typename F, bool PublicSet>
         friend struct MutableFieldReference;
-
+        // 可修改的镶嵌的字段；镶嵌字段表示类里的另外一个类对象的字段
         template <typename F, bool PublicSet>
         friend struct MutableNestedFieldReference;
-
+        // 变化的掩码
         template <std::size_t Bits>
         friend class HasChangesMask;
-
+        // 更新字段的持有者
         friend class UpdateFieldHolder;
 
     public:

@@ -22,7 +22,7 @@
 #include "Map.h"
 #include "Object.h"
 
-inline Cell::Cell(CellCoord const& p)
+inline Cell::Cell(CellCoord const &p)
 {
     data.Part.grid_x = p.x_coord / MAX_NUMBER_OF_CELLS;
     data.Part.grid_y = p.y_coord / MAX_NUMBER_OF_CELLS;
@@ -57,53 +57,63 @@ inline CellArea Cell::CalculateCellArea(float x, float y, float radius)
     return CellArea(centerX, centerY);
 }
 
-template<class T, class CONTAINER>
-inline void Cell::Visit(CellCoord const& standing_cell, TypeContainerVisitor<T, CONTAINER>& visitor, Map& map, WorldObject const& obj, float radius) const
+template <class T, class CONTAINER>
+inline void Cell::Visit(CellCoord const &standing_cell, TypeContainerVisitor<T, CONTAINER> &visitor, Map &map, WorldObject const &obj, float radius) const
 {
-    //we should increase search radius by object's radius, otherwise
-    //we could have problems with huge creatures, which won't attack nearest players etc
+    // we should increase search radius by object's radius, otherwise
+    // we could have problems with huge creatures, which won't attack nearest players etc
     Visit(standing_cell, visitor, map, obj.GetPositionX(), obj.GetPositionY(), radius + obj.GetCombatReach());
 }
 
-template<class T, class CONTAINER>
-inline void Cell::Visit(CellCoord const& standing_cell, TypeContainerVisitor<T, CONTAINER>& visitor, Map& map, float x_off, float y_off, float radius) const
+template <class T, class CONTAINER>
+inline void Cell::Visit(CellCoord const &standing_cell, TypeContainerVisitor<T, CONTAINER> &visitor, Map &map, float x_off, float y_off, float radius) const
 {
     if (!standing_cell.IsCoordValid())
         return;
 
-    //no jokes here... Actually placing ASSERT() here was good idea, but
-    //we had some problems with DynamicObjects, which pass radius = 0.0f (DB issue?)
-    //maybe it is better to just return when radius <= 0.0f?
+    // no jokes here... Actually placing ASSERT() here was good idea, but
+    // we had some problems with DynamicObjects, which pass radius = 0.0f (DB issue?)
+    // maybe it is better to just return when radius <= 0.0f?
+    // 不是开玩笑……实际上，在这里放置ASSERT（）是个好主意，但是
+    // 我们有一些问题与DynamicObjects，它传递半径= 0.0f （DB问题？）
+    // 也许是更好的只是返回时半径<= 0.0f？
     if (radius <= 0.0f)
     {
         map.Visit(*this, visitor);
         return;
     }
-    //lets limit the upper value for search radius
+    // lets limit the upper value for search radius
+    // 限制搜索半径的最大值
     if (radius > SIZE_OF_GRIDS)
         radius = SIZE_OF_GRIDS;
 
-    //lets calculate object coord offsets from cell borders.
+    // lets calculate object coord offsets from cell borders.
+    // 让我们从单元格边界计算对象的坐标偏移。
     CellArea area = Cell::CalculateCellArea(x_off, y_off, radius);
-    //if radius fits inside standing cell
+    // if radius fits inside standing cell
+    // 如果半径适合站立单元
     if (!area)
     {
         map.Visit(*this, visitor);
         return;
     }
 
-    //visit all cells, found in CalculateCellArea()
-    //if radius is known to reach cell area more than 4x4 then we should call optimized VisitCircle
-    //currently this technique works with MAX_NUMBER_OF_CELLS 16 and higher, with lower values
-    //there are nothing to optimize because SIZE_OF_GRID_CELL is too big...
+    // visit all cells, found in CalculateCellArea()
+    // if radius is known to reach cell area more than 4x4 then we should call optimized VisitCircle
+    // currently this technique works with MAX_NUMBER_OF_CELLS 16 and higher, with lower values
+    // there are nothing to optimize because SIZE_OF_GRID_CELL is too big...
+    // 访问CalculateCellArea（）中的所有单元格
+    // 如果已知半径达到单元面积超过4x4，那么我们应该调用优化的VisitCircle
+    // 当前该技术适用于MAX_NUMBER_OF_CELLS 16及更高的值
+    // 因为SIZE_OF_GRID_CELL太大，所以没有什么可优化的…
     if ((area.high_bound.x_coord > (area.low_bound.x_coord + 4)) && (area.high_bound.y_coord > (area.low_bound.y_coord + 4)))
     {
         VisitCircle(visitor, map, area.low_bound, area.high_bound);
         return;
     }
 
-    //ALWAYS visit standing cell first!!! Since we deal with small radiuses
-    //it is very essential to call visitor for standing cell firstly...
+    // ALWAYS visit standing cell first!!! Since we deal with small radiuses
+    // it is very essential to call visitor for standing cell firstly...
     map.Visit(*this, visitor);
 
     // loop the cell range
@@ -112,7 +122,7 @@ inline void Cell::Visit(CellCoord const& standing_cell, TypeContainerVisitor<T, 
         for (uint32 y = area.low_bound.y_coord; y <= area.high_bound.y_coord; ++y)
         {
             CellCoord cellCoord(x, y);
-            //lets skip standing cell since we already visited it
+            // lets skip standing cell since we already visited it
             if (cellCoord != standing_cell)
             {
                 Cell r_zone(cellCoord);
@@ -123,16 +133,16 @@ inline void Cell::Visit(CellCoord const& standing_cell, TypeContainerVisitor<T, 
     }
 }
 
-template<class T, class CONTAINER>
-inline void Cell::VisitCircle(TypeContainerVisitor<T, CONTAINER>& visitor, Map& map, CellCoord const& begin_cell, CellCoord const& end_cell) const
+template <class T, class CONTAINER>
+inline void Cell::VisitCircle(TypeContainerVisitor<T, CONTAINER> &visitor, Map &map, CellCoord const &begin_cell, CellCoord const &end_cell) const
 {
-    //here is an algorithm for 'filling' circum-squared octagon
+    // here is an algorithm for 'filling' circum-squared octagon
     uint32 x_shift = (uint32)ceilf((end_cell.x_coord - begin_cell.x_coord) * 0.3f - 0.5f);
-    //lets calculate x_start/x_end coords for central strip...
+    // lets calculate x_start/x_end coords for central strip...
     const uint32 x_start = begin_cell.x_coord + x_shift;
     const uint32 x_end = end_cell.x_coord - x_shift;
 
-    //visit central strip with constant width...
+    // visit central strip with constant width...
     for (uint32 x = x_start; x <= x_end; ++x)
     {
         for (uint32 y = begin_cell.y_coord; y <= end_cell.y_coord; ++y)
@@ -144,29 +154,29 @@ inline void Cell::VisitCircle(TypeContainerVisitor<T, CONTAINER>& visitor, Map& 
         }
     }
 
-    //if x_shift == 0 then we have too small cell area, which were already
-    //visited at previous step, so just return from procedure...
+    // if x_shift == 0 then we have too small cell area, which were already
+    // visited at previous step, so just return from procedure...
     if (x_shift == 0)
         return;
 
     uint32 y_start = end_cell.y_coord;
     uint32 y_end = begin_cell.y_coord;
-    //now we are visiting borders of an octagon...
+    // now we are visiting borders of an octagon...
     for (uint32 step = 1; step <= (x_start - begin_cell.x_coord); ++step)
     {
-        //each step reduces strip height by 2 cells...
+        // each step reduces strip height by 2 cells...
         y_end += 1;
         y_start -= 1;
         for (uint32 y = y_start; y >= y_end; --y)
         {
-            //we visit cells symmetrically from both sides, heading from center to sides and from up to bottom
-            //e.g. filling 2 trapezoids after filling central cell strip...
+            // we visit cells symmetrically from both sides, heading from center to sides and from up to bottom
+            // e.g. filling 2 trapezoids after filling central cell strip...
             CellCoord cellCoord_left(x_start - step, y);
             Cell r_zone_left(cellCoord_left);
             r_zone_left.data.Part.nocreate = this->data.Part.nocreate;
             map.Visit(r_zone_left, visitor);
 
-            //right trapezoid cell visit
+            // right trapezoid cell visit
             CellCoord cellCoord_right(x_end + step, y);
             Cell r_zone_right(cellCoord_right);
             r_zone_right.data.Part.nocreate = this->data.Part.nocreate;
@@ -175,8 +185,8 @@ inline void Cell::VisitCircle(TypeContainerVisitor<T, CONTAINER>& visitor, Map& 
     }
 }
 
-template<class T>
-inline void Cell::VisitGridObjects(WorldObject const* center_obj, T& visitor, float radius, bool dont_load)
+template <class T>
+inline void Cell::VisitGridObjects(WorldObject const *center_obj, T &visitor, float radius, bool dont_load)
 {
     CellCoord p(Trinity::ComputeCellCoord(center_obj->GetPositionX(), center_obj->GetPositionY()));
     Cell cell(p);
@@ -187,8 +197,8 @@ inline void Cell::VisitGridObjects(WorldObject const* center_obj, T& visitor, fl
     cell.Visit(p, gnotifier, *center_obj->GetMap(), *center_obj, radius);
 }
 
-template<class T>
-inline void Cell::VisitWorldObjects(WorldObject const* center_obj, T& visitor, float radius, bool dont_load)
+template <class T>
+inline void Cell::VisitWorldObjects(WorldObject const *center_obj, T &visitor, float radius, bool dont_load)
 {
     CellCoord p(Trinity::ComputeCellCoord(center_obj->GetPositionX(), center_obj->GetPositionY()));
     Cell cell(p);
@@ -199,8 +209,8 @@ inline void Cell::VisitWorldObjects(WorldObject const* center_obj, T& visitor, f
     cell.Visit(p, gnotifier, *center_obj->GetMap(), *center_obj, radius);
 }
 
-template<class T>
-inline void Cell::VisitAllObjects(WorldObject const* center_obj, T& visitor, float radius, bool dont_load)
+template <class T>
+inline void Cell::VisitAllObjects(WorldObject const *center_obj, T &visitor, float radius, bool dont_load)
 {
     CellCoord p(Trinity::ComputeCellCoord(center_obj->GetPositionX(), center_obj->GetPositionY()));
     Cell cell(p);
@@ -213,8 +223,8 @@ inline void Cell::VisitAllObjects(WorldObject const* center_obj, T& visitor, flo
     cell.Visit(p, gnotifier, *center_obj->GetMap(), *center_obj, radius);
 }
 
-template<class T>
-inline void Cell::VisitGridObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load)
+template <class T>
+inline void Cell::VisitGridObjects(float x, float y, Map *map, T &visitor, float radius, bool dont_load)
 {
     CellCoord p(Trinity::ComputeCellCoord(x, y));
     Cell cell(p);
@@ -225,8 +235,8 @@ inline void Cell::VisitGridObjects(float x, float y, Map* map, T& visitor, float
     cell.Visit(p, gnotifier, *map, x, y, radius);
 }
 
-template<class T>
-inline void Cell::VisitWorldObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load)
+template <class T>
+inline void Cell::VisitWorldObjects(float x, float y, Map *map, T &visitor, float radius, bool dont_load)
 {
     CellCoord p(Trinity::ComputeCellCoord(x, y));
     Cell cell(p);
@@ -237,8 +247,8 @@ inline void Cell::VisitWorldObjects(float x, float y, Map* map, T& visitor, floa
     cell.Visit(p, gnotifier, *map, x, y, radius);
 }
 
-template<class T>
-inline void Cell::VisitAllObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load)
+template <class T>
+inline void Cell::VisitAllObjects(float x, float y, Map *map, T &visitor, float radius, bool dont_load)
 {
     CellCoord p(Trinity::ComputeCellCoord(x, y));
     Cell cell(p);

@@ -1377,6 +1377,7 @@ public:
     void Yell(std::string_view text, Language language, WorldObject const * = nullptr) override;
     void Yell(uint32 textId, WorldObject const *target = nullptr) override;
     /// Outputs an universal text which is supposed to be an action.
+    /////输出一个通用文本，它应该是一个动作。
     void TextEmote(std::string_view text, WorldObject const * = nullptr, bool = false) override;
     void TextEmote(uint32 textId, WorldObject const *target = nullptr, bool isBossEmote = false) override;
     /// Handles whispers from Addons and players based on sender, receiver's guid and language.
@@ -3279,7 +3280,7 @@ protected:
 
     std::unique_ptr<ResurrectionData> _resurrectionData;
 
-    WorldSes'w'saswsassion *m_session;
+    WorldSes 'w' saswsassion *m_session;
     // 已加入的频道列表
     JoinedChannelsList m_channels;
 

@@ -108,6 +108,7 @@ struct CreateObjectBits
 
 namespace UF
 {
+    // 更新字段的持有者
     class UpdateFieldHolder
     {
     public:
@@ -136,6 +137,7 @@ namespace UF
         friend Object;
 
         // This class is tightly tied to Object::m_values member, do not construct elsewhere
+        // 这个类与Object::m_values成员紧密绑定，不要在其他地方构造
         UpdateFieldHolder() : _changesMask(0) {}
 
         uint32 _changesMask;
