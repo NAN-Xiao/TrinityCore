@@ -179,13 +179,21 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData *data, Player *target) c
 
     BuildeBlock();
 }
+
+//////////////////////////////////////////////////
+///  重要！！！                                  ///
+///  可以向自己也可以向其他玩家发送更新           ///
+///  比如战斗的数据、在附近玩家可以观察到属性变化  ///
+///  Player::UpdateVisibilityOf                ///
+//////////////////////////////////////////////////
 void Object::SendUpdateToPlayer(Player *player)
 {
     // send create update to player
     // 发送create update到player
     UpdateData upd(player->GetMapId());
     WorldPacket packet;
-    // 确保player的服务器数据是正确的
+    // 如果已经在客户端上表现出来了 那么只需要更新数值
+    // 否则，需要发送创建消息并且更新数值
     if (player->HaveAtClient(this))
         BuildValuesUpdateBlockForPlayer(&upd, player);
     else
@@ -1613,6 +1621,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const *obj, bool implicitDetect, bo
     }
 
     // GM visibility off or hidden NPC
+    //// GM能见度关闭或隐藏NPC
     if (!obj->m_serverSideVisibility.GetValue(SERVERSIDE_VISIBILITY_GM))
     {
         // Stop checking other things for GMs
@@ -1653,7 +1662,7 @@ bool WorldObject::CanNeverSee(WorldObject const *obj) const
 {
     return GetMap() != obj->GetMap() || !InSamePhase(obj);
 }
-
+// 可以检测到
 bool WorldObject::CanDetect(WorldObject const *obj, bool implicitDetect, bool checkAlert) const
 {
     WorldObject const *seer = this;

@@ -24225,6 +24225,8 @@ void Player::UpdateVisibilityOf(WorldObject *target)
     }
     else
     {
+        // 可以看到或者检测到我
+        // 那么用看到我的obj调用 SendUpdateToPlayer 同步我的信息
         if (CanSeeOrDetect(target, false, true))
         {
             target->SendUpdateToPlayer(this);
