@@ -177,26 +177,15 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData *data, Player *target) c
     buf << GetGUID();
     buf << uint8(objectType);
 
-    BuildMovementUpdate(&buf, flags, target);
-
-    UF::UpdateFieldFlag fieldFlags = GetUpdateFieldFlagsFor(target);
-    std::size_t sizePos = buf.wpos();
-    buf << uint32(0);
-    buf << uint8(fieldFlags);
-    BuildEntityFragments(&buf, m_entityFragments.GetIds());
-    buf << uint8(1); // IndirectFragmentActive: CGObject
-    BuildValuesCreate(&buf, fieldFlags, target);
-    buf.put<uint32>(sizePos, buf.wpos() - sizePos - 4);
-
-    data->AddUpdateBlock();
+    BuildeBlock();
 }
-
 void Object::SendUpdateToPlayer(Player *player)
 {
     // send create update to player
+    // 发送create update到player
     UpdateData upd(player->GetMapId());
     WorldPacket packet;
-
+    // 确保player的服务器数据是正确的
     if (player->HaveAtClient(this))
         BuildValuesUpdateBlockForPlayer(&upd, player);
     else
@@ -204,24 +193,28 @@ void Object::SendUpdateToPlayer(Player *player)
     upd.BuildPacket(&packet);
     player->SendDirectMessage(&packet);
 }
-
+// 为玩家构建数据的更新块
 void Object::BuildValuesUpdateBlockForPlayer(UpdateData *data, Player const *target) const
 {
     ByteBuffer &buf = PrepareValuesUpdateBuffer(data);
-
+    // 获取更新字段标志
     EnumFlag<UF::UpdateFieldFlag> fieldFlags = GetUpdateFieldFlagsFor(target);
     std::size_t sizePos = buf.wpos();
+    // 预留大小位置
     buf << uint32(0);
+    // 写入基本更新标志
     buf << uint8(fieldFlags.HasFlag(UF::UpdateFieldFlag::Owner));
     buf << uint8(m_entityFragments.IdsChanged);
+    // 处理实体片段更新
     if (m_entityFragments.IdsChanged)
     {
         buf << uint8(WowCS::EntityFragmentSerializationType::Full);
         BuildEntityFragments(&buf, m_entityFragments.GetIds());
     }
     buf << uint8(m_entityFragments.ContentsChangedMask);
-
+    // 构建值更新
     BuildValuesUpdate(&buf, fieldFlags, target);
+    // 设置数据块大小
     buf.put<uint32>(sizePos, buf.wpos() - sizePos - 4);
 
     data->AddUpdateBlock();
@@ -262,7 +255,7 @@ void Object::BuildOutOfRangeUpdateBlock(UpdateData *data) const
 {
     data->AddOutOfRangeGUID(GetGUID());
 }
-
+// 准备数据的更更新缓冲区
 ByteBuffer &Object::PrepareValuesUpdateBuffer(UpdateData *data) const
 {
     ByteBuffer &buffer = data->GetBuffer();
@@ -1558,7 +1551,7 @@ SmoothPhasing *WorldObject::GetOrCreateSmoothPhasing()
 
     return _smoothPhasing.get();
 }
-// 可以被其他玩家看到
+// 可以被其他玩家看到或者检测到
 bool WorldObject::CanSeeOrDetect(WorldObject const *obj, bool implicitDetect, bool distanceCheck, bool checkAlert) const
 {
     if (this == obj)
@@ -1601,7 +1594,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const *obj, bool implicitDetect, bo
             if (Unit const *target = obj->ToUnit())
             {
                 // Don't allow to detect vehicle accessories if you can't see vehicle
-                //如果看不到车辆，就不允许检测车辆配件
+                // 如果看不到车辆，就不允许检测车辆配件
                 if (Unit const *vehicle = target->GetVehicleBase())
                     if (!thisPlayer->HaveAtClient(vehicle))
                         return false;
@@ -3725,7 +3718,7 @@ void WorldObject::DestroyForNearbyPlayers()
         player->m_clientGUIDs.erase(GetGUID());
     }
 }
-
+////为附近的玩家更新对象的可见性
 void WorldObject::UpdateObjectVisibility(bool /*forced*/)
 {
     // updates object's visibility for nearby players

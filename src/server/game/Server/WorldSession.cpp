@@ -228,9 +228,11 @@ void WorldSession::SendPacket(WorldPacket const *packet, bool forced /*= false*/
     }
 
     // Default connection index defined in Opcodes.cpp table
+    // Opcodes.cpp表中定义的默认连接索引
     ConnectionType conIdx = handler->ConnectionIndex;
 
     // Override connection index
+    // 覆盖连接的索引
     if (packet->GetConnection() != CONNECTION_TYPE_DEFAULT)
     {
         if (packet->GetConnection() != CONNECTION_TYPE_INSTANCE && IsInstanceOnlyOpcode(packet->GetOpcode()))

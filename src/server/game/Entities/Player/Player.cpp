@@ -3715,7 +3715,8 @@ UF::UpdateFieldFlag Player::GetUpdateFieldFlagsFor(Player const *target) const
 
     return flags;
 }
-
+// 在object::BuildCreateUpdateBlockForPlayer 调用
+//  构建和准备用于发送给客户端的数据包
 void Player::BuildValuesCreate(ByteBuffer *data, UF::UpdateFieldFlag flags, Player const *target) const
 {
     m_objectData->WriteCreate(*data, flags, this, target);
@@ -6371,6 +6372,8 @@ void Player::SendMessageToSet(WorldPacket const *data, Player const *skipped_rcv
 
     // we use World::GetMaxVisibleDistance() because i cannot see why not use a distance
     // update: replaced by GetMap()->GetVisibilityDistance()
+    // 我们使用World::GetMaxVisibleDistance()，因为我不明白为什么不使用距离
+    // update：由GetMap（）取代->GetVisibilityDistance（）
     Trinity::PacketSenderRef sender(data);
     Trinity::MessageDistDeliverer<Trinity::PacketSenderRef> notifier(this, sender, GetVisibilityRange(), false, skipped_rcvr);
     Cell::VisitWorldObjects(this, notifier, GetVisibilityRange());
@@ -6380,7 +6383,8 @@ void Player::SendDirectMessage(WorldPacket const *data) const
 {
     m_session->SendPacket(data);
 }
-
+// 开始播放序列动画消息
+// 序列动画应该是游戏内实时的动画
 void Player::SendCinematicStart(uint32 CinematicSequenceId) const
 {
     WorldPackets::Misc::TriggerCinematic packet;
@@ -6389,7 +6393,8 @@ void Player::SendCinematicStart(uint32 CinematicSequenceId) const
     if (CinematicSequencesEntry const *sequence = sCinematicSequencesStore.LookupEntry(CinematicSequenceId))
         _cinematicMgr->BeginCinematic(sequence);
 }
-
+// 电影开始消息
+// movie和Cinematic的区别应该是movie是预先渲染的视频？？
 void Player::SendMovieStart(uint32 movieId)
 {
     SetMovie(movieId);
@@ -24183,7 +24188,8 @@ void Player::UpdateVisibilityOf(Trinity::IteratorPair<WorldObject **> targets)
     for (WorldObject *visibleUnit : newVisibleObjects)
         SendInitialVisiblePackets(visibleUnit);
 }
-
+// 更新一个对象（如玩家、NPC或其他世界对象）相对于其他对象或玩家的可见性状态
+// 这里把自己更新发送给了target参数
 void Player::UpdateVisibilityOf(WorldObject *target)
 {
     if (HaveAtClient(target))
@@ -24230,6 +24236,8 @@ void Player::UpdateVisibilityOf(WorldObject *target)
 
             // target aura duration for caster show only if target exist at caster client
             // send data at target visibility change (adding to client)
+            // 施法者的光环持续时间只有当目标存在于施法者客户端时才会显示
+            // 在目标可见性改变时发送数据（添加到客户端）
             SendInitialVisiblePackets(target);
         }
     }
@@ -24368,13 +24376,13 @@ void Player::UpdateObjectVisibility(bool forced)
         UpdateVisibilityForPlayer();
     }
 }
-
+// 更新当前player的视野
 void Player::UpdateVisibilityForPlayer()
 {
     // updates visibility of all objects around point of view for current player
     Trinity::VisibleNotifier notifier(*this);
     Cell::VisitAllObjects(m_seer, notifier, GetSightRange());
-    notifier.SendToSelf(); // send gathered data
+    notifier.SendToSelf(); // send gathered data//发送收集到的数据
 }
 
 void Player::InitPrimaryProfessions()
@@ -26415,7 +26423,7 @@ void Player::StopCastingBindSight() const
         target->RemoveAurasByType(SPELL_AURA_MOD_POSSESS_PET, GetGUID());
     }
 }
-
+// 用来改变玩家的视点
 void Player::SetViewpoint(WorldObject *target, bool apply)
 {
     if (apply)
@@ -26432,6 +26440,9 @@ void Player::SetViewpoint(WorldObject *target, bool apply)
         SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::FarsightObject), target->GetGUID());
 
         // farsight dynobj or puppet may be very far away
+        // 这通常指的是一种特殊的游戏功能，
+        // 允许玩家视点（即玩家通过游戏界面看到的内容）被设置到远离玩家当前实际位置的对象或实体上。
+        // 比如wow中有一种技能可以查看地图上指定的区域
         UpdateVisibilityOf(target);
 
         if (Unit *targetUnit = target->ToUnit(); targetUnit && targetUnit != GetVehicleBase())

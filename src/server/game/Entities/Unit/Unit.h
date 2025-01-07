@@ -249,6 +249,7 @@ enum DeathState
     JUST_DIED = 1,
     CORPSE = 2,
     DEAD = 3,
+    // 指示单位（无论是玩家控制的角色还是非玩家角色）刚刚复活或重生
     JUST_RESPAWNED = 4
 };
 
@@ -1890,7 +1891,7 @@ public:
     void SetVignette(uint32 vignetteId);
 
     std::string GetDebugInfo() const override;
-
+    // typename T, int32 BlockBit, uint32 Bit
     UF::UpdateField<UF::UnitData, int32(WowCS::EntityFragment::CGObject), TYPEID_UNIT> m_unitData;
 
 protected:

@@ -25,13 +25,13 @@
 #include "UnitAICommon.h"
 #include <unordered_map>
 
-#define CAST_AI(a, b)   (dynamic_cast<a*>(b))
-#define ENSURE_AI(a,b)  (EnsureAI<a>(b))
+#define CAST_AI(a, b) (dynamic_cast<a *>(b))
+#define ENSURE_AI(a, b) (EnsureAI<a>(b))
 
-template<class T, class U>
-T* EnsureAI(U* ai)
+template <class T, class U>
+T *EnsureAI(U *ai)
 {
-    T* cast_ai = dynamic_cast<T*>(ai);
+    T *cast_ai = dynamic_cast<T *>(ai);
     ASSERT(cast_ai);
     return cast_ai;
 }
@@ -48,135 +48,144 @@ enum SpellEffIndex : uint8;
 
 class TC_GAME_API UnitAI
 {
-    protected:
-        Unit* const me;
-    public:
-        explicit UnitAI(Unit* unit) : me(unit) { }
-        virtual ~UnitAI() { }
+protected:
+    Unit *const me;
 
-        virtual bool CanAIAttack(Unit const* /*target*/) const { return true; }
-        virtual void AttackStart(Unit* victim);
-        virtual void UpdateAI(uint32 diff) = 0;
+public:
+    explicit UnitAI(Unit *unit) : me(unit) {}
+    virtual ~UnitAI() {}
 
-        virtual void InitializeAI();
+    virtual bool CanAIAttack(Unit const * /*target*/) const { return true; }
+    virtual void AttackStart(Unit *victim);
+    virtual void UpdateAI(uint32 diff) = 0;
 
-        virtual void Reset() { }
+    virtual void InitializeAI();
 
-        // Called when unit's charm state changes with isNew = false
-        // Implementation should call me->ScheduleAIChange() if AI replacement is desired
-        // If this call is made, AI will be replaced on the next tick
-        // When replacement is made, OnCharmed is called with isNew = true
-        virtual void OnCharmed(bool isNew);
+    virtual void Reset() {}
 
-        // Pass parameters between AI
-        virtual void DoAction(int32 /*param*/) { }
-        virtual uint32 GetData(uint32 /*id = 0*/) const { return 0; }
-        virtual void SetData(uint32 /*id*/, uint32 /*value*/) { }
-        virtual void SetGUID(ObjectGuid const& /*guid*/, int32 /*id*/ = 0) { }
-        virtual ObjectGuid GetGUID(int32 /*id*/ = 0) const { return ObjectGuid::Empty; }
+    // Called when unit's charm state changes with isNew = false
+    // Implementation should call me->ScheduleAIChange() if AI replacement is desired
+    // If this call is made, AI will be replaced on the next tick
+    // When replacement is made, OnCharmed is called with isNew = true
+    virtual void OnCharmed(bool isNew);
 
-        // Select the best target (in <targetType> order) from the threat list that fulfill the following:
-        // - Not among the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat order,
-        //   if <targetType> is SelectTargetMethod::Random).
-        // - Within at most <dist> yards (if dist > 0.0f)
-        // - At least -<dist> yards away (if dist < 0.0f)
-        // - Is a player (if playerOnly = true)
-        // - Not the current tank (if withTank = false)
-        // - Has aura with ID <aura> (if aura > 0)
-        // - Does not have aura with ID -<aura> (if aura < 0)
-        Unit* SelectTarget(SelectTargetMethod targetType, uint32 offset = 0, float dist = 0.0f, bool playerOnly = false, bool withTank = true, int32 aura = 0);
+    // Pass parameters between AI
+    virtual void DoAction(int32 /*param*/) {}
+    virtual uint32 GetData(uint32 /*id = 0*/) const { return 0; }
+    virtual void SetData(uint32 /*id*/, uint32 /*value*/) {}
+    virtual void SetGUID(ObjectGuid const & /*guid*/, int32 /*id*/ = 0) {}
+    virtual ObjectGuid GetGUID(int32 /*id*/ = 0) const { return ObjectGuid::Empty; }
 
-        // Select the best target (in <targetType> order) satisfying <predicate> from the threat list.
-        // If <offset> is nonzero, the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat
-        // order, if <targetType> is SelectTargetMethod::Random) are skipped.
-        template<class PREDICATE>
-        Unit* SelectTarget(SelectTargetMethod targetType, uint32 offset, PREDICATE const& predicate)
-        {
-            std::list<Unit*> targetList;
-            SelectTargetList(targetList, std::numeric_limits<uint32>::max(), targetType, offset, predicate);
+    // Select the best target (in <targetType> order) from the threat list that fulfill the following:
+    // - Not among the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat order,
+    //   if <targetType> is SelectTargetMethod::Random).
+    // - Within at most <dist> yards (if dist > 0.0f)
+    // - At least -<dist> yards away (if dist < 0.0f)
+    // - Is a player (if playerOnly = true)
+    // - Not the current tank (if withTank = false)
+    // - Has aura with ID <aura> (if aura > 0)
+    // - Does not have aura with ID -<aura> (if aura < 0)
+    Unit *SelectTarget(SelectTargetMethod targetType, uint32 offset = 0, float dist = 0.0f, bool playerOnly = false, bool withTank = true, int32 aura = 0);
 
-            return FinalizeTargetSelection(targetList, targetType);
-        }
+    // Select the best target (in <targetType> order) satisfying <predicate> from the threat list.
+    // If <offset> is nonzero, the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat
+    // order, if <targetType> is SelectTargetMethod::Random) are skipped.
+    template <class PREDICATE>
+    Unit *SelectTarget(SelectTargetMethod targetType, uint32 offset, PREDICATE const &predicate)
+    {
+        std::list<Unit *> targetList;
+        SelectTargetList(targetList, std::numeric_limits<uint32>::max(), targetType, offset, predicate);
 
-        // Select the best (up to) <num> targets (in <targetType> order) from the threat list that fulfill the following:
-        // - Not among the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat order,
-        //   if <targetType> is SelectTargetMethod::Random).
-        // - Within at most <dist> yards (if dist > 0.0f)
-        // - At least -<dist> yards away (if dist < 0.0f)
-        // - Is a player (if playerOnly = true)
-        // - Not the current tank (if withTank = false)
-        // - Has aura with ID <aura> (if aura > 0)
-        // - Does not have aura with ID -<aura> (if aura < 0)
-        // The resulting targets are stored in <targetList> (which is cleared first).
-        void SelectTargetList(std::list<Unit*>& targetList, uint32 num, SelectTargetMethod targetType, uint32 offset = 0, float dist = 0.0f, bool playerOnly = false, bool withTank = true, int32 aura = 0);
+        return FinalizeTargetSelection(targetList, targetType);
+    }
 
-        // Select the best (up to) <num> targets (in <targetType> order) satisfying <predicate> from the threat list and stores them in <targetList> (which is cleared first).
-        // If <offset> is nonzero, the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat
-        // order, if <targetType> is SelectTargetMethod::Random) are skipped.
-        template <class PREDICATE>
-        void SelectTargetList(std::list<Unit*>& targetList, uint32 num, SelectTargetMethod targetType, uint32 offset, PREDICATE const& predicate)
-        {
-            if (!PrepareTargetListSelection(targetList, targetType, offset))
-                return;
+    // Select the best (up to) <num> targets (in <targetType> order) from the threat list that fulfill the following:
+    // - Not among the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat order,
+    //   if <targetType> is SelectTargetMethod::Random).
+    // - Within at most <dist> yards (if dist > 0.0f)
+    // - At least -<dist> yards away (if dist < 0.0f)
+    // - Is a player (if playerOnly = true)
+    // - Not the current tank (if withTank = false)
+    // - Has aura with ID <aura> (if aura > 0)
+    // - Does not have aura with ID -<aura> (if aura < 0)
+    // The resulting targets are stored in <targetList> (which is cleared first).
+    void SelectTargetList(std::list<Unit *> &targetList, uint32 num, SelectTargetMethod targetType, uint32 offset = 0, float dist = 0.0f, bool playerOnly = false, bool withTank = true, int32 aura = 0);
 
-            // then finally filter by predicate
-            targetList.remove_if([&predicate](Unit* target) { return !predicate(target); });
+    // Select the best (up to) <num> targets (in <targetType> order) satisfying <predicate> from the threat list and stores them in <targetList> (which is cleared first).
+    // If <offset> is nonzero, the first <offset> entries in <targetType> order (or SelectTargetMethod::MaxThreat
+    // order, if <targetType> is SelectTargetMethod::Random) are skipped.
+    template <class PREDICATE>
+    void SelectTargetList(std::list<Unit *> &targetList, uint32 num, SelectTargetMethod targetType, uint32 offset, PREDICATE const &predicate)
+    {
+        if (!PrepareTargetListSelection(targetList, targetType, offset))
+            return;
 
-            FinalizeTargetListSelection(targetList, num, targetType);
-        }
+        // then finally filter by predicate
+        targetList.remove_if([&predicate](Unit *target)
+                             { return !predicate(target); });
 
-        // Called when the unit enters combat
-        // (NOTE: Creature engage logic should NOT be here, but in JustEngagedWith, which happens once threat is established!)
-        virtual void JustEnteredCombat(Unit* /*who*/) { }
+        FinalizeTargetListSelection(targetList, num, targetType);
+    }
 
-        // Called when the unit leaves combat
-        virtual void JustExitedCombat() { }
+    // Called when the unit enters combat
+    // (NOTE: Creature engage logic should NOT be here, but in JustEngagedWith, which happens once threat is established!)
+    virtual void JustEnteredCombat(Unit * /*who*/) {}
 
-        // Called when the unit is about to be removed from the world (despawn, grid unload, corpse disappearing, player logging out etc.)
-        virtual void OnDespawn() { }
+    // Called when the unit leaves combat
+    virtual void JustExitedCombat() {}
 
-        // Called at any Damage to any victim (before damage apply)
-        virtual void DamageDealt(Unit* /*victim*/, uint32& /*damage*/, DamageEffectType /*damageType*/) { }
+    // Called when the unit is about to be removed from the world (despawn, grid unload, corpse disappearing, player logging out etc.)
+    virtual void OnDespawn() {}
 
-        // Called at any Damage from any attacker (before damage apply)
-        // Note: it for recalculation damage or special reaction at damage
-        virtual void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) { }
+    // Called at any Damage to any victim (before damage apply)
+    ////在任何受害者受到伤害时调用（在伤害生效之前）
+    virtual void DamageDealt(Unit * /*victim*/, uint32 & /*damage*/, DamageEffectType /*damageType*/) {}
 
-        // Called when the creature receives heal
-        virtual void HealReceived(Unit* /*done_by*/, uint32& /*addhealth*/) { }
+    // Called at any Damage from any attacker (before damage apply)
+    // Note: it for recalculation damage or special reaction at damage
+    // 在任何攻击者造成任何伤害时调用（在造成伤害之前）
+    // 注：用于重新计算伤害或特殊的伤害反应
+    virtual void DamageTaken(Unit * /*attacker*/, uint32 & /*damage*/, DamageEffectType /*damageType*/, SpellInfo const * /*spellInfo = nullptr*/) {}
 
-        // Called when the unit heals
-        virtual void HealDone(Unit* /*done_to*/, uint32& /*addhealth*/) { }
+    // Called when the creature receives heal
+    // 当生物得到治疗时调用
+    virtual void HealReceived(Unit * /*done_by*/, uint32 & /*addhealth*/) {}
 
-        /// Called when a spell is interrupted by Spell::EffectInterruptCast
-        /// Use to reschedule next planned cast of spell.
-        virtual void SpellInterrupted(uint32 /*spellId*/, uint32 /*unTimeMs*/) { }
+    // Called when the unit heals
+    // 当单位愈合时调用
+    virtual void HealDone(Unit * /*done_to*/, uint32 & /*addhealth*/) {}
 
-        void AttackStartCaster(Unit* victim, float dist);
+    /// Called when a spell is interrupted by Spell::EffectInterruptCast
+    /// Use to reschedule next planned cast of spell.
+    /// 当法术被法术：：EffectInterruptCast打断时调用
+    /// 用于重新安排下一次计划施法的时间。
+    virtual void SpellInterrupted(uint32 /*spellId*/, uint32 /*unTimeMs*/) {}
 
-        SpellCastResult DoCast(uint32 spellId);
-        SpellCastResult DoCast(Unit* victim, uint32 spellId, CastSpellExtraArgs const& args = {});
-        SpellCastResult DoCastSelf(uint32 spellId, CastSpellExtraArgs const& args = {}) { return DoCast(me, spellId, args); }
-        SpellCastResult DoCastVictim(uint32 spellId, CastSpellExtraArgs const& args = {});
-        SpellCastResult DoCastAOE(uint32 spellId, CastSpellExtraArgs const& args = {}) { return DoCast(nullptr, spellId, args); }
+    void AttackStartCaster(Unit *victim, float dist);
 
-        bool DoSpellAttackIfReady(uint32 spellId);
+    SpellCastResult DoCast(uint32 spellId);
+    SpellCastResult DoCast(Unit *victim, uint32 spellId, CastSpellExtraArgs const &args = {});
+    SpellCastResult DoCastSelf(uint32 spellId, CastSpellExtraArgs const &args = {}) { return DoCast(me, spellId, args); }
+    SpellCastResult DoCastVictim(uint32 spellId, CastSpellExtraArgs const &args = {});
+    SpellCastResult DoCastAOE(uint32 spellId, CastSpellExtraArgs const &args = {}) { return DoCast(nullptr, spellId, args); }
 
-        static std::unordered_map<std::pair<uint32, Difficulty>, AISpellInfoType> AISpellInfo;
-        static void FillAISpellInfo();
+    bool DoSpellAttackIfReady(uint32 spellId);
 
-        // Called when a game event starts or ends
-        virtual void OnGameEvent(bool /*start*/, uint16 /*eventId*/) { }
+    static std::unordered_map<std::pair<uint32, Difficulty>, AISpellInfoType> AISpellInfo;
+    static void FillAISpellInfo();
 
-        virtual std::string GetDebugInfo() const;
+    // Called when a game event starts or ends
+    virtual void OnGameEvent(bool /*start*/, uint16 /*eventId*/) {}
 
-    private:
-        UnitAI(UnitAI const& right) = delete;
-        UnitAI& operator=(UnitAI const& right) = delete;
+    virtual std::string GetDebugInfo() const;
 
-        Unit* FinalizeTargetSelection(std::list<Unit*>& targetList, SelectTargetMethod targetType);
-        bool PrepareTargetListSelection(std::list<Unit*>& targetList, SelectTargetMethod targetType, uint32 offset);
-        void FinalizeTargetListSelection(std::list<Unit*>& targetList, uint32 num, SelectTargetMethod targetType);
+private:
+    UnitAI(UnitAI const &right) = delete;
+    UnitAI &operator=(UnitAI const &right) = delete;
+
+    Unit *FinalizeTargetSelection(std::list<Unit *> &targetList, SelectTargetMethod targetType);
+    bool PrepareTargetListSelection(std::list<Unit *> &targetList, SelectTargetMethod targetType, uint32 offset);
+    void FinalizeTargetListSelection(std::list<Unit *> &targetList, uint32 num, SelectTargetMethod targetType);
 };
 
 #endif

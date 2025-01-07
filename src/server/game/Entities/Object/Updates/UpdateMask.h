@@ -29,7 +29,7 @@ namespace UpdateMaskHelpers
 }
 
 template<uint32 Bits>
-class UpdateMask
+class UpdateMask 
 {
 public:
     static constexpr uint32 BlockCount = (Bits + 31) / 32;

@@ -3588,7 +3588,7 @@ void World::ProcessCliCommands()
         delete command;
     }
 }
-
+// 发送自动广播？？
 void World::SendAutoBroadcast()
 {
     if (m_Autobroadcasts.empty())

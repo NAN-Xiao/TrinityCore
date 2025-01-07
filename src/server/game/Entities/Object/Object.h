@@ -454,6 +454,8 @@ protected:
     template <typename T>
     void SetUpdateFieldValue(UF::UpdateFieldSetter<T> setter, typename UF::UpdateFieldSetter<T>::value_type value)
     {
+        // 如果设置成功了 ：old！=new
+        // 添加obj到更新列表
         if (UF::SetUpdateFieldValue(setter, std::move(value)))
             AddToObjectUpdateIfNeeded();
     }

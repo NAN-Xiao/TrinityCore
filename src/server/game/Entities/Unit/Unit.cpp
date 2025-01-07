@@ -773,7 +773,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
 
     return (HasBreakableByDamageAuraType(SPELL_AURA_MOD_CONFUSE, excludeAura) || HasBreakableByDamageAuraType(SPELL_AURA_MOD_FEAR, excludeAura) || HasBreakableByDamageAuraType(SPELL_AURA_MOD_STUN, excludeAura) || HasBreakableByDamageAuraType(SPELL_AURA_MOD_ROOT, excludeAura) || HasBreakableByDamageAuraType(SPELL_AURA_MOD_ROOT_2, excludeAura) || HasBreakableByDamageAuraType(SPELL_AURA_TRANSFORM, excludeAura));
 }
-
+// 用于在实际处理伤害之前修改或调整伤害值
 /*static*/ void Unit::DealDamageMods(Unit const *attacker, Unit const *victim, uint32 &damage, uint32 *absorb)
 {
     if (!victim || !victim->IsAlive() || victim->HasUnitState(UNIT_STATE_IN_FLIGHT) || (victim->GetTypeId() == TYPEID_UNIT && victim->ToCreature()->IsEvadingAttacks()))
@@ -797,9 +797,13 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
 
 /*static*/ uint32 Unit::DealDamage(Unit *attacker, Unit *victim, uint32 damage, CleanDamage const *cleanDamage, DamageEffectType damagetype, SpellSchoolMask damageSchoolMask, SpellInfo const *spellProto, bool durabilityLoss)
 {
+    // 造成的伤害和受到的伤害
+    // 不考虑其他因素时、初始化时候默认相同
     uint32 damageDone = damage;  // 已经造成的伤害
     uint32 damageTaken = damage; // 受到的伤害
+
     if (attacker)
+        // 获取针对特定目标的健康（或生命值）倍率、返回一个乘数（或倍率）
         damageTaken = damage / victim->GetHealthMultiplierForTarget(attacker);
 
     // call script hooks
@@ -830,7 +834,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
             damageTaken = tmpDamage;
         }
     }
-    // 向宠物发出他们的主人被攻击的信号——除非DOT。
+    // 向宠物发出他们的主人被攻击的信号  — —除非DOT。
     //  Signal to pets that their owner was attacked - except when DOT.
     if (attacker != victim && damagetype != DOT)
     {
@@ -843,7 +847,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
     if (Player *player = victim->ToPlayer())
         if (player->GetCommandStatus(CHEAT_GOD))
             return 0;
-    // 收到了伤害
+    // 受到了伤害
     if (damagetype != NODAMAGE)
     {
         // 在检查伤害之前使用SpellAuraInterruptFlags::Damage来打断光环（吸收的伤害会破坏那种类型的光环）
@@ -908,6 +912,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
             return 0;
 
         // prevent kill only if killed in duel and killed by opponent or opponent controlled creature
+        // 只有在决斗中被对手或对手控制的生物杀死时才阻止杀戮
         if (victim->ToPlayer()->duel->Opponent == attacker->GetControllingPlayer())
             damageTaken = health - 1;
 
@@ -918,6 +923,7 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
         damageTaken = health - 1;
 
         // If we had damage (aka health was not 1 already) trigger OnHealthDepleted
+        // 如果我们有伤害（也就是生命值不是1）触发onhealthdepletion
         if (damageTaken > 0)
         {
             if (CreatureAI *victimAI = victim->ToCreature()->AI())
@@ -933,7 +939,8 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit *excludeCasterChannel) cons
             if (!attacker)
                 return 0;
 
-            // prevent kill only if killed in duel and killed by opponent or opponent controlled creature
+            // 只有在决斗中被对手或对手控制的生物杀死时才阻止杀戮
+            //  prevent kill only if killed in duel and killed by opponent or opponent controlled creature
             if (victimRider->duel->Opponent == attacker->GetControllingPlayer())
                 damageTaken = health - 1;
 
@@ -3344,7 +3351,7 @@ void Unit::ProcessTerrainStatusUpdate(ZLiquidStatus oldLiquidStatus, Optional<Li
     if (oldLiquidStatus != GetLiquidStatus())
         UpdateMountCapability();
 }
-
+// 变形？
 void Unit::DeMorph()
 {
     SetDisplayId(GetNativeDisplayId());
@@ -8345,17 +8352,22 @@ bool Unit::isTargetableForAttack(bool checkFakeDeath) const
     return !HasUnitState(UNIT_STATE_UNATTACKABLE) && (!checkFakeDeath || !HasUnitState(UNIT_STATE_DIED));
 }
 // 修改生命值
+// dVal是负伤害
 int64 Unit::ModifyHealth(int64 dVal)
 {
+    // 获得？？
     int64 gain = 0;
 
     if (dVal == 0)
         return 0;
 
     int64 curHealth = (int64)GetHealth();
-
+    // 由于这里dVal计算伤害的时候、传入的是负值
+    // 所以实际这里的val是::（curHealth-受到的伤害值（dVal））
+    // val是造成伤害后的health
     int64 val = dVal + curHealth;
-    if (val <= 0)
+
+    if (val <= 0) // 挂了
     {
         SetHealth(0);
         return -curHealth;
@@ -8374,7 +8386,7 @@ int64 Unit::ModifyHealth(int64 dVal)
         gain = maxHealth - curHealth;
     }
 
-    if (dVal < 0)
+    if (dVal < 0) // 没伤害
     {
         WorldPackets::Combat::HealthUpdate packet;
         packet.Guid = GetGUID();
@@ -9728,18 +9740,19 @@ void Unit::SetHealth(uint64 val)
             val = maxHealth;
     }
     uint64 oldVal = GetHealth();
-    // 更新字段的值
+    // 更新Health字段的值:UnitData
+    // 这里设置了变化后生命值
     SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Health), val);
     // 触发健康值变化
     TriggerOnHealthChangeAuras(oldVal, val);
     // group update
-    // 通知组队的变化
+    // 通知group更新 flag为当前hp或者是pet的hp
     if (Player *player = ToPlayer())
     {
         if (player->GetGroup())
             player->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_CUR_HP);
     }
-    else if (Pet *pet = ToCreature()->ToPet())
+    else if (Pet *pet = ToCreature()->ToPet()) // 当前unit是pet对象
     {
         if (pet->isControlled())
             pet->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_PET_CUR_HP);
