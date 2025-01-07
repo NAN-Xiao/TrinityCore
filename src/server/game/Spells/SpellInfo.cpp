@@ -3814,7 +3814,7 @@ int32 SpellInfo::GetDuration() const
         return IsPassive() ? -1 : 0;
     return (DurationEntry->Duration == -1) ? -1 : abs(DurationEntry->Duration);
 }
-
+//获取最大持续时间
 int32 SpellInfo::GetMaxDuration() const
 {
     if (!DurationEntry)

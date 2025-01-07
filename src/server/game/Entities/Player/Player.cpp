@@ -979,6 +979,7 @@ void Player::Update(uint32 p_time)
     // used to implement delayed far teleport
     // 用于实现延迟远程传送
     SetCanDelayTeleport(true);
+    // 这里也更新战斗相关
     Unit::Update(p_time);
     SetCanDelayTeleport(false);
 
@@ -988,16 +989,15 @@ void Player::Update(uint32 p_time)
         ExecutePendingSpellCastRequest();
 
     time_t now = GameTime::GetGameTime();
-
+    // pvp的flag
     UpdatePvPFlag(now);
-
+    // 更新中立区域的pvp状态
     UpdateContestedPvP(p_time);
-    // 决斗插旗
+    // 决斗状态
     UpdateDuelFlag(now);
-
     // 决斗距离检查
     CheckDuelDistance(now);
-
+    // 离开状态
     UpdateAfkReport(now);
 
     if (GetCombatManager().HasPvPCombat())
@@ -1006,7 +1006,6 @@ void Player::Update(uint32 p_time)
                 aura->SetDuration(aura->GetSpellInfo()->GetMaxDuration());
 
     Unit::AIUpdateTick(p_time);
-
     // Update items that have just a limited lifetime
     // 更新生命周期有限的项目
     if (now > m_Last_tick)
@@ -1125,7 +1124,7 @@ void Player::Update(uint32 p_time)
     }
 
     // not auto-free ghost from body in instances
-    // 在实例中不能自动从身体中释放鬼魂
+    // 在副本中不能自动从身体中释放鬼魂
     if (m_deathTimer > 0 && !GetMap()->Instanceable() && !HasAuraType(SPELL_AURA_PREVENT_RESURRECTION))
     {
         if (p_time >= m_deathTimer)
@@ -24134,6 +24133,7 @@ inline void BeforeVisibilityDestroy<GameObject>(GameObject *t, Player *p)
     }
 }
 
+// 能否被看到
 void Player::UpdateVisibilityOf(Trinity::IteratorPair<WorldObject **> targets)
 {
     if (targets.begin() == targets.end())

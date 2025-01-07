@@ -894,7 +894,7 @@ int32 Aura::CalcMaxDuration(Unit* caster) const
 
     return maxDuration;
 }
-
+//设置持续时间
 void Aura::SetDuration(int32 duration, bool withMods)
 {
     if (withMods)

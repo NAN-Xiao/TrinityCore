@@ -175,6 +175,7 @@ class TC_GAME_API Aura
         void RefreshDuration(bool withMods = false);
         void RefreshTimers(bool resetPeriodicTimer);
         bool IsExpired() const { return !GetDuration() && !m_dropEvent; }
+        //是永久的？
         bool IsPermanent() const { return GetMaxDuration() == -1; }
 
         uint8 GetCharges() const { return m_procCharges; }
