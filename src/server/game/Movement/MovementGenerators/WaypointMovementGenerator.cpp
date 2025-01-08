@@ -189,14 +189,14 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature *owner, uint32 diff)
             return false;
         }
     }
-
+    // 停止移动
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE | UNIT_STATE_LOST_CONTROL) || owner->IsMovementPreventedByCasting())
     {
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
         owner->StopMoving();
         return true;
     }
-
+    // 移动被打断了
     if (HasFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED))
     {
         /*

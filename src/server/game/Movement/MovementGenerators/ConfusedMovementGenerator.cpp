@@ -24,7 +24,7 @@
 #include "Player.h"
 #include "Random.h"
 
-template<class T>
+template <class T>
 ConfusedMovementGenerator<T>::ConfusedMovementGenerator() : _timer(0), _reference(0.f, 0.f, 0.f)
 {
     this->Mode = MOTION_MODE_DEFAULT;
@@ -33,14 +33,14 @@ ConfusedMovementGenerator<T>::ConfusedMovementGenerator() : _timer(0), _referenc
     this->BaseUnitState = UNIT_STATE_CONFUSED;
 }
 
-template<class T>
+template <class T>
 MovementGeneratorType ConfusedMovementGenerator<T>::GetMovementGeneratorType() const
 {
     return CONFUSED_MOTION_TYPE;
 }
 
-template<class T>
-void ConfusedMovementGenerator<T>::DoInitialize(T* owner)
+template <class T>
+void ConfusedMovementGenerator<T>::DoInitialize(T *owner)
 {
     MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
     MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
@@ -57,16 +57,17 @@ void ConfusedMovementGenerator<T>::DoInitialize(T* owner)
     _path = nullptr;
 }
 
-template<class T>
-void ConfusedMovementGenerator<T>::DoReset(T* owner)
+// 迷惑
+template <class T>
+void ConfusedMovementGenerator<T>::DoReset(T *owner)
 {
     MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
 
     DoInitialize(owner);
 }
 
-template<class T>
-bool ConfusedMovementGenerator<T>::DoUpdate(T* owner, uint32 diff)
+template <class T>
+bool ConfusedMovementGenerator<T>::DoUpdate(T *owner, uint32 diff)
 {
     if (!owner || !owner->IsAlive())
         return false;
@@ -107,9 +108,7 @@ bool ConfusedMovementGenerator<T>::DoUpdate(T* owner, uint32 diff)
         }
 
         bool result = _path->CalculatePath(destination.GetPositionX(), destination.GetPositionY(), destination.GetPositionZ());
-        if (!result || (_path->GetPathType() & PATHFIND_NOPATH)
-                    || (_path->GetPathType() & PATHFIND_SHORTCUT)
-                    || (_path->GetPathType() & PATHFIND_FARFROMPOLY))
+        if (!result || (_path->GetPathType() & PATHFIND_NOPATH) || (_path->GetPathType() & PATHFIND_SHORTCUT) || (_path->GetPathType() & PATHFIND_FARFROMPOLY))
         {
             _timer.Reset(100);
             return true;
@@ -127,18 +126,18 @@ bool ConfusedMovementGenerator<T>::DoUpdate(T* owner, uint32 diff)
     return true;
 }
 
-template<class T>
-void ConfusedMovementGenerator<T>::DoDeactivate(T* owner)
+template <class T>
+void ConfusedMovementGenerator<T>::DoDeactivate(T *owner)
 {
     MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
     owner->ClearUnitState(UNIT_STATE_CONFUSED_MOVE);
 }
 
-template<class T>
-void ConfusedMovementGenerator<T>::DoFinalize(T*, bool, bool) { }
+template <class T>
+void ConfusedMovementGenerator<T>::DoFinalize(T *, bool, bool) {}
 
-template<>
-void ConfusedMovementGenerator<Player>::DoFinalize(Player* owner, bool active, bool/* movementInform*/)
+template <>
+void ConfusedMovementGenerator<Player>::DoFinalize(Player *owner, bool active, bool /* movementInform*/)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
 
@@ -149,8 +148,8 @@ void ConfusedMovementGenerator<Player>::DoFinalize(Player* owner, bool active, b
     }
 }
 
-template<>
-void ConfusedMovementGenerator<Creature>::DoFinalize(Creature* owner, bool active, bool/* movementInform*/)
+template <>
+void ConfusedMovementGenerator<Creature>::DoFinalize(Creature *owner, bool active, bool /* movementInform*/)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
 
@@ -167,11 +166,11 @@ template ConfusedMovementGenerator<Player>::ConfusedMovementGenerator();
 template ConfusedMovementGenerator<Creature>::ConfusedMovementGenerator();
 template MovementGeneratorType ConfusedMovementGenerator<Player>::GetMovementGeneratorType() const;
 template MovementGeneratorType ConfusedMovementGenerator<Creature>::GetMovementGeneratorType() const;
-template void ConfusedMovementGenerator<Player>::DoInitialize(Player*);
-template void ConfusedMovementGenerator<Creature>::DoInitialize(Creature*);
-template void ConfusedMovementGenerator<Player>::DoReset(Player*);
-template void ConfusedMovementGenerator<Creature>::DoReset(Creature*);
-template bool ConfusedMovementGenerator<Player>::DoUpdate(Player*, uint32);
-template bool ConfusedMovementGenerator<Creature>::DoUpdate(Creature*, uint32);
-template void ConfusedMovementGenerator<Player>::DoDeactivate(Player*);
-template void ConfusedMovementGenerator<Creature>::DoDeactivate(Creature*);
+template void ConfusedMovementGenerator<Player>::DoInitialize(Player *);
+template void ConfusedMovementGenerator<Creature>::DoInitialize(Creature *);
+template void ConfusedMovementGenerator<Player>::DoReset(Player *);
+template void ConfusedMovementGenerator<Creature>::DoReset(Creature *);
+template bool ConfusedMovementGenerator<Player>::DoUpdate(Player *, uint32);
+template bool ConfusedMovementGenerator<Creature>::DoUpdate(Creature *, uint32);
+template void ConfusedMovementGenerator<Player>::DoDeactivate(Player *);
+template void ConfusedMovementGenerator<Creature>::DoDeactivate(Creature *);

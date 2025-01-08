@@ -426,12 +426,13 @@ void Unit::Update(uint32 p_time)
     // 警告 !这里的执行顺序很重要，不要改变。
     // 法术必须在进入_UpdateSpells之前被事件系统处理。
     // 否则我们可能会有一些SPELL_STATE_FINISHED法术在指针中停滞，这很糟糕。
-    WorldObject::Update(p_time);
+
+    WorldObject::Update(p_time); // 检测心跳
 
     if (!IsInWorld())
         return;
 
-    _UpdateSpells(p_time);
+    _UpdateSpells(p_time); // 更新法术/咒语
 
     // If this is set during update SetCantProc(false) call is missing somewhere in the code
     // Having this would prevent spells from being proced, so let's crash
@@ -442,6 +443,7 @@ void Unit::Update(uint32 p_time)
     m_combatManager.Update(p_time);
 
     _lastDamagedTargetGuid = ObjectGuid::Empty;
+    // ExtraAttackSpell:额外攻击咒语
     if (_lastExtraAttackSpell)
     {
         while (!extraAttacksTargets.empty())
@@ -455,7 +457,7 @@ void Unit::Update(uint32 p_time)
         }
         _lastExtraAttackSpell = 0;
     }
-
+    // 法术暂停战斗的计时
     auto spellPausesCombatTimer = [&](CurrentSpellTypes type)
     {
         return GetCurrentSpell(type) && GetCurrentSpell(type)->GetSpellInfo()->HasAttribute(SPELL_ATTR6_DELAY_COMBAT_TIMER_DURING_CAST);
@@ -472,7 +474,8 @@ void Unit::Update(uint32 p_time)
     }
 
     // update abilities available only for fraction of time
-    ////更新能力只在一小部分时间内可用
+    // 更新限时的abilities《魔兽世界》可能涉及到一些限时技能、
+    // 周期性可使用的技能或者在特定游戏事件或阶段才能使用的能力的更新机制
     UpdateReactives(p_time);
 
     if (IsAlive())
@@ -8641,6 +8644,7 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
         if (mtype == MOVE_RUN)
         {
             // force minimum speed rate @ aura 437 SPELL_AURA_MOD_MINIMUM_SPEED_RATE
+            ////强制最低速度@ aura 437 SPELL_AURA_MOD_MINIMUM_SPEED_RATE
             if (int32 minSpeedMod = GetMaxPositiveAuraModifier(SPELL_AURA_MOD_MINIMUM_SPEED_RATE))
             {
                 float minSpeed = minSpeedMod / (IsControlledByPlayer() ? playerBaseMoveSpeed[mtype] : baseMoveSpeed[mtype]);
@@ -8714,6 +8718,7 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate)
     PropagateSpeedChange();
 
     // Spline packets are for creatures and move_update are for players
+    // Spline包用于生物，move_update用于玩家
     static OpcodeServer const moveTypeToOpcode[MAX_MOVE_TYPE][3] =
         {
             {SMSG_MOVE_SPLINE_SET_WALK_SPEED, SMSG_MOVE_SET_WALK_SPEED, SMSG_MOVE_UPDATE_WALK_SPEED},
@@ -8731,6 +8736,8 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate)
     {
         // register forced speed changes for WorldSession::HandleForceSpeedChangeAck
         // and do it only for real sent packets and use run for run/mounted as client expected
+        ////注册强制速度更改为WorldSession::HandleForceSpeedChangeAck
+        // 只对实际发送的数据包执行此操作，并为run/mounted as client使用run
         ++ToPlayer()->m_forced_speed_changes[mtype];
 
         if (!IsInCombat())
@@ -8741,6 +8748,7 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate)
     if (Player *playerMover = Unit::ToPlayer(GetUnitBeingMoved())) // unit controlled by a player.
     {
         // Send notification to self
+        // 通知自己
         WorldPackets::Movement::MoveSetSpeed selfpacket(moveTypeToOpcode[mtype][1]);
         selfpacket.MoverGUID = GetGUID();
         selfpacket.SequenceIndex = m_movementCounter++;
@@ -8748,6 +8756,7 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate)
         playerMover->GetSession()->SendPacket(selfpacket.Write());
 
         // Send notification to other players
+        ////发送通知给其他玩家
         WorldPackets::Movement::MoveUpdateSpeed packet(moveTypeToOpcode[mtype][2]);
         packet.Status = &m_movementInfo;
         packet.Speed = GetSpeed(mtype);
@@ -10442,6 +10451,7 @@ void Unit::StopMoving()
         return;
 
     // Update position now since Stop does not start a new movement that can be updated later
+    // 现在更新位置，因为停止不会开始一个可以稍后更新的新移动
     if (movespline->HasStarted())
         UpdateSplinePosition();
     Movement::MoveSplineInit init(this);
@@ -12240,7 +12250,7 @@ void Unit::UpdateObjectVisibility(bool forced)
         Cell::VisitAllObjects(this, notifier, GetVisibilityRange());
     }
 }
-
+// 击退
 void Unit::SendMoveKnockBack(Player *player, float speedXY, float speedZ, float vcos, float vsin)
 {
     WorldPackets::Movement::MoveKnockBack moveKnockBack;
@@ -12251,7 +12261,7 @@ void Unit::SendMoveKnockBack(Player *player, float speedXY, float speedZ, float 
     moveKnockBack.Direction = Position(vcos, vsin);
     player->GetSession()->SendPacket(moveKnockBack.Write());
 }
-
+// 被xx击退
 void Unit::KnockbackFrom(Position const &origin, float speedXY, float speedZ, Movement::SpellEffectExtraData const *spellEffectExtraData /*= nullptr*/)
 {
     Player *player = ToPlayer();
@@ -12403,7 +12413,7 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form, uint32 spellId) const
 
     return 0;
 }
-
+// 跳到。。
 void Unit::JumpTo(float speedXY, float speedZ, float angle, Optional<Position> dest)
 {
     if (dest)
@@ -12596,10 +12606,11 @@ void Unit::ChangeSeat(int8 seatId, bool next)
 
     rideVehicleEffect->ChangeAmount(seat->first + 1);
 }
-
+// 载具上
 void Unit::ExitVehicle(Position const * /*exitPosition*/)
 {
     //! This function can be called at upper level code to initialize an exit from the passenger's side.
+    /// / !这个函数可以在上层代码中调用，以初始化乘客侧的出口。
     if (!m_vehicle)
         return;
 
@@ -12719,7 +12730,7 @@ bool Unit::CanSwim() const
         return true;
     return HasUnitFlag(UNIT_FLAG_RENAME | UNIT_FLAG_CAN_SWIM);
 }
-
+// 各种传送可能 如传送门 术士集合 集合石
 void Unit::NearTeleportTo(Position const &pos, bool casting /*= false*/)
 {
     DisableSpline();
@@ -12785,6 +12796,7 @@ void Unit::SendTeleportPacket(TeleportLocation const &teleportLocation)
     // 将数据包广播给除了自己之外的所有人。
     broadcastSource->SendMessageToSet(moveUpdateTeleport.Write(), false);
 }
+// 更新位置
 // unit是player或者其他生物的父类
 bool Unit::UpdatePosition(float x, float y, float z, float orientation, bool teleport)
 {
@@ -12866,6 +12878,7 @@ void Unit::UpdateHeight(float newZ)
 }
 
 // baseRage means damage taken when attacker = false
+// 累计怒气
 int32 Unit::RewardRage(uint32 baseRage)
 {
     float addRage = baseRage;
@@ -13002,6 +13015,7 @@ bool CharmInfo::IsCommandFollow()
 void CharmInfo::SaveStayPosition()
 {
     //! At this point a new spline destination is enabled because of Unit::StopMoving()
+    // !此时，由于Unit::StopMoving()，启用了一个新的样条目标。
     G3D::Vector3 stayPos = _unit->movespline->FinalDestination();
 
     if (_unit->movespline->onTransport)
@@ -13055,7 +13069,7 @@ void Unit::SetInFront(WorldObject const *target)
     if (!HasUnitState(UNIT_STATE_CANNOT_TURN))
         SetOrientation(GetAbsoluteAngle(target));
 }
-
+// 角色面向谁
 void Unit::SetFacingTo(float ori, bool force)
 {
     // do not face when already moving
@@ -13073,10 +13087,11 @@ void Unit::SetFacingTo(float ori, bool force)
     if (Creature *creature = ToCreature())
         creature->AI()->MovementInform(EFFECT_MOTION_TYPE, EVENT_FACE);
 }
-
+// 角色面向物体
 void Unit::SetFacingToObject(WorldObject const *object, bool force)
 {
     // do not face when already moving
+    // 移动时不要面对
     if (!force && (!IsStopped() || !movespline->Finalized()))
         return;
 
@@ -13127,7 +13142,7 @@ bool Unit::SetWalk(bool enable)
     SendMessageToSet(packet.Write(), true);
     return true;
 }
-
+// 设置禁用重力
 bool Unit::SetDisableGravity(bool disable, bool updateAnimTier /*= true*/)
 {
     if (disable == IsGravityDisabled())
@@ -13263,7 +13278,7 @@ bool Unit::SetCanFly(bool enable)
 
     return true;
 }
-
+// 水上行走
 bool Unit::SetWaterWalking(bool enable)
 {
     if (enable == HasUnitMovementFlag(MOVEMENTFLAG_WATERWALKING))
@@ -13299,7 +13314,7 @@ bool Unit::SetWaterWalking(bool enable)
 
     return true;
 }
-
+// 羽落
 bool Unit::SetFeatherFall(bool enable)
 {
     // Temporarily disabled for short lived auras that unapply before client had time to ACK applying
@@ -13336,7 +13351,7 @@ bool Unit::SetFeatherFall(bool enable)
 
     return true;
 }
-
+// 设置徘徊
 bool Unit::SetHover(bool enable, bool updateAnimTier /*= true*/)
 {
     if (enable == HasUnitMovementFlag(MOVEMENTFLAG_HOVER))

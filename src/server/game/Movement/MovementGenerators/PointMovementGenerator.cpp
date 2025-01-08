@@ -29,11 +29,11 @@
 //----- Point Movement Generator
 
 PointMovementGenerator::PointMovementGenerator(uint32 id, float x, float y, float z, bool generatePath, Optional<float> speed /*= {}*/, Optional<float> finalOrient /*= {}*/,
-    Unit const* faceTarget /*= nullptr*/, Movement::SpellEffectExtraData const* spellEffectExtraData /*= nullptr*/,
-    MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/,
-    Optional<float> closeEnoughDistance /*= {}*/, Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult /*= {}*/)
+                                               Unit const *faceTarget /*= nullptr*/, Movement::SpellEffectExtraData const *spellEffectExtraData /*= nullptr*/,
+                                               MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/,
+                                               Optional<float> closeEnoughDistance /*= {}*/, Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
     : _movementId(id), _destination(x, y, z), _speed(speed), _generatePath(generatePath), _finalOrient(finalOrient),
-    i_faceTarget(faceTarget), _speedSelectionMode(speedSelectionMode), _closeEnoughDistance(closeEnoughDistance)
+      i_faceTarget(faceTarget), _speedSelectionMode(speedSelectionMode), _closeEnoughDistance(closeEnoughDistance)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -52,7 +52,7 @@ MovementGeneratorType PointMovementGenerator::GetMovementGeneratorType() const
     return POINT_MOTION_TYPE;
 }
 
-void PointMovementGenerator::Initialize(Unit* owner)
+void PointMovementGenerator::Initialize(Unit *owner)
 {
     RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
     AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
@@ -106,37 +106,37 @@ void PointMovementGenerator::Initialize(Unit* owner)
         init.SetFacing(*_finalOrient);
     switch (_speedSelectionMode)
     {
-        case MovementWalkRunSpeedSelectionMode::Default:
-            break;
-        case MovementWalkRunSpeedSelectionMode::ForceRun:
-            init.SetWalk(false);
-            break;
-        case MovementWalkRunSpeedSelectionMode::ForceWalk:
-            init.SetWalk(true);
-            break;
-        default:
-            break;
+    case MovementWalkRunSpeedSelectionMode::Default:
+        break;
+    case MovementWalkRunSpeedSelectionMode::ForceRun:
+        init.SetWalk(false);
+        break;
+    case MovementWalkRunSpeedSelectionMode::ForceWalk:
+        init.SetWalk(true);
+        break;
+    default:
+        break;
     }
 
     init.Launch();
 
     // Call for creature group update
-    if (Creature* creature = owner->ToCreature())
+    if (Creature *creature = owner->ToCreature())
         creature->SignalFormationMovement();
 }
 
-void PointMovementGenerator::Reset(Unit* owner)
+void PointMovementGenerator::Reset(Unit *owner)
 {
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
 
     Initialize(owner);
 }
 
-bool PointMovementGenerator::Update(Unit* owner, uint32 /*diff*/)
+bool PointMovementGenerator::Update(Unit *owner, uint32 /*diff*/)
 {
     if (!owner)
         return false;
-
+    // 冲锋？？
     if (_movementId == EVENT_CHARGE_PREPATH)
     {
         if (owner->movespline->Finalized())
@@ -146,19 +146,20 @@ bool PointMovementGenerator::Update(Unit* owner, uint32 /*diff*/)
         }
         return true;
     }
-
+    // 停止移动//因为施法等情况不能移动
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting())
     {
-        AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
+        AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED); // 添加中断移动标记
         owner->StopMoving();
         return true;
     }
-
+    // 假如生成器中断、spine完成、速度变化了
     if ((HasFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED) && owner->movespline->Finalized()) || (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized()))
     {
+        // 移动中断 速度变化flag
         RemoveFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED | MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING);
 
-        owner->AddUnitState(UNIT_STATE_ROAMING_MOVE);
+        owner->AddUnitState(UNIT_STATE_ROAMING_MOVE); // 漫游？
 
         Movement::MoveSplineInit init(owner);
         init.MoveTo(_destination.GetPositionX(), _destination.GetPositionY(), _destination.GetPositionZ(), _generatePath);
@@ -167,26 +168,28 @@ bool PointMovementGenerator::Update(Unit* owner, uint32 /*diff*/)
         init.Launch();
 
         // Call for creature group update
-        if (Creature* creature = owner->ToCreature())
+        // 调用生物群组的更新。
+        if (Creature *creature = owner->ToCreature())
             creature->SignalFormationMovement();
     }
-
+    // 移动完了
     if (owner->movespline->Finalized())
     {
-        RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY);
-        AddFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED);
+
+        RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY);  // 移除移动生成器的临时（过渡性）标志位；
+        AddFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED); // 添加移动生成器的信息通知启用标志位。
         return false;
     }
     return true;
 }
 
-void PointMovementGenerator::Deactivate(Unit* owner)
+void PointMovementGenerator::Deactivate(Unit *owner)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
     owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
 }
 
-void PointMovementGenerator::Finalize(Unit* owner, bool active, bool movementInform)
+void PointMovementGenerator::Finalize(Unit *owner, bool active, bool movementInform)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
     if (active)
@@ -196,21 +199,21 @@ void PointMovementGenerator::Finalize(Unit* owner, bool active, bool movementInf
         MovementInform(owner);
 }
 
-void PointMovementGenerator::MovementInform(Unit* owner)
+void PointMovementGenerator::MovementInform(Unit *owner)
 {
     SetScriptResult(MovementStopReason::Finished);
 
     // deliver EVENT_CHARGE to scripts, EVENT_CHARGE_PREPATH is just internal implementation detail of this movement generator
     uint32 movementId = _movementId == EVENT_CHARGE_PREPATH ? uint32(EVENT_CHARGE) : _movementId;
 
-    if (Creature* creature = owner->ToCreature())
+    if (Creature *creature = owner->ToCreature())
         if (creature->AI())
             creature->AI()->MovementInform(POINT_MOTION_TYPE, movementId);
 }
 
 //---- AssistanceMovementGenerator
 
-void AssistanceMovementGenerator::Finalize(Unit* owner, bool active, bool movementInform)
+void AssistanceMovementGenerator::Finalize(Unit *owner, bool active, bool movementInform)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
     if (active)
@@ -218,7 +221,7 @@ void AssistanceMovementGenerator::Finalize(Unit* owner, bool active, bool moveme
 
     if (movementInform && HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED) && owner->IsCreature())
     {
-        Creature* ownerCreature = owner->ToCreature();
+        Creature *ownerCreature = owner->ToCreature();
         ownerCreature->SetNoCallAssistance(false);
         ownerCreature->CallAssistance();
         if (ownerCreature->IsAlive())

@@ -43,7 +43,7 @@ namespace Movement
         }
         else if (moveFlags & MOVEMENTFLAG_WALKING)
         {
-            //if (speed_obj.run > speed_obj.walk)
+            // if (speed_obj.run > speed_obj.walk)
             return MOVE_WALK;
         }
         else if (moveFlags & MOVEMENTFLAG_BACKWARD /*&& speed_obj.run >= speed_obj.run_back*/)
@@ -56,18 +56,21 @@ namespace Movement
 
     int32 MoveSplineInit::Launch()
     {
-        MoveSpline& move_spline = *unit->movespline;
+        MoveSpline &move_spline = *unit->movespline;
 
         bool transport = !unit->GetTransGUID().IsEmpty();
         Location real_position;
         // there is a big chance that current position is unknown if current state is not finalized, need compute it
         // this also allows calculate spline position and update map position in much greater intervals
         // Don't compute for transport movement if the unit is in a motion between two transports
+        // 如果当前状态尚未最终确定，那么很有可能当前位置是未知的，需要对其进行计算。
+        // 这也使得可以在更长的时间间隔内计算样条位置并更新地图位置。
+        // 如果单位正在两辆载具之间进行移动，那么对于载具移动的情况则无需进行计算
         if (!move_spline.Finalized() && move_spline.onTransport == transport)
             real_position = move_spline.ComputePosition();
         else
         {
-            Position const* pos;
+            Position const *pos;
             if (!transport)
                 pos = unit;
             else
@@ -80,10 +83,12 @@ namespace Movement
         }
 
         // should i do the things that user should do? - no.
+        // 我应该去做那些本该由用户做的事吗？—— 不应该
         if (args.path.empty())
             return 0;
 
         // correct first vertex
+        // 校正（修正）首个顶点。
         args.path[0] = real_position;
         args.initialOrientation = real_position.orientation;
         args.flags.Enter_Cycle = args.flags.Cyclic;
@@ -102,6 +107,8 @@ namespace Movement
         {
             // If spline is initialized with SetWalk method it only means we need to select
             // walk move speed for it but not add walk flag to unit
+            // 如果样条是通过 SetWalk 方法进行初始化的，
+            // 这仅仅意味着我们需要为其选用步行移动速度，但不要给单位（角色）添加步行标志。
             uint32 moveFlagsForSpeed = moveFlags;
             if (args.walk)
                 moveFlagsForSpeed |= MOVEMENTFLAG_WALKING;
@@ -109,12 +116,13 @@ namespace Movement
                 moveFlagsForSpeed &= ~MOVEMENTFLAG_WALKING;
 
             args.velocity = unit->GetSpeed(SelectSpeedType(moveFlagsForSpeed));
-            if (Creature* creature = unit->ToCreature())
+            if (Creature *creature = unit->ToCreature())
                 if (creature->HasSearchedAssistance())
                     args.velocity *= 0.66f;
         }
 
         // limit the speed in the same way the client does
+        // 以客户端所采用的相同方式来限制速度。
         float speedLimit = [&]()
         {
             if (args.flags.UnlimitedSpeed)
@@ -151,7 +159,7 @@ namespace Movement
 
     void MoveSplineInit::Stop()
     {
-        MoveSpline& move_spline = *unit->movespline;
+        MoveSpline &move_spline = *unit->movespline;
 
         // No need to stop if we are not moving
         if (move_spline.Finalized())
@@ -163,7 +171,7 @@ namespace Movement
             loc = move_spline.ComputePosition();
         else
         {
-            Position const* pos;
+            Position const *pos;
             if (!transport)
                 pos = unit;
             else
@@ -195,12 +203,14 @@ namespace Movement
         unit->SendMessageToSet(packet.Write(), true);
     }
 
-    MoveSplineInit::MoveSplineInit(Unit* m) : unit(m)
+    MoveSplineInit::MoveSplineInit(Unit *m) : unit(m)
     {
         args.splineId = splineIdGen.NewId();
         // Elevators also use MOVEMENTFLAG_ONTRANSPORT but we do not keep track of their position changes
+        ////升降机也使用MOVEMENTFLAG_ONTRANSPORT，但我们不跟踪它们的位置变化
         args.TransformForTransport = !unit->GetTransGUID().IsEmpty();
         // mix existing state into new
+        // 混合现有状态到new
         args.walk = unit->HasUnitMovementFlag(MOVEMENTFLAG_WALKING);
         args.flags.CanSwim = unit->CanSwim();
         args.flags.Flying = unit->HasUnitMovementFlag(MovementFlags(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_DISABLE_GRAVITY));
@@ -210,7 +220,7 @@ namespace Movement
 
     MoveSplineInit::~MoveSplineInit() = default;
 
-    void MoveSplineInit::SetFacing(Vector3 const& spot)
+    void MoveSplineInit::SetFacing(Vector3 const &spot)
     {
         TransportPathTransform transform(unit, args.TransformForTransport);
         Vector3 finalSpot = transform(spot);
@@ -222,10 +232,10 @@ namespace Movement
 
     void MoveSplineInit::SetFacing(float x, float y, float z)
     {
-        SetFacing({ x, y, z });
+        SetFacing({x, y, z});
     }
 
-    void MoveSplineInit::SetFacing(Unit const* target)
+    void MoveSplineInit::SetFacing(Unit const *target)
     {
         args.facing.angle = unit->GetAbsoluteAngle(target);
         args.facing.target = target->GetGUID();
@@ -236,9 +246,9 @@ namespace Movement
     {
         if (args.TransformForTransport)
         {
-            if (Unit* vehicle = unit->GetVehicleBase())
+            if (Unit *vehicle = unit->GetVehicleBase())
                 angle -= vehicle->GetOrientation();
-            else if (TransportBase* transport = unit->GetTransport())
+            else if (TransportBase *transport = unit->GetTransport())
                 angle -= transport->GetTransportOrientation();
         }
 
@@ -246,7 +256,7 @@ namespace Movement
         args.facing.type = MONSTER_MOVE_FACING_ANGLE;
     }
 
-    void MoveSplineInit::MovebyPath(PointsArray const& controls, int32 path_offset)
+    void MoveSplineInit::MovebyPath(PointsArray const &controls, int32 path_offset)
     {
         args.path_Idx_offset = path_offset;
         args.path.reserve(controls.size());
@@ -258,7 +268,7 @@ namespace Movement
         MoveTo(G3D::Vector3(x, y, z), generatePath, forceDestination);
     }
 
-    void MoveSplineInit::MoveTo(Vector3 const& dest, bool generatePath, bool forceDestination)
+    void MoveSplineInit::MoveTo(Vector3 const &dest, bool generatePath, bool forceDestination)
     {
         if (generatePath)
         {
@@ -286,13 +296,13 @@ namespace Movement
     Vector3 TransportPathTransform::operator()(Vector3 input)
     {
         if (_transformForTransport)
-            if (TransportBase* transport = _owner->GetDirectTransport())
+            if (TransportBase *transport = _owner->GetDirectTransport())
                 transport->CalculatePassengerOffset(input.x, input.y, input.z);
 
         return input;
     }
 
-    void MoveSplineInitFacingVisitor::operator()(Position const& point) const
+    void MoveSplineInitFacingVisitor::operator()(Position const &point) const
     {
         _init.SetFacing(point.GetPositionX(), point.GetPositionY(), point.GetPositionZ());
     }

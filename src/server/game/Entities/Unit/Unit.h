@@ -1917,9 +1917,12 @@ protected:
     Unit *m_attacking;
 
     DeathState m_deathState;
-
-    int32 m_procDeep;        // tracked for proc system correctness (what spells should proc what)
-    int32 m_procChainLength; // tracked to protect against infinite proc loops (hard limit, will disallow procs even if they should happen)
+    // 跟踪过程系统正确性（什么咒语应该处理什么）
+    //  tracked for proc system correctness (what spells should proc what)
+    int32 m_procDeep;
+    // tracked to protect against infinite proc loops (hard limit, will disallow procs even if they should happen)
+    // 跟踪以防止无限进程循环（硬限制，将禁止进程，即使它们应该发生）
+    int32 m_procChainLength;
 
     typedef std::vector<DynamicObject *> DynObjectList;
     DynObjectList m_dynObj;

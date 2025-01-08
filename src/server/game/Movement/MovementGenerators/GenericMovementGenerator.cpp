@@ -23,8 +23,8 @@
 #include "ObjectAccessor.h"
 #include "Unit.h"
 
-GenericMovementGenerator::GenericMovementGenerator(std::function<void(Movement::MoveSplineInit& init)>&& initializer, MovementGeneratorType type, uint32 id,
-    GenericMovementGeneratorArgs&& args)
+GenericMovementGenerator::GenericMovementGenerator(std::function<void(Movement::MoveSplineInit &init)> &&initializer, MovementGeneratorType type, uint32 id,
+                                                   GenericMovementGeneratorArgs &&args)
     : _splineInit(std::move(initializer)), _type(type), _pointId(id), _durationTracksSpline(true), _arrivalSpellId(0)
 {
     Mode = MOTION_MODE_DEFAULT;
@@ -43,7 +43,7 @@ GenericMovementGenerator::GenericMovementGenerator(std::function<void(Movement::
     ScriptResult = std::move(args.ScriptResult);
 }
 
-void GenericMovementGenerator::Initialize(Unit* owner)
+void GenericMovementGenerator::Initialize(Unit *owner)
 {
     if (HasFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED) && !HasFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING)) // Resume spline is not supported
     {
@@ -62,17 +62,18 @@ void GenericMovementGenerator::Initialize(Unit* owner)
         _duration.emplace(duration);
 }
 
-void GenericMovementGenerator::Reset(Unit* owner)
+void GenericMovementGenerator::Reset(Unit *owner)
 {
     Initialize(owner);
 }
 
-bool GenericMovementGenerator::Update(Unit* owner, uint32 diff)
+bool GenericMovementGenerator::Update(Unit *owner, uint32 diff)
 {
     if (!owner || HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED))
         return false;
 
     // Cyclic splines never expire, so update the duration only if it's not cyclic
+    // 循环样条永远不会过期，所以只有当它不是循环样条时才更新持续时间。
     if (_duration)
         _duration->Update(diff);
 
@@ -84,12 +85,12 @@ bool GenericMovementGenerator::Update(Unit* owner, uint32 diff)
     return true;
 }
 
-void GenericMovementGenerator::Deactivate(Unit*)
+void GenericMovementGenerator::Deactivate(Unit *)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
 }
 
-void GenericMovementGenerator::Finalize(Unit* owner, bool/* active*/, bool movementInform)
+void GenericMovementGenerator::Finalize(Unit *owner, bool /* active*/, bool movementInform)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
 
@@ -97,14 +98,14 @@ void GenericMovementGenerator::Finalize(Unit* owner, bool/* active*/, bool movem
         MovementInform(owner);
 }
 
-void GenericMovementGenerator::MovementInform(Unit* owner)
+void GenericMovementGenerator::MovementInform(Unit *owner)
 {
     if (_arrivalSpellId)
         owner->CastSpell(ObjectAccessor::GetUnit(*owner, _arrivalSpellTargetGuid), _arrivalSpellId, true);
 
     SetScriptResult(MovementStopReason::Finished);
 
-    if (Creature* creature = owner->ToCreature())
+    if (Creature *creature = owner->ToCreature())
     {
         if (creature->AI())
             creature->AI()->MovementInform(_type, _pointId);

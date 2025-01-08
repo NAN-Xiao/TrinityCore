@@ -37,10 +37,10 @@ namespace Movement
 {
     struct Location : public Vector3
     {
-        Location() : orientation(0) { }
-        Location(float x, float y, float z, float o) : Vector3(x, y, z), orientation(o) { }
-        Location(Vector3 const& v) : Vector3(v), orientation(0) { }
-        Location(Vector3 const& v, float o) : Vector3(v), orientation(o) { }
+        Location() : orientation(0) {}
+        Location(float x, float y, float z, float o) : Vector3(x, y, z), orientation(o) {}
+        Location(Vector3 const &v) : Vector3(v), orientation(0) {}
+        Location(Vector3 const &v, float o) : Vector3(v), orientation(o) {}
 
         float orientation;
     };
@@ -58,43 +58,43 @@ namespace Movement
 
         enum UpdateResult
         {
-            Result_None         = 0x01,
-            Result_Arrived      = 0x02,
-            Result_NextCycle    = 0x04,
-            Result_NextSegment  = 0x08
+            Result_None = 0x01,
+            Result_Arrived = 0x02,
+            Result_NextCycle = 0x04,
+            Result_NextSegment = 0x08
         };
 
     protected:
-        MySpline        spline;
+        MySpline spline;
 
-        FacingInfo      facing;
+        FacingInfo facing;
 
-        uint32          m_Id;
+        uint32 m_Id;
 
-        MoveSplineFlag  splineflags;
+        MoveSplineFlag splineflags;
 
-        int32           time_passed;
+        int32 time_passed;
         // currently duration mods are unused, but its _currently_
-        //float           duration_mod;
-        //float           duration_mod_next;
-        float           vertical_acceleration;
-        float           initialOrientation;
-        int32           effect_start_time;
-        int32           point_Idx;
-        int32           point_Idx_offset;
-        float           velocity;
+        // float           duration_mod;
+        // float           duration_mod_next;
+        float vertical_acceleration;
+        float initialOrientation;
+        int32 effect_start_time;
+        int32 point_Idx;
+        int32 point_Idx_offset;
+        float velocity;
         Optional<SpellEffectExtraData> spell_effect_extra;
         Optional<AnimTierTransition> anim_tier;
 
-        void init_spline(MoveSplineInitArgs const& args);
+        void init_spline(MoveSplineInitArgs const &args);
 
     protected:
-        MySpline::ControlArray const& getPath() const { return spline.getPoints(); }
+        MySpline::ControlArray const &getPath() const { return spline.getPoints(); }
         Location computePosition(int32 time_point, int32 point_index) const;
-        void computeParabolicElevation(int32 time_point, float& el) const;
-        void computeFallElevation(int32 time_point, float& el) const;
+        void computeParabolicElevation(int32 time_point, float &el) const;
+        void computeFallElevation(int32 time_point, float &el) const;
 
-        UpdateResult _updateState(int32& ms_time_diff);
+        UpdateResult _updateState(int32 &ms_time_diff);
         int32 next_timestamp() const { return spline.length(point_Idx + 1); }
         int32 segment_time_elapsed() const { return next_timestamp() - time_passed; }
 
@@ -102,20 +102,20 @@ namespace Movement
         int32 timeRemaining() const { return Duration() - time_passed; }
         int32 timePassed() const { return time_passed; }
         int32 Duration() const { return spline.length(); }
-        MySpline const& _Spline() const { return spline; }
+        MySpline const &_Spline() const { return spline; }
         int32 _currentSplineIdx() const { return point_Idx; }
         float Velocity() const { return velocity; }
         void _Finalize();
         void _Interrupt() { splineflags.Done = true; }
 
     public:
-        void Initialize(MoveSplineInitArgs const&);
+        void Initialize(MoveSplineInitArgs const &);
         bool Initialized() const { return !spline.empty(); }
 
         MoveSpline();
 
-        template<class UpdateHandler>
-        void updateState(int32 difftime, UpdateHandler& handler)
+        template <class UpdateHandler>
+        void updateState(int32 difftime, UpdateHandler &handler)
         {
             ASSERT(Initialized());
             do
@@ -126,7 +126,8 @@ namespace Movement
         void updateState(int32 difftime)
         {
             ASSERT(Initialized());
-            do _updateState(difftime);
+            do
+                _updateState(difftime);
             while (difftime > 0);
         }
 
@@ -137,8 +138,9 @@ namespace Movement
         bool Finalized() const { return splineflags.Done; }
         bool isCyclic() const { return splineflags.Cyclic; }
         bool isFalling() const { return splineflags.Falling; }
-        Vector3 const& FinalDestination() const { return Initialized() ? spline.getPoint(spline.last()) : Vector3::zero(); }
-        Vector3 const& CurrentDestination() const { return Initialized() ? spline.getPoint(point_Idx + 1) : Vector3::zero(); }
+        // 最终目的地
+        Vector3 const &FinalDestination() const { return Initialized() ? spline.getPoint(spline.last()) : Vector3::zero(); }
+        Vector3 const &CurrentDestination() const { return Initialized() ? spline.getPoint(point_Idx + 1) : Vector3::zero(); }
         int32 currentPathIdx() const;
 
         Optional<AnimTier> GetAnimation() const { return anim_tier ? anim_tier->AnimTier : Optional<AnimTier>{}; }

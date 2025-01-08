@@ -24,8 +24,8 @@
 #include "MoveSpline.h"
 #include "MoveSplineInit.h"
 
-FormationMovementGenerator::FormationMovementGenerator(Unit* leader, float range, float angle, uint32 point1, uint32 point2) : AbstractFollower(ASSERT_NOTNULL(leader)),
-    _range(range), _angle(angle), _point1(point1), _point2(point2), _lastLeaderSplineID(0), _hasPredictedDestination(false)
+FormationMovementGenerator::FormationMovementGenerator(Unit *leader, float range, float angle, uint32 point1, uint32 point2) : AbstractFollower(ASSERT_NOTNULL(leader)),
+                                                                                                                               _range(range), _angle(angle), _point1(point1), _point2(point2), _lastLeaderSplineID(0), _hasPredictedDestination(false)
 {
     Mode = MOTION_MODE_DEFAULT;
     Priority = MOTION_PRIORITY_NORMAL;
@@ -38,7 +38,7 @@ MovementGeneratorType FormationMovementGenerator::GetMovementGeneratorType() con
     return FORMATION_MOTION_TYPE;
 }
 
-void FormationMovementGenerator::DoInitialize(Creature* owner)
+void FormationMovementGenerator::DoInitialize(Creature *owner)
 {
     RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
     AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
@@ -53,21 +53,22 @@ void FormationMovementGenerator::DoInitialize(Creature* owner)
     _nextMoveTimer.Reset(0);
 }
 
-void FormationMovementGenerator::DoReset(Creature* owner)
+void FormationMovementGenerator::DoReset(Creature *owner)
 {
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
 
     DoInitialize(owner);
 }
 
-bool FormationMovementGenerator::DoUpdate(Creature* owner, uint32 diff)
+bool FormationMovementGenerator::DoUpdate(Creature *owner, uint32 diff)
 {
-    Unit* target = GetTarget();
+    Unit *target = GetTarget();
 
     if (!owner || !target)
         return false;
 
     // Owner cannot move. Reset all fields and wait for next action
+    ////所有者不能移动。重置所有字段并等待下一个操作
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting())
     {
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
@@ -78,6 +79,7 @@ bool FormationMovementGenerator::DoUpdate(Creature* owner, uint32 diff)
     }
 
     // If target is not moving and destination has been predicted and if we are on the same spline, we stop as well
+    // 如果目标不移动，而目的地已经被预测，如果我们在同一条样条上，我们也停止
     if (target->movespline->Finalized() && target->movespline->GetId() == _lastLeaderSplineID && _hasPredictedDestination)
     {
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
@@ -92,14 +94,16 @@ bool FormationMovementGenerator::DoUpdate(Creature* owner, uint32 diff)
 
     // Formation leader has launched a new spline, launch a new one for our member as well
     // This action does not reset the regular movement launch cycle interval
+    // 队列leader已经启动了一个新的样条，也为我们的成员启动一个新的样条
+    // 这个动作不会重置正常的移动启动周期间隔
     if (!target->movespline->Finalized() && target->movespline->GetId() != _lastLeaderSplineID)
     {
         // Update formation angle
         if (_point1 && target->GetTypeId() == TYPEID_UNIT)
         {
-            if (CreatureGroup* formation = target->ToCreature()->GetFormation())
+            if (CreatureGroup *formation = target->ToCreature()->GetFormation())
             {
-                if (Creature* leader = formation->GetLeader())
+                if (Creature *leader = formation->GetLeader())
                 {
                     uint8 currentWaypoint = leader->GetCurrentWaypointInfo().first;
                     if (currentWaypoint == _point1 || currentWaypoint == _point2)
@@ -137,7 +141,7 @@ bool FormationMovementGenerator::DoUpdate(Creature* owner, uint32 diff)
     return true;
 }
 
-void FormationMovementGenerator::LaunchMovement(Creature* owner, Unit* target)
+void FormationMovementGenerator::LaunchMovement(Creature *owner, Unit *target)
 {
     float relativeAngle = 0.f;
 
@@ -199,13 +203,13 @@ void FormationMovementGenerator::LaunchMovement(Creature* owner, Unit* target)
     RemoveFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
 }
 
-void FormationMovementGenerator::DoDeactivate(Creature* owner)
+void FormationMovementGenerator::DoDeactivate(Creature *owner)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
     owner->ClearUnitState(UNIT_STATE_FOLLOW_FORMATION_MOVE);
 }
 
-void FormationMovementGenerator::DoFinalize(Creature* owner, bool active, bool movementInform)
+void FormationMovementGenerator::DoFinalize(Creature *owner, bool active, bool movementInform)
 {
     AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
     if (active)
@@ -215,7 +219,7 @@ void FormationMovementGenerator::DoFinalize(Creature* owner, bool active, bool m
         MovementInform(owner);
 }
 
-void FormationMovementGenerator::MovementInform(Creature* owner)
+void FormationMovementGenerator::MovementInform(Creature *owner)
 {
     if (owner->AI())
         owner->AI()->MovementInform(FORMATION_MOTION_TYPE, 0);

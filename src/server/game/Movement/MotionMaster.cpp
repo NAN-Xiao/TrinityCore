@@ -295,7 +295,7 @@ void MotionMaster::Update(uint32 diff)
 {
     if (!_owner)
         return;
-
+    // 等待或者正在初始化：初始化未完成
     if (HasFlag(MOTIONMASTER_FLAG_INITIALIZATION_PENDING | MOTIONMASTER_FLAG_INITIALIZING))
         return;
 
@@ -321,7 +321,8 @@ void MotionMaster::Update(uint32 diff)
         ASSERT(top == GetCurrentMovementGenerator(), "MotionMaster::Update: top was modified while updating! (%s)", _owner->GetGUID().ToString().c_str());
 
         // Since all the actions that modify any slot are delayed, this movement is guaranteed to be top
-        Pop(true, true); // Natural, and only, call to MovementInform
+        // 由于所有修改slot的动作都是延迟的，所以这个移动保证是top
+        Pop(true, true); // Natural, and only, call to MovementInform//自然的，唯一的，调用MovementInform
     }
 
     RemoveFlag(MOTIONMASTER_FLAG_UPDATE);
@@ -519,7 +520,7 @@ void MotionMaster::Clear(MovementGeneratorPriority priority)
     };
     DirectClear(criteria);
 }
-
+// 传播速度变化
 void MotionMaster::PropagateSpeedChange()
 {
     if (Empty())
@@ -531,7 +532,7 @@ void MotionMaster::PropagateSpeedChange()
 
     movement->UnitSpeedChanged();
 }
-
+// 得到目的地
 bool MotionMaster::GetDestination(float &x, float &y, float &z)
 {
     if (_owner->movespline->Finalized())
@@ -543,7 +544,7 @@ bool MotionMaster::GetDestination(float &x, float &y, float &z)
     z = dest.z;
     return true;
 }
-
+// 死了就别动了
 bool MotionMaster::StopOnDeath()
 {
     if (MovementGenerator *movementGenerator = GetCurrentMovementGenerator())
@@ -565,12 +566,12 @@ bool MotionMaster::StopOnDeath()
 
     return true;
 }
-
+// 待机
 void MotionMaster::MoveIdle()
 {
     Add(GetIdleMovementGenerator(), MOTION_SLOT_DEFAULT);
 }
-
+// 累了 不追了
 void MotionMaster::MoveTargetedHome()
 {
     Creature *owner = _owner->ToCreature();
@@ -594,7 +595,7 @@ void MotionMaster::MoveTargetedHome()
         Add(new FollowMovementGenerator(target, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE, {}));
     }
 }
-
+// 随机移动
 void MotionMaster::MoveRandom(float wanderDistance /*= 0.0f*/, Optional<Milliseconds> duration /*= {}*/, MovementSlot slot /*= MOTION_SLOT_DEFAULT*/,
                               Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
 {
@@ -606,7 +607,7 @@ void MotionMaster::MoveRandom(float wanderDistance /*= 0.0f*/, Optional<Millisec
     else if (scriptResult)
         scriptResult->SetResult(MovementStopReason::Interrupted);
 }
-
+// 跟随移动
 void MotionMaster::MoveFollow(Unit *target, float dist, Optional<ChaseAngle> angle /*= {}*/, Optional<Milliseconds> duration /*= {}*/, bool ignoreTargetWalk /*= false*/, MovementSlot slot /* = MOTION_SLOT_ACTIVE*/,
                               Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
 {
@@ -621,7 +622,7 @@ void MotionMaster::MoveFollow(Unit *target, float dist, Optional<ChaseAngle> ang
     TC_LOG_DEBUG("movement.motionmaster", "MotionMaster::MoveFollow: '{}', starts following '{}'", _owner->GetGUID(), target->GetGUID());
     Add(new FollowMovementGenerator(target, dist, angle, duration, ignoreTargetWalk, std::move(scriptResult)), slot);
 }
-
+// 追着动
 void MotionMaster::MoveChase(Unit *target, Optional<ChaseRange> dist, Optional<ChaseAngle> angle)
 {
     // Ignore movement request if target not exist
@@ -631,7 +632,7 @@ void MotionMaster::MoveChase(Unit *target, Optional<ChaseRange> dist, Optional<C
     TC_LOG_DEBUG("movement.motionmaster", "MotionMaster::MoveChase: '{}', starts chasing '{}'", _owner->GetGUID(), target->GetGUID());
     Add(new ChaseMovementGenerator(target, dist, angle));
 }
-
+// 迷惑住了
 void MotionMaster::MoveConfused()
 {
     if (_owner->GetTypeId() == TYPEID_PLAYER)
@@ -645,7 +646,7 @@ void MotionMaster::MoveConfused()
         Add(new ConfusedMovementGenerator<Creature>());
     }
 }
-
+// 逃跑
 void MotionMaster::MoveFleeing(Unit *enemy, Milliseconds time /*= 0ms*/,
                                Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
 {
@@ -662,7 +663,7 @@ void MotionMaster::MoveFleeing(Unit *enemy, Milliseconds time /*= 0ms*/,
     else
         Add(new FleeingMovementGenerator(enemy->GetGUID(), std::move(scriptResult)));
 }
-
+// 移动到点
 void MotionMaster::MovePoint(uint32 id, Position const &pos, bool generatePath /* = true*/, Optional<float> finalOrient /* = {}*/, Optional<float> speed /*= {}*/,
                              MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/, Optional<float> closeEnoughDistance /*= {}*/,
                              Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
@@ -678,6 +679,7 @@ void MotionMaster::MovePoint(uint32 id, float x, float y, float z, bool generate
     Add(new PointMovementGenerator(id, x, y, z, generatePath, speed, finalOrient, nullptr, nullptr, speedSelectionMode, closeEnoughDistance, std::move(scriptResult)));
 }
 
+// 移动到了附近停止
 void MotionMaster::MoveCloserAndStop(uint32 id, Unit *target, float distance)
 {
     float distanceToTravel = _owner->GetExactDist2d(target) - distance;
@@ -700,7 +702,7 @@ void MotionMaster::MoveCloserAndStop(uint32 id, Unit *target, float distance)
         Add(new GenericMovementGenerator(std::move(initializer), EFFECT_MOTION_TYPE, id));
     }
 }
-
+// 普通移动
 void MotionMaster::MoveLand(uint32 id, Position const &pos, Optional<int32> tierTransitionId /*= {}*/, Optional<float> velocity /*= {}*/,
                             MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/,
                             Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
@@ -730,7 +732,7 @@ void MotionMaster::MoveLand(uint32 id, Position const &pos, Optional<int32> tier
     };
     Add(new GenericMovementGenerator(std::move(initializer), EFFECT_MOTION_TYPE, id, {.ScriptResult = std::move(scriptResult)}));
 }
-
+// 起飞的时候
 void MotionMaster::MoveTakeoff(uint32 id, Position const &pos, Optional<int32> tierTransitionId /*= {}*/, Optional<float> velocity /*= {}*/,
                                MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/,
                                Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
@@ -759,7 +761,7 @@ void MotionMaster::MoveTakeoff(uint32 id, Position const &pos, Optional<int32> t
     };
     Add(new GenericMovementGenerator(std::move(initializer), EFFECT_MOTION_TYPE, id, {.ScriptResult = std::move(scriptResult)}));
 }
-
+// 冲锋
 void MotionMaster::MoveCharge(float x, float y, float z, float speed /*= SPEED_CHARGE*/, uint32 id /*= EVENT_CHARGE*/, bool generatePath /*= false*/,
                               Unit const *target /*= nullptr*/, Movement::SpellEffectExtraData const *spellEffectExtraData /*= nullptr*/)
 {
@@ -773,7 +775,7 @@ void MotionMaster::MoveCharge(float x, float y, float z, float speed /*= SPEED_C
     movement->BaseUnitState = UNIT_STATE_CHARGING;
     Add(movement);
 }
-
+// 冲锋
 void MotionMaster::MoveCharge(PathGenerator const &path, float speed /*= SPEED_CHARGE*/, Unit const *target /*= nullptr*/,
                               Movement::SpellEffectExtraData const *spellEffectExtraData /*= nullptr*/)
 {
@@ -793,7 +795,7 @@ void MotionMaster::MoveCharge(PathGenerator const &path, float speed /*= SPEED_C
         init.SetSpellEffectExtraData(*spellEffectExtraData);
     init.Launch();
 }
-
+// 击退
 void MotionMaster::MoveKnockbackFrom(Position const &origin, float speedXY, float speedZ, Movement::SpellEffectExtraData const *spellEffectExtraData /*= nullptr*/)
 {
     // This function may make players fall below map
@@ -826,7 +828,7 @@ void MotionMaster::MoveKnockbackFrom(Position const &origin, float speedXY, floa
     movement->AddFlag(MOVEMENTGENERATOR_FLAG_PERSIST_ON_DEATH);
     Add(movement);
 }
-
+// 跳到xx
 void MotionMaster::MoveJumpTo(float angle, float speedXY, float speedZ)
 {
     // This function may make players fall below map
@@ -843,7 +845,7 @@ void MotionMaster::MoveJumpTo(float angle, float speedXY, float speedZ)
 
     MoveJump(x, y, z, speedXY, speedZ);
 }
-
+// 跳跃
 void MotionMaster::MoveJump(Position const &pos, float speedXY, float speedZ, uint32 id /*= EVENT_JUMP*/, MovementFacingTarget const &facing /*= {}*/,
                             bool orientationFixed /*= false*/, JumpArrivalCastArgs const *arrivalCast /*= nullptr*/, Movement::SpellEffectExtraData const *spellEffectExtraData /*= nullptr*/,
                             Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
@@ -892,7 +894,7 @@ void MotionMaster::MoveJump(float x, float y, float z, float speedXY, float spee
     movement->BaseUnitState = UNIT_STATE_JUMPING;
     Add(movement);
 }
-
+// 重力计算参与的跳跃
 void MotionMaster::MoveJumpWithGravity(Position const &pos, float speedXY, float gravity, uint32 id /* = EVENT_JUMP*/, MovementFacingTarget const &facing /* = {}*/,
                                        bool orientationFixed /*= false*/, JumpArrivalCastArgs const *arrivalCast /*= nullptr*/, Movement::SpellEffectExtraData const *spellEffectExtraData /*= nullptr*/,
                                        Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
@@ -933,7 +935,7 @@ void MotionMaster::MoveJumpWithGravity(Position const &pos, float speedXY, float
     movement->AddFlag(MOVEMENTGENERATOR_FLAG_PERSIST_ON_DEATH);
     Add(movement);
 }
-
+// 圆形路径移动
 void MotionMaster::MoveCirclePath(float x, float y, float z, float radius, bool clockwise, uint8 stepCount,
                                   Optional<Milliseconds> duration /*= {}*/, Optional<float> speed /*= {}*/,
                                   MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/,
@@ -987,7 +989,7 @@ void MotionMaster::MoveCirclePath(float x, float y, float z, float radius, bool 
 
     Add(new GenericMovementGenerator(std::move(initializer), EFFECT_MOTION_TYPE, 0, {.Duration = duration, .ScriptResult = std::move(scriptResult)}));
 }
-
+// 角色按照一连串相互连接的样条所构成的路径进行移动
 void MotionMaster::MoveAlongSplineChain(uint32 pointId, uint16 dbChainId, bool walk)
 {
     Creature *owner = _owner->ToCreature();
@@ -1009,7 +1011,7 @@ void MotionMaster::MoveAlongSplineChain(uint32 pointId, std::vector<SplineChainL
 {
     Add(new SplineChainMovementGenerator(pointId, chain, walk));
 }
-
+// 恢复连接的样条所构成的路径进行移动
 void MotionMaster::ResumeSplineChain(SplineChainResumeInfo const &info)
 {
     if (info.Empty())
@@ -1019,7 +1021,7 @@ void MotionMaster::ResumeSplineChain(SplineChainResumeInfo const &info)
     }
     Add(new SplineChainMovementGenerator(info));
 }
-
+// 下落
 void MotionMaster::MoveFall(uint32 id /*= 0*/,
                             Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
 {
@@ -1064,7 +1066,10 @@ void MotionMaster::MoveFall(uint32 id /*= 0*/,
     movement->Priority = MOTION_PRIORITY_HIGHEST;
     Add(movement);
 }
-
+// 角色移动去寻求帮助的一种行为方式。
+// 意味着角色察觉到自身处于某种不利状况（比如受到强大敌人攻击、生命值过低、陷入困境等）
+// 从而主动朝着可能提供援助的方向（比如附近的友方角色、特定的救助点、有保护机制的区域等）进行移动，
+// 以期望摆脱危险或者获得支持。
 void MotionMaster::MoveSeekAssistance(float x, float y, float z)
 {
     if (Creature *creature = _owner->ToCreature())
@@ -1079,7 +1084,7 @@ void MotionMaster::MoveSeekAssistance(float x, float y, float z)
     else
         TC_LOG_ERROR("movement.motionmaster", "MotionMaster::MoveSeekAssistance: '{}', attempted to seek assistance.", _owner->GetGUID());
 }
-
+// 同上但是会制造分散注意的行为
 void MotionMaster::MoveSeekAssistanceDistract(uint32 time)
 {
     if (_owner->GetTypeId() == TYPEID_UNIT)
@@ -1090,7 +1095,7 @@ void MotionMaster::MoveSeekAssistanceDistract(uint32 time)
     else
         TC_LOG_ERROR("movement.motionmaster", "MotionMaster::MoveSeekAssistanceDistract: '{}', attempted to call distract assistance.", _owner->GetGUID());
 }
-
+// 飞行出租
 void MotionMaster::MoveTaxiFlight(uint32 path, uint32 pathnode, Optional<float> speed /*= {}*/,
                                   Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
 {
@@ -1115,7 +1120,7 @@ void MotionMaster::MoveTaxiFlight(uint32 path, uint32 pathnode, Optional<float> 
     else
         TC_LOG_ERROR("movement.motionmaster", "MotionMaster::MoveTaxiFlight: '{}', attempted taxi to path Id: {} (node: {})", _owner->GetGUID(), path, pathnode);
 }
-
+// 分散注意？
 void MotionMaster::MoveDistract(uint32 timer, float orientation)
 {
     /*
@@ -1125,7 +1130,7 @@ void MotionMaster::MoveDistract(uint32 timer, float orientation)
     TC_LOG_DEBUG("movement.motionmaster", "MotionMaster::MoveDistract: '{}', distracted (timer: {}, orientation: {})", _owner->GetGUID(), timer, orientation);
     Add(new DistractMovementGenerator(timer, orientation));
 }
-
+// 按路径移动
 void MotionMaster::MovePath(uint32 pathId, bool repeatable, Optional<Milliseconds> duration /*= {}*/, Optional<float> speed /*= {}*/,
                             MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/,
                             Optional<std::pair<Milliseconds, Milliseconds>> waitTimeRangeAtPathEnd /*= {}*/,
@@ -1146,7 +1151,7 @@ void MotionMaster::MovePath(uint32 pathId, bool repeatable, Optional<Millisecond
                                                 wanderDistanceAtPathEnds, followPathBackwardsFromEndToStart, exactSplinePath, generatePath, std::move(scriptResult)),
         MOTION_SLOT_DEFAULT);
 }
-
+// 按路点移动
 void MotionMaster::MovePath(WaypointPath const &path, bool repeatable, Optional<Milliseconds> duration /*= {}*/, Optional<float> speed /*= {}*/,
                             MovementWalkRunSpeedSelectionMode speedSelectionMode /*= MovementWalkRunSpeedSelectionMode::Default*/,
                             Optional<std::pair<Milliseconds, Milliseconds>> waitTimeRangeAtPathEnd /*= {}*/,
@@ -1160,7 +1165,7 @@ void MotionMaster::MovePath(WaypointPath const &path, bool repeatable, Optional<
                                                 wanderDistanceAtPathEnds, followPathBackwardsFromEndToStart, exactSplinePath, generatePath, std::move(scriptResult)),
         MOTION_SLOT_DEFAULT);
 }
-
+// 旋转
 void MotionMaster::MoveRotate(uint32 id, RotateDirection direction, Optional<Milliseconds> time /*= {}*/,
                               Optional<float> turnSpeed /*= {}*/, Optional<float> totalTurnAngle /*= {}*/,
                               Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> &&scriptResult /*= {}*/)
@@ -1170,7 +1175,7 @@ void MotionMaster::MoveRotate(uint32 id, RotateDirection direction, Optional<Mil
 
     Add(new RotateMovementGenerator(id, direction, time, turnSpeed, totalTurnAngle, std::move(scriptResult)));
 }
-
+// 角色以某种队形（formation）进行移动的操作
 void MotionMaster::MoveFormation(Unit *leader, float range, float angle, uint32 point1, uint32 point2)
 {
     if (_owner->GetTypeId() == TYPEID_UNIT && leader)
@@ -1179,7 +1184,7 @@ void MotionMaster::MoveFormation(Unit *leader, float range, float angle, uint32 
         Add(new FormationMovementGenerator(leader, range, angle, point1, point2), MOTION_SLOT_DEFAULT);
     }
 }
-
+// 启动 样条线移动
 void MotionMaster::LaunchMoveSpline(std::function<void(Movement::MoveSplineInit &init)> &&initializer, uint32 id /*= 0*/, MovementGeneratorPriority priority /* = MOTION_PRIORITY_NORMAL*/, MovementGeneratorType type /*= EFFECT_MOTION_TYPE*/)
 {
     if (IsInvalidMovementGeneratorType(type))
@@ -1194,7 +1199,7 @@ void MotionMaster::LaunchMoveSpline(std::function<void(Movement::MoveSplineInit 
     movement->Priority = priority;
     Add(movement);
 }
-
+// 计算跳跃速度
 void MotionMaster::CalculateJumpSpeeds(float dist, UnitMoveType moveType, float speedMultiplier, float minHeight, float maxHeight, float &speedXY, float &speedZ) const
 {
     float baseSpeed = _owner->IsControlledByPlayer() ? playerBaseMoveSpeed[moveType] : baseMoveSpeed[moveType];
