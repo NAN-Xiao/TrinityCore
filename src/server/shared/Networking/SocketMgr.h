@@ -93,9 +93,10 @@ public:
             for (int32 i = 0; i < _threadCount; ++i)
                 _threads[i].Wait();
     }
-    /// 由WorldSocketMgr::OnSocketOpen调用
-    /// 把socket扔到任务最少的那个线程
-    ///  函数内的socket的start具体实现WorldSocket::Start()
+    /// 由worldSocketMgr::OnSocketOpen调用
+    /// sock>Start()启动
+    /// 把已经监听的socket扔到对应的线程的数组中
+    /// ---#函数内的socket的start具体实现WorldSocket::Start()
     virtual void OnSocketOpen(boost::asio::ip::tcp::socket &&sock, uint32 threadIndex)
     {
         try
@@ -124,10 +125,11 @@ public:
 
         return min;
     }
-
+    // 返回一个由线程创建的boost::asio::ip::tcp::socket和该线程的index
     std::pair<boost::asio::ip::tcp::socket *, uint32> GetSocketForAccept()
     {
         uint32 threadIndex = SelectThreadWithMinConnections();
+
         return std::make_pair(_threads[threadIndex].GetSocketForAccept(), threadIndex);
     }
 

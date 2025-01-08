@@ -42,7 +42,8 @@ public:
     template <class T>
     void AsyncAccept();
 
-    // 异步回调 先调用前面设置的_socketFactory
+    // 异步回调 先调用前面设置的_socketFactory创建socket
+    // 如果socket有效则放入socketmgr的数组中进行维护
     template <AcceptCallback acceptCallback>
     void AsyncAcceptWithCallback()
     {

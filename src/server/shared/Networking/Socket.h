@@ -166,6 +166,7 @@ public:
     }
 
     /// Marks the socket for closing after write buffer becomes empty
+    ////当写缓冲区变为空时，标记套接字关闭
     void DelayedCloseSocket()
     {
         if (_closing.exchange(true))
@@ -231,7 +232,7 @@ private:
             CloseSocket();
             return;
         }
-
+    
         _readBuffer.WriteCompleted(transferredBytes);
 
         ReadHandler();

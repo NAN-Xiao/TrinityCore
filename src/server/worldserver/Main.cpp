@@ -306,14 +306,13 @@ int main(int argc, char **argv)
         numThreads = 1;
     }
     // 创建Trinity线程池
+    // iocontext提交到线程池
     std::unique_ptr<Trinity::ThreadPool> threadPool = std::make_unique<Trinity::ThreadPool>(numThreads);
-
     for (int i = 0; i < numThreads; ++i)
         threadPool->PostWork([ioContext]()
                              { ioContext->run(); });
 
     auto ioContextStopHandle = Trinity::make_unique_ptr_with_deleter<&Trinity::Asio::IoContext::stop>(ioContext.get());
-
     // Set process priority according to configuration settings
     // 根据配置设置设置进程优先级
     SetProcessPriority("server.worldserver", sConfigMgr->GetIntDefault(CONFIG_PROCESSOR_AFFINITY, 0), sConfigMgr->GetBoolDefault(CONFIG_HIGH_PRIORITY, false));

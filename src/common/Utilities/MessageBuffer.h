@@ -59,7 +59,7 @@ public:
     uint8 *GetReadPointer() { return GetBasePointer() + _rpos; }
 
     uint8 *GetWritePointer() { return GetBasePointer() + _wpos; }
-
+    
     void ReadCompleted(size_type bytes) { _rpos += bytes; }
 
     void cc(size_type bytes) { _wpos += bytes; }
@@ -71,6 +71,7 @@ public:
     size_type GetBufferSize() const { return _storage.size(); }
 
     // Discards inactive data
+    ////丢弃非活动数据
     void Normalize()
     {
         if (_rpos)
@@ -83,6 +84,7 @@ public:
     }
 
     // Ensures there's "some" free space, make sure to call Normalize() before this
+    // 确保有“一些”空闲空间，确保在此之前调用Normalize（）
     void EnsureFreeSpace()
     {
         // resize buffer if it's already full

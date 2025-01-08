@@ -32,6 +32,8 @@ static void OnSocketAccept(boost::asio::ip::tcp::socket &&sock, uint32 threadInd
 class WorldSocketThread : public NetworkThread<WorldSocket>
 {
 public:
+    // 设置socket的sendbuffer的大小
+    // 执行script的socketopen的钩子
     void SocketAdded(std::shared_ptr<WorldSocket> sock) override
     {
         sock->SetSendBufferSize(sWorldSocketMgr.GetApplicationSendBufferSize());
@@ -65,6 +67,7 @@ WorldSocketMgr &WorldSocketMgr::Instance()
 /// 通过回调（AsyncAcceptWithCallback的模板参数OnSocketAccept）方法把新的socket添加到任务最少线程中
 bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std::string const &bindIp, uint16 port, uint16 instancePort, int threadCount)
 {
+    // 设置Nodelay
     _tcpNoDelay = sConfigMgr->GetBoolDefault("Network.TcpNodelay", true);
 
     int const max_connections = TRINITY_MAX_LISTEN_CONNECTIONS;
@@ -80,11 +83,21 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
         TC_LOG_ERROR("misc", "Network.OutUBuff is wrong in your config file");
         return false;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// 启动流程：                                                                                           ///
+    /// 创建并启动threadCount个线程                                                                          ///
+    /// 先创建一个异步接收器AsyncAcceptor启动io监听端口                                                        ///
+    /// 设置监听事件                                                                                         ///
+    /// 当监听到连接请求后通过AsyncAcceptWithCallback在最少连接线程中创建一个socket、并维护一个线程的映射关系      ///
+    /// 把这个socket放入到线程的socket数组中                                                                  ///
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 启动network
     // 根据参数创建_acceptor和 instanceAcceptor对象 并设置工厂类
+    // 启动了threadCount个线程
     if (!BaseSocketMgr::StartNetwork(ioContext, bindIp, port, threadCount))
         return false;
-
+    // 上面basemgr的start中创建了_acceptor
+    // instanceAcceptor是在下面创建的
     AsyncAcceptor *instanceAcceptor = nullptr;
     try
     {
@@ -106,19 +119,10 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext &ioContext, std:
     _instanceAcceptor = instanceAcceptor;
     _instanceAcceptor->SetSocketFactory([this]()
                                         { return GetSocketForAccept(); });
-    /*
-      sorket的start在此
-      _acceptor和_instanceAcceptor分别处理不同的链接
-      猜测：
-      _acceptor可能监测的是客户端
-      _instanceAcceptor是监测的服务器实例 比如副本地图
-      -------------------------------------------------------------------------------------------
-      “AsyncAcceptWithCallback” 函数内先调用前面先调用前面设置的_socketFactory
-      _socketFactory返回的是socket和threadIndex
-      -------------------------------------------------------------------------------------------
-      最后会执行模板函数OnSocketAccept
-      OnSocketAccept会一步步调用base的OnSocketOpen中把新的socket加入threadindex到对应的线程中
-    */
+
+    // 启动接收器的异步监听
+    // 有消息则调用ocketFactory方法创建 socket
+    // 执行OnSocketAccept回掉 把新的 socket 放入 线程 的数组中
     _acceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
     _instanceAcceptor->AsyncAcceptWithCallback<&OnSocketAccept>();
 

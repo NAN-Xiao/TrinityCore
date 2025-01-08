@@ -204,8 +204,9 @@ void WorldSocket::InitializeHandler(boost::system::error_code const &error, std:
 
     AsyncReadWithCallback(&WorldSocket::InitializeHandler);
 }
-// 只是从_bufferQueue中的package写入到发送队列里
-// 真实的消息发送是父类的handlewrite
+
+// 真实的消息发送是父类的handler write
+// 接收消息是下面的 ReadDataHandler()
 bool WorldSocket::Update()
 {
     EncryptablePacket *queued;             // 加密的数据
@@ -277,6 +278,7 @@ void WorldSocket::ReadHandler()
     // packet活跃中 --正在接受消息？？直到完整的消息到位
     while (packet.GetActiveSize() > 0)
     {
+        // 剩余空间>0
         if (_headerBuffer.GetRemainingSpace() > 0)
         {
             // need to receive the header
@@ -288,12 +290,14 @@ void WorldSocket::ReadHandler()
             if (_headerBuffer.GetRemainingSpace() > 0)
             {
                 // Couldn't receive the whole header this time.
+                // 没有接收到完整包头
                 ASSERT(packet.GetActiveSize() == 0);
                 break;
             }
 
             // We just received nice new header
-            // 接受了一个不错的新包头
+            // 接收完包头后 并且根据包头的信息填充了下面_packetBuffer要接收的大小
+            // 并且在_packetBuffer里提前写入了操作码
             if (!ReadHeaderHandler())
             {
                 CloseSocket();
@@ -349,10 +353,11 @@ bool WorldSocket::ReadHeaderHandler()
     ASSERT(_headerBuffer.GetActiveSize() == sizeof(IncomingPacketHeader), "Header size " SZFMTD " different than expected " SZFMTD, _headerBuffer.GetActiveSize(), sizeof(IncomingPacketHeader));
 
     IncomingPacketHeader *header = reinterpret_cast<IncomingPacketHeader *>(_headerBuffer.GetReadPointer());
-    uint32 encryptedOpcode = header->EncryptedOpcode;
+    uint32 encryptedOpcode = header->EncryptedOpcode; // 加密的操作码
 
     if (!header->IsValidSize())
     {
+        // 处理加密
         _authCrypt.PeekDecryptRecv(reinterpret_cast<uint8 *>(&header->EncryptedOpcode), sizeof(encryptedOpcode));
 
         // CMSG_HOTFIX_REQUEST can be much larger than normal packets, allow receiving it once per session
@@ -368,8 +373,8 @@ bool WorldSocket::ReadHeaderHandler()
     _packetBuffer.Write(&encryptedOpcode, sizeof(encryptedOpcode));
     return true;
 }
-
-// 这里处理已经接收到的完整消息
+// 原始调用是 AsyncRead 中的 iocontext 监听的异步回调
+//  这里处理已经接收到的完整消息 返回一个处理结果
 WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
 {
     PacketHeader *header = reinterpret_cast<PacketHeader *>(_headerBuffer.GetReadPointer());
