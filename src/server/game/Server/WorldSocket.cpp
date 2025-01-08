@@ -359,7 +359,6 @@ bool WorldSocket::ReadHeaderHandler()
     {
         // 处理加密
         _authCrypt.PeekDecryptRecv(reinterpret_cast<uint8 *>(&header->EncryptedOpcode), sizeof(encryptedOpcode));
-
         // CMSG_HOTFIX_REQUEST can be much larger than normal packets, allow receiving it once per session
         if (header->EncryptedOpcode != CMSG_HOTFIX_REQUEST || header->Size > 0x100000 || !_canRequestHotfixes)
         {
@@ -374,7 +373,7 @@ bool WorldSocket::ReadHeaderHandler()
     return true;
 }
 // 原始调用是 AsyncRead 中的 iocontext 监听的异步回调
-//  这里处理已经接收到的完整消息 返回一个处理结果
+// 这里处理已经接收到的完整消息 并返回一个处理结果
 WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
 {
     PacketHeader *header = reinterpret_cast<PacketHeader *>(_headerBuffer.GetReadPointer());
