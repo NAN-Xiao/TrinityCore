@@ -839,6 +839,7 @@ class TC_GAME_API Spell
             Unit* _spellHitTarget = nullptr; // changed for example by reflect
             bool _enablePVP = false;         // need to enable PVP at DoDamageAndTriggers?
         };
+        //特殊的信息
         std::vector<TargetInfo> m_UniqueTargetInfo;
         uint32 m_channelTargetEffectMask;                       // Mask req. alive targets
 

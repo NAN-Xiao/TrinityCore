@@ -334,6 +334,7 @@ public:
     char const *GetMapName() const;
 
     // have meaning only for instanced map (that have set real difficulty)
+    // 仅对实例化地图有意义（这类地图已设置了实际的难度）。
     Difficulty GetDifficultyID() const { return Difficulty(i_spawnMode); }
     MapDifficultyEntry const *GetMapDifficulty() const;
 

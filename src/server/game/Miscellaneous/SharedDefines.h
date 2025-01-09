@@ -2991,7 +2991,7 @@ enum SpellHitType
 enum SpellDmgClass
 {
     SPELL_DAMAGE_CLASS_NONE = 0,  // TITLE None
-    SPELL_DAMAGE_CLASS_MAGIC = 1, // TITLE Magic
+    SPELL_DAMAGE_CLASS_MAGIC = 1, // TITLE Magic 
     SPELL_DAMAGE_CLASS_MELEE = 2, // TITLE Melee
     SPELL_DAMAGE_CLASS_RANGED = 3 // TITLE Ranged
 };

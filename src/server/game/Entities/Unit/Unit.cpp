@@ -2305,6 +2305,7 @@ void Unit::AttackerStateUpdate(Unit *victim, WeaponAttackType attType, bool extr
         _lastExtraAttackSpell = 0;
 
     // melee attack spell cast at main hand attack only - no normal melee dmg dealt
+    // 近战攻击法术仅在主手攻击时施展 —— 不会造成常规的近战伤害
     if (attType == BASE_ATTACK && m_currentSpells[CURRENT_MELEE_SPELL] && !extra)
         m_currentSpells[CURRENT_MELEE_SPELL]->cast();
     else
@@ -10242,7 +10243,7 @@ ProcFlagsHit createProcHitMask(SpellNonMeleeDamage *damageInfo, SpellMissInfo mi
 
     return hitMask;
 }
-
+// 触发技能与反应技能
 void Unit::ProcSkillsAndReactives(bool isVictim, Unit *procTarget, ProcFlagsInit const &typeMask, ProcFlagsHit hitMask, WeaponAttackType /*attType*/)
 {
     // Player is loaded now - do not allow passive spell casts to proc
@@ -12185,7 +12186,7 @@ bool Unit::CanApplyResilience() const
 
     *damage -= target->GetDamageReduction(*damage);
 }
-
+//计算aoe的闪避
 int32 Unit::CalculateAOEAvoidance(int32 damage, uint32 schoolMask, bool npcCaster) const
 {
     damage = int32(float(damage) * GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_AOE_DAMAGE_AVOIDANCE, schoolMask));

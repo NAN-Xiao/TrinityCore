@@ -1445,6 +1445,7 @@ public:
     }
     void AddChannelObject(ObjectGuid guid) { AddDynamicUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects)) = guid; }
     void SetChannelObject(uint32 slot, ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects, slot), guid); }
+    // 移除引导对象
     void RemoveChannelObject(ObjectGuid guid)
     {
         int32 index = m_unitData->ChannelObjects.FindIndex(guid);
