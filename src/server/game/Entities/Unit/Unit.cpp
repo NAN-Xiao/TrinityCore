@@ -6650,6 +6650,8 @@ Unit *Unit::GetNextRandomRaidMemberOrPet(float radius)
 
 // only called in Player::SetSeer
 // so move it to Player?
+// 仅在玩家（Player）类的 SetSeer 方法中被调用。
+// 那么将它移到玩家（Player）类中合适吗？
 void Unit::AddPlayerToVision(Player *player)
 {
     if (m_sharedVision.empty())
