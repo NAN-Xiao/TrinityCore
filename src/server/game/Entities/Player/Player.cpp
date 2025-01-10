@@ -30664,7 +30664,7 @@ uint32 TraitMgr::PlayerDataAccessor::GetPrimarySpecialization() const
 {
     return AsUnderlyingType(_player->GetPrimarySpecialization());
 }
-
+// 请求施法
 void Player::RequestSpellCast(std::unique_ptr<SpellCastRequest> castRequest)
 {
     // We are overriding an already existing spell cast request so inform the client that the old cast is being replaced
@@ -30708,7 +30708,12 @@ bool Player::CanRequestSpellCast(SpellInfo const *spellInfo, Unit const *casting
 
     return true;
 }
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// 重要！！！                                                                                             //
+// 执行并挂起施法请求                                                                                      //
+// 由两个位置调用 一个是updata 另外一个是  RequestSpellCast 函数                                            //
+// 最后调用是由客户端发起的 worldsellsion::HandleCastSpellOpcode或者handler中使用某种带效果的道具发起         //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Player::ExecutePendingSpellCastRequest()
 {
     if (!_pendingSpellCastRequest)
@@ -30719,9 +30724,11 @@ void Player::ExecutePendingSpellCastRequest()
     Unit *castingUnit = _pendingSpellCastRequest->CastingUnitGUID == GetGUID() ? this : ObjectAccessor::GetUnit(*this, _pendingSpellCastRequest->CastingUnitGUID);
 
     // client provided targets
+    // 客户端提供的目标
     SpellCastTargets targets(castingUnit, _pendingSpellCastRequest->CastRequest);
 
     // The spell cast has been requested by using an item. Handle the cast accordingly.
+    // 法术释放是通过使用一件物品而被请求的。相应地处理这个释放操作
     if (_pendingSpellCastRequest->ItemData.has_value())
     {
         if (ProcessItemCast(*_pendingSpellCastRequest, targets))
@@ -30730,7 +30737,7 @@ void Player::ExecutePendingSpellCastRequest()
             CancelPendingCastRequest();
         return;
     }
-
+    //// 检查已知法术或团队标记法术（后者不要求玩家知晓它）
     // check known spell or raid marker spell (which not requires player to know it)
     SpellInfo const *spellInfo = sSpellMgr->AssertSpellInfo(_pendingSpellCastRequest->CastRequest.SpellID, GetMap()->GetDifficultyID());
     Player *plrCaster = castingUnit->ToPlayer();
@@ -30739,11 +30746,13 @@ void Player::ExecutePendingSpellCastRequest()
         bool allow = false;
 
         // allow casting of unknown spells for special lock cases
+        // 在特殊锁定情况允许释放未知法术”
         if (GameObject *go = targets.GetGOTarget())
             if (go->GetSpellForLock(plrCaster) == spellInfo)
                 allow = true;
 
         // allow casting of spells triggered by clientside periodic trigger auras
+        // 允许释放由客户端周期性触发光环触发的法术”
         if (castingUnit->HasAuraTypeWithTriggerSpell(SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT, spellInfo->Id))
         {
             allow = true;
@@ -30758,6 +30767,7 @@ void Player::ExecutePendingSpellCastRequest()
     }
 
     // Check possible spell cast overrides
+    // 检查可能的法术释放覆盖情况
     GetCastSpellInfoContext overrideContext;
     spellInfo = castingUnit->GetCastSpellInfo(spellInfo, triggerFlag, &overrideContext);
     if (spellInfo->IsPassive())
@@ -30765,7 +30775,7 @@ void Player::ExecutePendingSpellCastRequest()
         CancelPendingCastRequest();
         return;
     }
-
+    // 当我们控制着另一个单位时，不能使用我们自己的法术
     // can't use our own spells when we're in possession of another unit
     if (isPossessing())
     {
@@ -30776,6 +30786,7 @@ void Player::ExecutePendingSpellCastRequest()
     // Client is resending autoshot cast opcode when other spell is cast during shoot rotation
     // Skip it to prevent "interrupt" message
     // Also check targets! target may have changed and we need to interrupt current spell
+    // 自动施法的处理 考虑打断 重复使用自动施法技能的情况
     if (spellInfo->IsAutoRepeatRangedSpell())
     {
         if (Spell *spell = castingUnit->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL))
@@ -30789,17 +30800,20 @@ void Player::ExecutePendingSpellCastRequest()
     }
 
     // auto-selection buff level base at target level (in spellInfo)
+    // 根据目标等级（在法术信息中）自动选择增益效果等级基数
     if (targets.GetUnitTarget())
     {
         SpellInfo const *actualSpellInfo = spellInfo->GetAuraRankForLevel(targets.GetUnitTarget()->GetLevelForTarget(this));
 
         // if rank not found then function return NULL but in explicit cast case original spell can be cast and later failed with appropriate error message
+        // 如果未找到等级，那么该函数将返回空值，但在显式施法的情况下，原始法术可以被施展，之后会因相应错误消息而失败。
         if (actualSpellInfo)
             spellInfo = actualSpellInfo;
     }
-
+    // 施法者  法术信息   触发的flag
     Spell *spell = new Spell(castingUnit, spellInfo, triggerFlag);
 
+    // SpellPrepare 准备技能
     WorldPackets::Spells::SpellPrepare spellPrepare;
     spellPrepare.ClientCastID = _pendingSpellCastRequest->CastRequest.CastID;
     spellPrepare.ServerCastID = spell->m_castId;

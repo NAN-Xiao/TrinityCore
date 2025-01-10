@@ -731,10 +731,11 @@ void Spell::SelectExplicitTargets()
         }
     }
 }
-
+// 选择目标
 void Spell::SelectSpellTargets()
 {
     // select targets for cast phase
+    // 为施法阶段选择目标
     SelectExplicitTargets();
 
     uint32 processedAreaEffectsMask = 0;
@@ -743,10 +744,13 @@ void Spell::SelectSpellTargets()
     {
         // not call for empty effect.
         // Also some spells use not used effect targets for store targets for dummy effect in triggered spells
+        // 对于空效果不要进行调用。
+        // 此外，一些法术会利用未被使用的效果目标来为触发法术中的虚拟效果存储目标。
         if (!spellEffectInfo.IsEffect())
             continue;
 
         // set expected type of implicit targets to be sent to client
+        // 设置要发送到客户端的隐式目标的预期类型
         uint32 implicitTargetMask = GetTargetFlagMask(spellEffectInfo.TargetA.GetObjectType()) | GetTargetFlagMask(spellEffectInfo.TargetB.GetObjectType());
         if (implicitTargetMask & TARGET_FLAG_UNIT)
             m_targets.SetTargetFlag(TARGET_FLAG_UNIT);
@@ -895,8 +899,8 @@ void Spell::UpdateDelayMomentForUnitTarget(Unit *unit, uint64 hitDelay)
     if (GetDelayStart())
         m_caster->m_Events.ModifyEventTime(_spellEvent, Milliseconds(GetDelayStart() + m_delayMoment));
 }
-//当一个法术释放后会产生多种效果，
-//这个函数就负责找出哪些目标会被这些效果作用到，以便后续准确地施加对应的效果内容，像伤害、增益、减益、状态改变等效果
+// 当一个法术释放后会产生多种效果，
+// 这个函数就负责找出哪些目标会被这些效果作用到，以便后续准确地施加对应的效果内容，像伤害、增益、减益、状态改变等效果
 void Spell::SelectEffectImplicitTargets(SpellEffectInfo const &spellEffectInfo, SpellImplicitTargetInfo const &targetType, SpellTargetIndex targetIndex, uint32 &processedEffectMask)
 {
     if (!targetType.GetTarget())
@@ -3414,9 +3418,16 @@ bool Spell::UpdateChanneledTargetList()
     //  is all effects from m_needAliveTargetMask have alive targets
     return channelTargetEffectMask == 0;
 }
-// 准备
+
+/////////////////////////////
+// 重要！！                 //
+// 准备                    //
+// 这里应该是施法调用的入口 //
+////////////////////////////
 SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const *triggeredByAura)
 {
+
+    // 是由道具发起
     if (m_CastItem)
     {
         m_castItemGUID = m_CastItem->GetGUID();
@@ -3433,11 +3444,12 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
             return SPELL_FAILED_EQUIPPED_ITEM;
         }
     }
-
+    // 显示的初始化目标
     InitExplicitTargets(targets);
-
+    // 准备中
     m_spellState = SPELL_STATE_PREPARING;
 
+    // 光环触发的
     if (triggeredByAura)
     {
         m_triggeredByAuraSpell = triggeredByAura->GetSpellInfo();
@@ -3445,10 +3457,12 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
     }
 
     // create and add update event for this spell
+    // 为当前spell创建并添加 更新事件
     _spellEvent = new SpellEvent(this);
     m_caster->m_Events.AddEvent(_spellEvent, m_caster->m_Events.CalculateTime(1ms));
 
     // check disables
+    // 检查一些可能禁用的情况
     if (DisableMgr::IsDisabledFor(DISABLE_TYPE_SPELL, m_spellInfo->Id, m_caster))
     {
         SendCastResult(SPELL_FAILED_SPELL_UNAVAILABLE);
@@ -3457,6 +3471,7 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
     }
 
     // Prevent casting at cast another spell (ServerSide check)
+    // 防止在正在释放另一个法术时进行施法（服务器端检查）
     if (!(_triggeredCastFlags & TRIGGERED_IGNORE_CAST_IN_PROGRESS) && m_caster->ToUnit() && m_caster->ToUnit()->IsNonMeleeSpellCast(false, true, true, m_spellInfo->Id == 75))
     {
         SendCastResult(SPELL_FAILED_SPELL_IN_PROGRESS);
@@ -3467,6 +3482,7 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
     LoadScripts();
 
     // Fill cost data (do not use power for item casts)
+    // 填充成本数据（对于通过物品施展的情况，不要使用能量值）。
     if (!m_CastItem)
         m_powerCost = m_spellInfo->CalcPowerCost(m_caster, m_spellSchoolMask, this);
 
@@ -3474,6 +3490,9 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
     SpellCastResult result = CheckCast(true, &param1, &param2);
     // target is checked in too many locations and with different results to handle each of them
     // handle just the general SPELL_FAILED_BAD_TARGETS result which is the default result for most DBC target checks
+    // 目标在太多地方被检查，且每次检查结果各异，难以逐一处理这些情况。
+    // 只处理通用的 “SPELL_FAILED_BAD_TARGETS”（法术因目标无效而失败）结果即可，
+    // 这是大多数数据库配置（DBC）目标检查的默认结果。
     if (_triggeredCastFlags & TRIGGERED_IGNORE_TARGET_CHECK && result == SPELL_FAILED_BAD_TARGETS)
         result = SPELL_CAST_OK;
     if (result != SPELL_CAST_OK)
@@ -3482,6 +3501,10 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
         // for example bladestorm aura should be removed on disarm as of patch 3.3.5
         // channeled periodic spells should be affected by this (arcane missiles, penance, etc)
         // a possible alternative sollution for those would be validating aura target on unit state change
+        // 当光环触发一个无法施展的法术时，周期性光环应该被打断。
+        // 例如，从 3.3.5 补丁版本起，当角色被缴械时，剑刃风暴光环就应当被移除。
+        // 引导型的周期性法术（如奥术飞弹、苦修等）也应受此影响。
+        // 对于这些情况，一个可能的替代解决方案是在单位状态改变时验证光环目标。
         if (triggeredByAura && triggeredByAura->IsPeriodic() && !triggeredByAura->GetBase()->IsPassive())
         {
             SendChannelUpdate(0, result);
@@ -3494,6 +3517,7 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
             SendCastResult(result);
 
         // queue autorepeat spells for future repeating
+        // 自动施法的技能放入队列
         if (GetCurrentContainer() == CURRENT_AUTOREPEAT_SPELL && m_caster->IsUnit())
             m_caster->ToUnit()->SetCurrentCastSpell(this);
 
@@ -3502,6 +3526,7 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
     }
 
     // Prepare data for triggers
+    // 为触发器准备数据
     prepareDataForTriggerSystem();
 
     if (!(_triggeredCastFlags & TRIGGERED_IGNORE_CAST_TIME))
@@ -3513,8 +3538,10 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
         movementResult = CheckMovement();
 
     // Creatures focus their target when possible
+    // 生物（怪物等）在可能的情况下会将目标聚焦（锁定）
     if (m_casttime && m_caster->IsCreature() && !m_spellInfo->IsNextMeleeSwingSpell() && !IsAutoRepeat() && !m_caster->ToUnit()->HasUnitFlag(UNIT_FLAG_POSSESSED))
     {
+        // 引导型法术以及一些触发型法术不会聚焦施法目标。它们之后会通过引导对象的全局唯一标识符（GUID）以及法术属性来面向目标，或者根本就不会面向目标。”
         // Channeled spells and some triggered spells do not focus a cast target. They face their target later on via channel object guid and via spell attribute or not at all
         bool const focusTarget = !m_spellInfo->IsChanneled() && !(_triggeredCastFlags & TRIGGERED_IGNORE_SET_FACING);
         if (focusTarget && m_targets.GetObjectTarget() && m_caster != m_targets.GetObjectTarget())
@@ -3537,6 +3564,10 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
             // We assume that the casting is always valid and the current movement
             // is stopped immediately (because spells are updated before movement, so next Unit::Update would cancel the spell before stopping movement)
             // and future attempts are stopped by by Unit::IsMovementPreventedByCasting in movement generators to prevent casting interruption.
+            // 不受控制的生物（怪物等）会将施法优先于移动。
+            // 我们假定施法始终是有效的，并且当前的移动会立即停止
+            // （因为法术更新优先于移动，所以下一次的单位（Unit）更新操作将会在停止移动之前取消法术，
+            // 为避免这种情况发生），而且在移动生成器中，通过单位（Unit）的‘因施法而阻止移动’（IsMovementPreventedByCasting）机制来阻止后续的移动尝试，以防止施法被中断。”
             m_caster->ToUnit()->StopMoving();
         }
     }
@@ -3544,6 +3575,7 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
     CallScriptOnPrecastHandler();
 
     // set timer base at cast time
+    // 在施法时刻设置定时器基准
     ReSetTimer();
 
     TC_LOG_DEBUG("spells", "Spell::prepare: spell id {} source {} caster {} customCastFlags {} mask {}", m_spellInfo->Id, m_caster->GetEntry(), m_originalCaster ? m_originalCaster->GetEntry() : -1, _triggeredCastFlags, m_targets.GetTargetMask());
@@ -3557,38 +3589,52 @@ SpellCastResult Spell::prepare(SpellCastTargets const &targets, AuraEffect const
     // Containers for channeled spells have to be set
     /// @todoApply this to all cast spells if needed
     // Why check duration? 29350: channelled triggers channelled
+    // 必须设置用于引导型法术的容器。
+    /// @todo 若有需要，将此应用于所有施法法术。
+    // 为何要检查持续时间？29350：引导型法术触发引导型法术。
     if ((_triggeredCastFlags & TRIGGERED_CAST_DIRECTLY) && (!m_spellInfo->IsChanneled() || !m_spellInfo->GetMaxDuration()))
         cast(true);
     else
     {
+        // 已注释掉了 !m_spellInfo->StartRecoveryTime，它会强制带有全局冷却时间的瞬发法术在 Spell::Update 中进行处理。
+        // 结果就是，一个已经通过了 CheckCast（施法检查）且本应立即被处理的法术可能会受到这种延迟处理的影响。
+        // 最容易观察到的相关错误出现在 AddUnitTarget（添加单位目标）中的视野（LoS）检查环节，即便法术已经通过了 CheckCast 的视野检查，情况仍可能在 Spell::Update 过程中发生变化。
+        // 因为在此期间目标可能已经被重新定位，使得法术飞向空中（无法记录到任何目标，所以不会处理任何效果，战斗日志中也不会有任何记录）
         // commented out !m_spellInfo->StartRecoveryTime, it forces instant spells with global cooldown to be processed in spell::update
         // as a result a spell that passed CheckCast and should be processed instantly may suffer from this delayed process
         // the easiest bug to observe is LoS check in AddUnitTarget, even if spell passed the CheckCast LoS check the situation can change in spell::update
         // because target could be relocated in the meantime, making the spell fly to the air (no targets can be registered, so no effects processed, nothing in combat log)
+
         bool willCastDirectly = !m_casttime && /*!m_spellInfo->StartRecoveryTime && */ GetCurrentContainer() == CURRENT_GENERIC_SPELL;
 
         if (Unit *unitCaster = m_caster->ToUnit())
         {
             // stealth must be removed at cast starting (at show channel bar)
             // skip triggered spell (item equip spell casting and other not explicit character casts/item uses)
+            // 在施法开始时（在显示引导条时）必须移除潜行状态。
+            // 跳过触发型法术（物品装备法术施展以及其他非角色主动施展的法术 / 物品使用情况）。
             if (!(_triggeredCastFlags & TRIGGERED_IGNORE_CAST_IN_PROGRESS) && !m_spellInfo->HasAttribute(SPELL_ATTR2_NOT_AN_ACTION))
                 unitCaster->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Action, m_spellInfo);
 
             // Do not register as current spell when requested to ignore cast in progress
             // We don't want to interrupt that other spell with cast time
+            // 当被要求忽略正在进行的施法时，不要将其注册为当前法术。
+            // 我们不希望用此次施法时间去打断那个其他的法术。
             if (!willCastDirectly || !(_triggeredCastFlags & TRIGGERED_IGNORE_CAST_IN_PROGRESS))
                 unitCaster->SetCurrentCastSpell(this);
         }
+        // 开始
         SendSpellStart();
 
         if (!(_triggeredCastFlags & TRIGGERED_IGNORE_GCD))
-            TriggerGlobalCooldown();
+            TriggerGlobalCooldown(); // 出发全局冷却 ？？wow里有些技能和道具可以直接冷却技能 不知道是不是这里的globlecooldown
 
         // Call CreatureAI hook OnSpellStart
+        // start的时候调用脚本钩子
         if (Creature *caster = m_caster->ToCreature())
             if (caster->IsAIEnabled())
                 caster->AI()->OnSpellStart(GetSpellInfo());
-
+        // 如果可以施法
         if (willCastDirectly)
             cast(true);
     }
@@ -3955,7 +4001,7 @@ void Spell::_cast(bool skipCheck)
                 m_originalCaster->GetSpellHistory()->RestoreCharge(m_spellInfo->ChargeCategoryId);
             }
         }
-
+        // 设置为当前正在执行
         SetExecutedCurrently(false);
 
         if (!m_originalCaster)
@@ -4416,7 +4462,7 @@ void Spell::update(uint32 difftime)
         break;
     }
 }
-
+// 完成阶段
 void Spell::finish(SpellCastResult result)
 {
     if (m_spellState == SPELL_STATE_FINISHED)
@@ -4434,6 +4480,7 @@ void Spell::finish(SpellCastResult result)
         return;
 
     // successful cast of the initial autorepeat spell is moved to idle state so that it is not deleted as long as autorepeat is active
+    // 成功施放的初始自动重复咒语被移动到空闲状态，这样只要自动重复是活跃的，它就不会被删除
     if (IsAutoRepeat() && unitCaster->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL) == this)
         m_spellState = SPELL_STATE_IDLE;
 
@@ -4444,6 +4491,7 @@ void Spell::finish(SpellCastResult result)
         unitCaster->ClearUnitState(UNIT_STATE_CASTING);
 
     // Unsummon summon as possessed creatures on spell cancel
+    // 在法术取消时，解散已召唤且处于被控制状态的生物。
     if (m_spellInfo->IsChanneled() && unitCaster->GetTypeId() == TYPEID_PLAYER)
     {
         if (Unit *charm = unitCaster->GetCharmed())
@@ -4459,6 +4507,7 @@ void Spell::finish(SpellCastResult result)
     if (IsEmpowerSpell())
     {
         // Empower spells trigger gcd at the end of cast instead of at start
+        // 强化法术在施法结束时触发公共冷却时间（GCD），而非在施法开始时
         if (SpellInfo const *gcd = sSpellMgr->GetSpellInfo(SPELL_EMPOWER_HARDCODED_GCD, DIFFICULTY_NONE))
             unitCaster->GetSpellHistory()->AddGlobalCooldown(gcd, Milliseconds(gcd->StartRecoveryTime));
     }
@@ -4466,6 +4515,7 @@ void Spell::finish(SpellCastResult result)
     if (result != SPELL_CAST_OK)
     {
         // on failure (or manual cancel) send TraitConfigCommitFailed to revert talent UI saved config selection
+        // 在失败（或手动取消）的情况下，发送‘特质配置提交失败（TraitConfigCommitFailed）’消息，以还原天赋界面中已保存的配置选择。
         if (m_caster->IsPlayer() && m_spellInfo->HasEffect(SPELL_EFFECT_CHANGE_ACTIVE_COMBAT_TRAIT_CONFIG))
             if (WorldPackets::Traits::TraitConfig const *traitConfig = std::any_cast<WorldPackets::Traits::TraitConfig>(&m_customArg))
                 m_caster->ToPlayer()->SendDirectMessage(WorldPackets::Traits::TraitConfigCommitFailed(traitConfig->ID).Write());
@@ -4482,6 +4532,7 @@ void Spell::finish(SpellCastResult result)
     if (unitCaster->GetTypeId() == TYPEID_UNIT && unitCaster->IsSummon())
     {
         // Unsummon statue
+        // 解散
         uint32 spell = unitCaster->m_unitData->CreatedBySpell;
         SpellInfo const *spellInfo = sSpellMgr->GetSpellInfo(spell, GetCastDifficulty());
         if (spellInfo && spellInfo->IconFileDataId == 134230)
@@ -4489,12 +4540,14 @@ void Spell::finish(SpellCastResult result)
             TC_LOG_DEBUG("spells", "Statue {} is unsummoned in spell {} finish", unitCaster->GetGUID().ToString(), m_spellInfo->Id);
             // Avoid infinite loops with setDeathState(JUST_DIED) being called over and over
             // It might make sense to do this check in Unit::setDeathState() and all overloaded functions
+            // 避免因反复调用 setDeathState (JUST_DIED) 而陷入无限循环。
+            // 在 Unit::setDeathState () 以及所有重载函数中进行此项检查可能是合理的做法。
             if (unitCaster->getDeathState() != JUST_DIED)
                 unitCaster->setDeathState(JUST_DIED);
             return;
         }
     }
-
+    // 若有需要，当客户端禁用了药水时，发送‘不在战斗中’这一事件
     // potions disabled by client, send event "not in combat" if need
     if (unitCaster->GetTypeId() == TYPEID_PLAYER)
     {
@@ -4503,6 +4556,7 @@ void Spell::finish(SpellCastResult result)
     }
 
     // Stop Attack for some spells
+    // 对于某些法术，停止攻击
     if (m_spellInfo->HasAttribute(SPELL_ATTR0_CANCELS_AUTO_ATTACK_COMBAT))
         unitCaster->AttackStop();
 }

@@ -3020,7 +3020,9 @@ void Unit::_UpdateSpells(uint32 time)
         }
     }
 }
-
+// 更新和处理自动重复施放法术的功能。
+// 这类法术在一些游戏中可能被称为“自动攻击”或“持续施法”，
+// 例如 MMORPG 中的射手或法师角色的持续射击或持续施法技能
 void Unit::_UpdateAutoRepeatSpell()
 {
     SpellInfo const *autoRepeatSpellInfo = m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_spellInfo;
@@ -5497,7 +5499,7 @@ void Unit::SendSpellNonMeleeDamageLog(SpellNonMeleeDamage const *log)
 
     SendCombatLogMessage(&packet);
 }
-
+// 处理技能和光环
 /*static*/ void Unit::ProcSkillsAndAuras(Unit *actor, Unit *actionTarget, ProcFlagsInit const &typeMaskActor, ProcFlagsInit const &typeMaskActionTarget,
                                          ProcFlagsSpellType spellTypeMask, ProcFlagsSpellPhase spellPhaseMask, ProcFlagsHit hitMask,
                                          Spell *spell, DamageInfo *damageInfo, HealInfo *healInfo)
@@ -5520,12 +5522,15 @@ void Unit::SendSpellNonMeleeDamageLog(SpellNonMeleeDamage const *log)
             return healInfo->GetSpellInfo();
         return nullptr;
     }();
+
+    // 触发技能与反应技能 反应技能一般类似 招架 格挡这类的
+    // 这里是攻击者
     if (typeMaskActor && actor && !(spellInfo && spellInfo->HasAttribute(SPELL_ATTR3_SUPPRESS_CASTER_PROCS)))
         actor->ProcSkillsAndReactives(false, actionTarget, typeMaskActor, hitMask, attType);
-
+    // 这里是被攻击者
     if (typeMaskActionTarget && actionTarget && !(spellInfo && spellInfo->HasAttribute(SPELL_ATTR3_SUPPRESS_TARGET_PROCS)))
         actionTarget->ProcSkillsAndReactives(true, actor, typeMaskActionTarget, hitMask, attType);
-
+    // 触发事件
     if (actor)
         actor->TriggerAurasProcOnEvent(nullptr, nullptr, actionTarget, typeMaskActor, typeMaskActionTarget, spellTypeMask, spellPhaseMask, hitMask, spell, damageInfo, healInfo);
 }
@@ -10246,36 +10251,43 @@ ProcFlagsHit createProcHitMask(SpellNonMeleeDamage *damageInfo, SpellMissInfo mi
 // 触发技能与反应技能
 void Unit::ProcSkillsAndReactives(bool isVictim, Unit *procTarget, ProcFlagsInit const &typeMask, ProcFlagsHit hitMask, WeaponAttackType /*attType*/)
 {
+    // 玩家现已加载完成 —— 不允许被动法术触发生效
     // Player is loaded now - do not allow passive spell casts to proc
     if (GetTypeId() == TYPEID_PLAYER && ToPlayer()->GetSession()->PlayerLoading())
         return;
 
     // For melee/ranged based attack need update skills and set some Aura states if victim present
+    // 对于近战 / 远程攻击而言，如果存在攻击目标（受害者），则需要更新技能并设置一些光环状态。
     if (typeMask & MELEE_BASED_TRIGGER_MASK && procTarget)
     {
         // If exist crit/parry/dodge/block need update aura state (for victim and attacker)
         if (hitMask & (PROC_HIT_CRITICAL | PROC_HIT_PARRY | PROC_HIT_DODGE | PROC_HIT_BLOCK))
         {
             // for victim
+            // 如果是被攻击
             if (isVictim)
             {
                 // if victim and dodge attack
+                // 如果存在受击目标（受害者）并且攻击被闪避
                 if (hitMask & PROC_HIT_DODGE)
                 {
                     // Update AURA_STATE on dodge
-                    if (GetClass() != CLASS_ROGUE) // skip Rogue Riposte
+                    // 在闪避时更新光环状态
+                    if (GetClass() != CLASS_ROGUE) // skip Rogue Riposte跳过盗贼的还击技能
                     {
                         ModifyAuraState(AURA_STATE_DEFENSIVE, true);
                         StartReactiveTimer(REACTIVE_DEFENSE);
                     }
                 }
                 // if victim and parry attack
+                // 如果存在受击目标并且攻击被招架
                 if (hitMask & PROC_HIT_PARRY)
                 {
                     ModifyAuraState(AURA_STATE_DEFENSIVE, true);
                     StartReactiveTimer(REACTIVE_DEFENSE);
                 }
                 // if and victim block attack
+                // 如果（存在相应情况）并且受击目标格挡了攻击
                 if (hitMask & PROC_HIT_BLOCK)
                 {
                     ModifyAuraState(AURA_STATE_DEFENSIVE, true);
@@ -12186,7 +12198,7 @@ bool Unit::CanApplyResilience() const
 
     *damage -= target->GetDamageReduction(*damage);
 }
-//计算aoe的闪避
+// 计算aoe的闪避
 int32 Unit::CalculateAOEAvoidance(int32 damage, uint32 schoolMask, bool npcCaster) const
 {
     damage = int32(float(damage) * GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_AOE_DAMAGE_AVOIDANCE, schoolMask));

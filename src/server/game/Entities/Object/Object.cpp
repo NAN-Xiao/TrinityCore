@@ -2339,7 +2339,7 @@ Player *WorldObject::GetAffectingPlayer() const
 
     return nullptr;
 }
-
+//法师修正的所有者
 Player *WorldObject::GetSpellModOwner() const
 {
     if (Player *player = const_cast<WorldObject *>(this)->ToPlayer())
